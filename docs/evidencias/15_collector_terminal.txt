@@ -1,0 +1,24 @@
+$ python -m backend.app.seed
+[seed] Banco recriado com 5 usuários e 16 demandas fictícias.
+[seed] Login gestor: gestor@visat.demo / visat123
+[seed] Login inspetor: rodrigo@visat.demo / visat123
+
+$ python -m collector.run
+[collector] Fonte: SEI (simulado)  ->  collector/data/sei_export.html
+[collector] Lidos: 10 | Novos: 8 | Duplicados: 0 | Inválidos: 2
+  + 21000.010231/2026-41
+  + 21000.010245/2026-07
+  + 21000.010262/2026-55
+  + 21000.010270/2026-19
+  + 21000.010288/2026-63
+  + 21000.010293/2026-02
+  + 21000.010301/2026-88
+  + 21000.010315/2026-34
+  ! Número SEI fora do padrão: '2100.10322/26'
+  ! Tipo de processo não mapeado: 'Licitação: Aquisição de Material'
+
+$ python -m collector.run      # segunda execução: idempotente
+[collector] Fonte: SEI (simulado)  ->  collector/data/sei_export.html
+[collector] Lidos: 10 | Novos: 0 | Duplicados: 8 | Inválidos: 2
+  ! Número SEI fora do padrão: '2100.10322/26'
+  ! Tipo de processo não mapeado: 'Licitação: Aquisição de Material'
