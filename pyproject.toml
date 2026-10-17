@@ -1,0 +1,18 @@
+[project]
+name = "visat-manager"
+version = "0.1.0"
+description = "Gestão das demandas de Vigilância em Saúde do Trabalhador (VISAT Recife) — CESAR School, Projeto 2, Grupo 6"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["B008", "UP042"]  # B008: Depends() é o idioma do FastAPI · UP042: (str, Enum) mantém compatibilidade
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
