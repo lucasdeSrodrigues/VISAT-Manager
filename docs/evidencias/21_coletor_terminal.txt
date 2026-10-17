@@ -1,0 +1,23 @@
+$ python -m backend.app.seed
+[seed] Banco recriado com 4 usuários e 28 demandas de exemplo (as do protótipo).
+[seed] Exportação simulada do SEI com 8 processos novos: sei_export.html
+
+$ python -m collector.run
+[collector] Fonte: SEI (simulado)  ->  collector/data/sei_export.html
+[collector] Lidos: 10 | Novos: 8 | Duplicados: 0 | Inválidos: 2
+  + 00089.000101/2026-04
+  + 00089.000102/2026-05
+  + 00089.000103/2026-06
+  + 00089.000104/2026-07
+  + 00089.000105/2026-08
+  + 00089.000106/2026-09
+  + 00089.000107/2026-10
+  + 00089.000108/2026-11
+  ! Número SEI fora do padrão: '89.123/26'
+  ! Tipo de processo não mapeado: 'Licitação: Aquisição de Material'
+
+$ python -m collector.run      # de novo: não duplica
+[collector] Fonte: SEI (simulado)  ->  collector/data/sei_export.html
+[collector] Lidos: 10 | Novos: 0 | Duplicados: 8 | Inválidos: 2
+  ! Número SEI fora do padrão: '89.123/26'
+  ! Tipo de processo não mapeado: 'Licitação: Aquisição de Material'
