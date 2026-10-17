@@ -1,7 +1,7 @@
-"""Grava o vídeo de demonstração da Sprint 1 (com legendas na tela).
+"""Grava o vídeo de demonstração (com legendas na tela) percorrendo os fluxos principais.
 
-Pré-requisito: servidor em http://localhost:8000 com banco recém-populado.
-Uso: python scripts/gravar_video.py   → docs/evidencias/demo_visat_manager.webm
+Pré-requisito: servidor em http://localhost:8000 com banco recém-criado (python -m backend.app.seed).
+Uso: python scripts/gravar_video.py  → docs/evidencias/demo_visat_manager.webm
 """
 
 import shutil
@@ -17,25 +17,20 @@ LEGENDA_JS = """(t) => {
   let el = document.getElementById('__legenda');
   if (!el) {
     el = document.createElement('div'); el.id = '__legenda';
-    el.style.cssText = 'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:9999;' +
-      'background:rgba(20,23,28,.92);color:#fff;font:600 19px/1.4 system-ui,Segoe UI,sans-serif;' +
-      'padding:12px 22px;border-radius:12px;border-left:6px solid #f2c14e;max-width:80%;text-align:center;' +
-      'box-shadow:0 8px 30px rgba(0,0,0,.35);transition:opacity .3s';
+    el.style.cssText = 'position:fixed;left:50%;bottom:26px;transform:translateX(-50%);' +
+      'z-index:9999;pointer-events:none;' +
+      'background:rgba(16,32,58,.94);color:#fff;font:600 19px/1.4 system-ui,Segoe UI,sans-serif;' +
+      'padding:12px 22px;border-radius:12px;border-left:6px solid #f59e0b;max-width:80%;text-align:center;' +
+      'box-shadow:0 8px 30px rgba(0,0,0,.35)';
     document.body.appendChild(el);
   }
-  el.textContent = t; el.style.opacity = t ? 1 : 0;
+  el.textContent = t; el.style.display = t ? 'block' : 'none';
 }"""
 
 
 def legenda(page, texto, espera=2600):
     page.evaluate(LEGENDA_JS, texto)
     page.wait_for_timeout(espera)
-
-
-def ir(page, hash_, seletor):
-    page.goto(f"{BASE}/{hash_}")
-    page.wait_for_selector(seletor)
-    page.wait_for_timeout(400)
 
 
 def main():
@@ -49,77 +44,83 @@ def main():
             locale="pt-BR",
         )
         page = ctx.new_page()
-        ir(page, "#/login", "#fLogin")
-        legenda(page, "VISAT Manager · Sprint 1 — gestão das demandas de Saúde do Trabalhador", 3200)
-        legenda(page, "Entrando como Gestora da VISAT", 1600)
-        page.click("[data-demo='gestor@visat.demo']")
+        page.goto(f"{BASE}/#/login")
+        page.wait_for_selector("#form-login")
+        legenda(page, "VISAT Manager · Sprint 1 — o protótipo agora com servidor e banco de dados", 3200)
+        page.type("#l-user", "marina.albuquerque", delay=25)
+        page.type("#l-pass", "demo", delay=25)
+        page.click("#form-login button[type=submit]")
         page.wait_for_selector(".kpis")
-        legenda(page, "Visão geral: recebidas, em andamento, concluídas e vencidas", 3200)
-        page.hover(".sino")
-        legenda(page, "O sino mostra quantas demandas estão vencidas ou urgentes", 2800)
-        legenda(page, "Sincronização com o SEI (coletor)", 1400)
-        page.click("#btnSync")
-        page.wait_for_selector(".banner")
-        page.click(".banner summary")
-        legenda(page, "10 processos lidos · 8 importados · 2 rejeitados com o motivo", 3600)
-        page.click("#btnSync")
-        page.wait_for_selector(".banner")
+        page.evaluate("document.getElementById('toast').innerHTML=''")
+        legenda(page, "Dashboard do Gestor: em aberto, sem responsável, vencidas e conclusões a aprovar", 3400)
+        page.click("[data-action='sincronizar']")
+        page.wait_for_selector("#toast .toast")
+        legenda(page, "Sincronização com o SEI: o coletor lê os processos, valida e importa", 3600)
+
+        page.goto(f"{BASE}/#/lista")
+        page.wait_for_selector(".tabela")
+        page.select_option("#f-resp", "none")
         page.wait_for_timeout(500)
-        legenda(page, "Rodando de novo: nenhuma duplicação (idempotente)", 3000)
+        legenda(page, "Demandas importadas chegam sem responsável", 2200)
+        for cb in page.query_selector_all("[data-check='linha']")[:3]:
+            cb.check()
+            page.wait_for_timeout(250)
+        page.click("[data-action='atribuirLote']")
+        page.select_option("#m-resp", "i3")
+        legenda(page, "Atribuição em lote a um inspetor", 2000)
+        page.click(".modal [data-m='ok']")
+        page.wait_for_timeout(1200)
 
-        ir(page, "#/radar", ".radar")
-        legenda(page, "Radar de prazos: vencidas, urgentes, atenção e prazo seguro", 3200)
-        page.mouse.wheel(0, 500)
-        legenda(page, "Acidente grave importado do SEI já aparece como vencido", 2800)
-
-        ir(page, "#/demandas?prioridade=ALTA&origem=SEI&abertas=1", ".tabela")
-        legenda(page, "Painel central com filtros: prioridade Alta + origem SEI", 3000)
-
-        ir(page, "#/demandas/nova", "#fNova")
-        legenda(page, "Cadastro manual para demandas que chegam fora do SEI", 2400)
-        page.click("button[type=submit]")
-        legenda(page, "Validação dos campos obrigatórios", 2200)
-        page.select_option("[name=tipo_ocorrencia]", "DENUNCIA_SINDICAL")
-        page.fill("[name=orgao_demandante]", "Sindicato dos Trabalhadores em Panificação")
-        page.fill("[name=empresa]", "Panificadora Pão Dourado Ltda")
-        page.select_option("[name=prioridade]", "ALTA")
-        page.type(
-            "[name=descricao]",
-            "Calor excessivo no setor de fornos e ausência de pausas para hidratação.",
-            delay=18,
-        )
-        page.click("button[type=submit]")
-        page.wait_for_selector(".timeline")
-        legenda(page, "Código MAN-AAAA-NNNN e prazo padrão aplicados automaticamente", 3200)
-        page.click("#fAvancar button")
-        page.wait_for_selector("#fAtribuir")
-        legenda(page, "Gestor registra a Triagem…", 2000)
-        page.select_option("#fAtribuir select", label="Rodrigo Albuquerque")
-        page.click("#fAtribuir button")
-        page.wait_for_timeout(700)
-        legenda(page, "…e designa o inspetor: tudo fica na linha do tempo", 3200)
+        page.goto(f"{BASE}/#/nova")
+        page.wait_for_selector("#form-nova")
+        legenda(page, "Cadastro manual, para o que chega fora do SEI", 1800)
+        page.type("#n-titulo", "Denúncia de fumaça e odor em cozinha de restaurante", delay=12)
+        page.fill("#n-estab", "Restaurante Maré Alta")
+        page.fill("#n-bairro", "Boa Viagem")
+        page.select_option("#n-resp", "i1")
+        page.select_option("#n-prior", "Alta")
+        page.click("button[data-destino='detalhes']")
+        page.wait_for_selector("#h-info")
+        legenda(page, "Número MAN-AAAA-NNNN e linha do tempo registrados no banco", 3000)
         url = page.url
 
-        page.click("#btnSair")
-        page.wait_for_selector("#fLogin")
-        legenda(page, "Agora como Inspetor", 1400)
-        page.click("[data-demo='rodrigo@visat.demo']")
-        page.wait_for_selector(".kpis")
-        legenda(page, "O inspetor vê apenas as demandas sob sua responsabilidade", 2800)
+        page.select_option("#troca", "i1")
+        page.wait_for_timeout(1200)
         page.goto(url)
-        page.wait_for_selector("#fAvancar")
-        page.fill("#fAvancar input", "Vistoria realizada; 41 °C medidos junto aos fornos.")
-        page.click("#fAvancar button")
-        page.wait_for_timeout(700)
-        page.set_input_files(
-            "#arquivo",
-            files=[{"name": "termo_de_inspecao.pdf", "mimeType": "application/pdf", "buffer": b"%PDF-1.4 demo"}],
-        )
+        page.wait_for_selector("#h-info")
+        legenda(page, "Agora como Inspetor: ele só vê as demandas dele", 2600)
+        page.select_option("#g-status", "Em andamento")
+        page.click("[data-action='atualizarStatus']")
+        page.wait_for_timeout(900)
+        page.click("[data-action='solicitarConclusao']")
+        page.type("#m-obs", "Vistoria realizada: coifa instalada e limpeza comprovada.", delay=12)
+        legenda(page, "O inspetor não conclui: solicita a conclusão ao Gestor", 2400)
+        page.click(".modal [data-m='ok']")
+        page.wait_for_timeout(1400)
+
+        page.select_option("#troca", "g1")
+        page.wait_for_timeout(1000)
+        page.goto(f"{BASE}/#/dashboard")
+        page.wait_for_selector("#h-aprov")
+        legenda(page, "O Gestor vê a solicitação e aprova", 2400)
+        page.query_selector_all("[data-action='aprovar']")[0].click()
         page.wait_for_timeout(800)
-        legenda(page, "Inspeção registrada e termo anexado como evidência", 3000)
-        legenda(page, "Concluir é exclusivo do Gestor (validado também na API)", 3000)
-        legenda(page, "50 testes automatizados · próximos passos: Sprint 2 (scraper agendado)", 3400)
-        legenda(page, "", 400)
+        page.click(".modal [data-m='ok']")
+        page.wait_for_timeout(1200)
+
+        page.goto(f"{BASE}/#/mapa")
+        page.wait_for_selector(".pino")
+        legenda(page, "Mapa de demandas: por bairro do Recife e por município da RMR", 3200)
+        page.select_option("#m-prazo", "vencidas")
+        page.wait_for_timeout(600)
+        page.click("#mapa-locais li.item")
+        legenda(page, "Filtro de vencidas: onde agir primeiro", 3000)
+
+        page.goto(f"{BASE}/#/relatorios")
+        page.wait_for_selector(".graf")
+        legenda(page, "Relatórios por período, com exportação em CSV e PDF", 3200)
+        legenda(page, "44 testes automatizados · próximo passo: Sprint 2 (sincronização agendada)", 3400)
+        legenda(page, "", 300)
         video = page.video
         ctx.close()
         nav.close()
