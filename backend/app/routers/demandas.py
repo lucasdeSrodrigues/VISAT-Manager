@@ -1,229 +1,179 @@
+"""Endpoints das demandas — um para cada ação do protótipo."""
+
 import re
+from contextlib import contextmanager
 from datetime import date
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
-from sqlalchemy import or_, select
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse, Response
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from .. import config, rules, services
+from .. import relatorios, services
 from ..database import get_db
-from ..models import Demanda, Documento, Etapa, Movimentacao, Origem, Perfil, Prioridade, TipoOcorrencia, Usuario
-from ..schemas import AtribuirIn, AvancarIn, DemandaCriar, DemandaDetalhe, DemandaEditar, ObservacaoIn, Pagina
-from ..security import exigir_gestor, usuario_atual
-from ..serializers import detalhe, resumo
+from ..models import Usuario
+from ..rules import PermissaoNegadaError, RegraNegocioError
+from ..security import usuario_atual
 
 router = APIRouter(prefix="/api/demandas", tags=["Demandas"])
 
-ORDENACOES = {
-    "prazo": Demanda.prazo_legal.asc(),
-    "-prazo": Demanda.prazo_legal.desc(),
-    "entrada": Demanda.data_entrada.asc(),
-    "-entrada": Demanda.data_entrada.desc(),
-}
 MAX_UPLOAD = 10 * 1024 * 1024
-EXT_PERMITIDAS = {".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".odt", ".txt"}
+EXT_BLOQUEADAS = {".exe", ".bat", ".cmd", ".com", ".msi", ".js", ".vbs", ".ps1", ".sh", ".dll", ".scr"}
 
 
-def _fmt(v):
-    return v.strftime("%d/%m/%Y") if isinstance(v, date) else getattr(v, "value", v)
-
-
-def query_visiveis(usuario: Usuario):
-    q = select(Demanda)
-    if usuario.perfil == Perfil.INSPETOR:
-        q = q.where(or_(Demanda.responsavel_id == usuario.id, Demanda.criado_por_id == usuario.id))
-    return q
-
-
-def obter(db: Session, demanda_id: int, usuario: Usuario) -> Demanda:
-    d = db.get(Demanda, demanda_id)
-    if not d:
-        raise HTTPException(404, "Demanda não encontrada.")
-    if not rules.pode_ver_demanda(usuario.perfil, usuario.id, d.responsavel_id, d.criado_por_id):
-        raise HTTPException(403, "Você não tem acesso a esta demanda.")
-    return d
-
-
-def tratar(fn):
+@contextmanager
+def erros():
+    """Converte as regras de negócio em respostas HTTP com a mesma mensagem do protótipo."""
     try:
-        return fn()
-    except rules.PermissaoNegadaError as e:
+        yield
+    except LookupError as e:
+        raise HTTPException(404, str(e)) from e
+    except PermissaoNegadaError as e:
         raise HTTPException(403, str(e)) from e
-    except rules.RegraNegocioError as e:
+    except RegraNegocioError as e:
         raise HTTPException(409, str(e)) from e
 
 
-@router.get("", response_model=Pagina)
-def listar(
-    usuario: Usuario = Depends(usuario_atual),
-    db: Session = Depends(get_db),
-    q: str | None = None,
-    etapa: list[Etapa] = Query(default=[]),
-    prioridade: list[Prioridade] = Query(default=[]),
-    origem: Origem | None = None,
-    tipo: TipoOcorrencia | None = None,
-    responsavel_id: int | None = None,
-    sem_responsavel: bool = False,
-    saude: str | None = None,
-    abertas: bool = False,
-    ordenar: str = "prazo",
-    pagina: int = Query(1, ge=1),
-    por_pagina: int = Query(20, ge=1, le=100),
-):
-    """Lista do Painel Central, filtrável por status, prioridade, responsável e origem (Fluxo de Dados)."""
-    stmt = query_visiveis(usuario)
-    if q:
-        termo = f"%{q.strip()}%"
-        stmt = stmt.where(
-            or_(
-                Demanda.codigo.ilike(termo),
-                Demanda.orgao_demandante.ilike(termo),
-                Demanda.empresa.ilike(termo),
-                Demanda.municipio.ilike(termo),
-                Demanda.descricao.ilike(termo),
-            )
-        )
-    if etapa:
-        stmt = stmt.where(Demanda.etapa.in_(etapa))
-    if abertas:
-        stmt = stmt.where(Demanda.etapa != Etapa.CONCLUIDA)
-    if prioridade:
-        stmt = stmt.where(Demanda.prioridade.in_(prioridade))
-    if origem:
-        stmt = stmt.where(Demanda.origem == origem)
-    if tipo:
-        stmt = stmt.where(Demanda.tipo_ocorrencia == tipo)
-    if responsavel_id:
-        stmt = stmt.where(Demanda.responsavel_id == responsavel_id)
-    if sem_responsavel:
-        stmt = stmt.where(Demanda.responsavel_id.is_(None))
-    # abertas primeiro; dentro de cada grupo, a ordenação escolhida
-    stmt = stmt.order_by(
-        (Demanda.etapa == Etapa.CONCLUIDA).asc(), ORDENACOES.get(ordenar, ORDENACOES["prazo"]), Demanda.id
+class NovaIn(BaseModel):
+    titulo: str
+    tipo: str = "Denúncia"
+    estabelecimento: str = ""
+    descricao: str = ""
+    resp: str | None = None
+    prioridade: str = "Média"
+    prazo: date | None = None
+    municipio: str | None = "Recife"
+    bairro: str | None = None
+
+
+class AtribuirIn(BaseModel):
+    ids: list[str]
+    resp: str | None = None
+
+
+class StatusIn(BaseModel):
+    status: str
+    obs: str | None = None
+
+
+class ObsIn(BaseModel):
+    obs: str = ""
+
+
+class GestaoIn(BaseModel):
+    resp: str | None = None
+    prioridade: str
+    prazo: date | None = None
+
+
+class TextoIn(BaseModel):
+    texto: str = ""
+
+
+def _resposta(db: Session, demanda_id: str, u: Usuario) -> dict:
+    db.expire_all()
+    return services.demanda_json(services.obter(db, u, demanda_id))
+
+
+@router.post("", status_code=201)
+def nova(dados: NovaIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        d = services.criar_manual(db, u, **dados.model_dump())
+        return _resposta(db, d.id, u)
+
+
+@router.post("/atribuir")
+def atribuir(dados: AtribuirIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        return {"alteradas": services.atribuir(db, u, dados.ids, dados.resp)}
+
+
+@router.get("/{demanda_id:path}/relatorio.pdf")
+def relatorio_pdf(demanda_id: str, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        d = services.obter(db, u, demanda_id)
+        pdf = relatorios.pdf_demanda(db, d)
+    nome = re.sub(r"[^\w-]", "_", d.id)
+    return Response(
+        pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="relatorio-{nome}.pdf"'},
     )
-    itens = [resumo(d) for d in db.scalars(stmt)]
-    if saude:  # calculado (depende de 'hoje'), filtrado após a consulta
-        itens = [i for i in itens if i.saude == saude.upper()]
-    ini = (pagina - 1) * por_pagina
-    return Pagina(itens=itens[ini : ini + por_pagina], total=len(itens), pagina=pagina, por_pagina=por_pagina)
 
 
-@router.post("", response_model=DemandaDetalhe, status_code=201)
-def criar_manual(dados: DemandaCriar, usuario: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
-    """Cadastro manual — demandas que chegam por outros meios (e-mail, ofício, presencial)."""
-    d = tratar(
-        lambda: services.registrar_entrada(
-            db,
-            origem=Origem.MANUAL,
-            tipo=dados.tipo_ocorrencia,
-            orgao=dados.orgao_demandante,
-            municipio=dados.municipio,
-            empresa=dados.empresa or None,
-            ramo=dados.ramo_atividade or None,
-            descricao=dados.descricao,
-            prioridade=dados.prioridade,
-            data_entrada=dados.data_entrada or date.today(),
-            prazo_legal=dados.prazo_legal,
-            autor=usuario,
+@router.get("/{demanda_id:path}/documentos/{doc_id:path}")
+def baixar(demanda_id: str, doc_id: str, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        d = services.obter(db, u, demanda_id)
+    doc = next((x for x in d.docs if x.id == doc_id), None)
+    if not doc:
+        raise HTTPException(404, "Documento não encontrado.")
+    if not doc.caminho:
+        raise HTTPException(404, "Documento de exemplo: o arquivo não foi armazenado.")
+    return FileResponse(doc.caminho, filename=doc.nome)
+
+
+@router.post("/{demanda_id:path}/status")
+def status(demanda_id: str, dados: StatusIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        services.mudar_status(db, u, services.obter(db, u, demanda_id), dados.status, dados.obs)
+        return _resposta(db, demanda_id, u)
+
+
+@router.post("/{demanda_id:path}/solicitar-conclusao")
+def solicitar(demanda_id: str, dados: ObsIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        services.solicitar_conclusao(db, u, services.obter(db, u, demanda_id), dados.obs)
+        return _resposta(db, demanda_id, u)
+
+
+@router.post("/{demanda_id:path}/aprovar")
+def aprovar(demanda_id: str, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        services.aprovar(db, u, services.obter(db, u, demanda_id))
+        return _resposta(db, demanda_id, u)
+
+
+@router.post("/{demanda_id:path}/devolver")
+def devolver(demanda_id: str, dados: ObsIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        services.devolver(db, u, services.obter(db, u, demanda_id), dados.obs)
+        return _resposta(db, demanda_id, u)
+
+
+@router.post("/{demanda_id:path}/gestao")
+def gestao(demanda_id: str, dados: GestaoIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        services.salvar_gestao(
+            db, u, services.obter(db, u, demanda_id), resp=dados.resp, prioridade=dados.prioridade, prazo=dados.prazo
         )
-    )
-    return detalhe(d, usuario)
+        return _resposta(db, demanda_id, u)
 
 
-@router.get("/{demanda_id}", response_model=DemandaDetalhe)
-def ver(demanda_id: int, usuario: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
-    return detalhe(obter(db, demanda_id, usuario), usuario)
+@router.post("/{demanda_id:path}/observacoes", status_code=201)
+def observacao(demanda_id: str, dados: TextoIn, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        services.observar(db, u, services.obter(db, u, demanda_id), dados.texto)
+        return _resposta(db, demanda_id, u)
 
 
-@router.patch("/{demanda_id}", response_model=DemandaDetalhe)
-def editar(
-    demanda_id: int, dados: DemandaEditar, gestor: Usuario = Depends(exigir_gestor), db: Session = Depends(get_db)
-):
-    d = obter(db, demanda_id, gestor)
-    if d.etapa == Etapa.CONCLUIDA:
-        raise HTTPException(409, "Demanda concluída não pode ser editada.")
-    mudancas = []
-    for campo, valor in dados.model_dump(exclude_none=True).items():
-        antigo = getattr(d, campo)
-        if campo == "prazo_legal" and valor < d.data_entrada:
-            raise HTTPException(422, "O prazo legal não pode ser anterior à data de entrada.")
-        if antigo != valor:
-            setattr(d, campo, valor)
-            mudancas.append(f"{campo.replace('_', ' ')}: {_fmt(antigo)} → {_fmt(valor)}")
-    if mudancas:
-        d.movimentacoes.append(
-            Movimentacao(etapa=None, autor_id=gestor.id, descricao="Dados alterados — " + "; ".join(mudancas))
-        )
-        db.commit()
-        db.refresh(d)
-    return detalhe(d, gestor)
-
-
-@router.post("/{demanda_id}/avancar", response_model=DemandaDetalhe)
-def avancar(
-    demanda_id: int, dados: AvancarIn, usuario: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)
-):
-    """Registra a próxima etapa da Linha do Tempo (validação sequencial + permissão)."""
-    d = obter(db, demanda_id, usuario)
-    return detalhe(tratar(lambda: services.avancar(db, d, dados.etapa, usuario, dados.descricao)), usuario)
-
-
-@router.post("/{demanda_id}/atribuir", response_model=DemandaDetalhe)
-def atribuir(
-    demanda_id: int, dados: AtribuirIn, gestor: Usuario = Depends(exigir_gestor), db: Session = Depends(get_db)
-):
-    d = obter(db, demanda_id, gestor)
-    insp = db.get(Usuario, dados.responsavel_id)
-    if not insp:
-        raise HTTPException(404, "Inspetor não encontrado.")
-    return detalhe(tratar(lambda: services.atribuir(db, d, insp, gestor)), gestor)
-
-
-@router.post("/{demanda_id}/observacoes", response_model=DemandaDetalhe, status_code=201)
-def observar(
-    demanda_id: int, dados: ObservacaoIn, usuario: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)
-):
-    d = obter(db, demanda_id, usuario)
-    d.movimentacoes.append(Movimentacao(etapa=None, descricao=dados.descricao.strip(), autor_id=usuario.id))
-    db.commit()
-    db.refresh(d)
-    return detalhe(d, usuario)
-
-
-@router.post("/{demanda_id}/documentos", response_model=DemandaDetalhe, status_code=201)
+@router.post("/{demanda_id:path}/documentos", status_code=201)
 async def anexar(
-    demanda_id: int,
-    arquivo: UploadFile = File(...),
-    usuario: Usuario = Depends(usuario_atual),
-    db: Session = Depends(get_db),
+    demanda_id: str, arquivo: UploadFile = File(...), u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)
 ):
-    d = obter(db, demanda_id, usuario)
-    nome = re.sub(r"[^\w.\- ]", "_", arquivo.filename or "documento")[:150]
+    nome = re.sub(r"[^\w.\- ()]", "_", arquivo.filename or "documento")[:150]
     ext = ("." + nome.rsplit(".", 1)[-1].lower()) if "." in nome else ""
-    if ext not in EXT_PERMITIDAS:
-        raise HTTPException(422, f"Tipo de arquivo não permitido. Use: {', '.join(sorted(EXT_PERMITIDAS))}")
+    if ext in EXT_BLOQUEADAS:
+        raise HTTPException(422, "Tipo de arquivo não permitido.")
     conteudo = await arquivo.read()
     if len(conteudo) > MAX_UPLOAD:
         raise HTTPException(413, "Arquivo maior que 10 MB.")
-    pasta = config.UPLOAD_DIR / str(d.id)
-    pasta.mkdir(parents=True, exist_ok=True)
-    doc = Documento(demanda_id=d.id, nome=nome, caminho="", tamanho=len(conteudo), autor_id=usuario.id)
-    db.add(doc)
-    db.flush()
-    destino = pasta / f"{doc.id}{ext}"
-    destino.write_bytes(conteudo)
-    doc.caminho = str(destino)
-    d.movimentacoes.append(Movimentacao(etapa=None, descricao=f"Documento anexado: {nome}", autor_id=usuario.id))
-    db.commit()
-    db.refresh(d)
-    return detalhe(d, usuario)
+    with erros():
+        services.anexar(db, u, services.obter(db, u, demanda_id), nome, conteudo)
+        return _resposta(db, demanda_id, u)
 
 
-@router.get("/{demanda_id}/documentos/{doc_id}")
-def baixar(demanda_id: int, doc_id: int, usuario: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
-    obter(db, demanda_id, usuario)
-    doc = db.get(Documento, doc_id)
-    if not doc or doc.demanda_id != demanda_id:
-        raise HTTPException(404, "Documento não encontrado.")
-    return FileResponse(doc.caminho, filename=doc.nome)
+@router.get("/{demanda_id:path}")
+def ver(demanda_id: str, u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    with erros():
+        return services.demanda_json(services.obter(db, u, demanda_id))

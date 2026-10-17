@@ -1,145 +1,348 @@
-"""Camada de serviços — 'Lógica da Aplicação' (item 4.3 da arquitetura).
-
-Ponto único por onde TODA demanda entra (SEI ou manual): `registrar_entrada`.
-Isso implementa o princípio 'fluxo único de acompanhamento, independentemente da origem'.
+"""Lógica da aplicação — cada função espelha uma ação do protótipo (seção 8 do index.html),
+com as mesmas mensagens e os mesmos textos no histórico, agora persistidos no banco.
 """
 
-from collections import Counter
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from . import config, rules
-from .models import Demanda, Etapa, Movimentacao, Origem, Perfil, Prioridade, TipoOcorrencia, Usuario
-from .rules import ROTULO_ETAPA, Ator
+from . import config, geo, rules
+from .models import Demanda, Documento, Evento, Parametro, Usuario
+from .rules import CONCLUIDA, MOTIVOS, PermissaoNegadaError, RegraNegocioError
 
 
-# ------------------------------------------------------------------ entrada
-def prazo_padrao(tipo: TipoOcorrencia, entrada: date) -> date:
-    return entrada + timedelta(days=config.PRAZO_PADRAO_DIAS[tipo.value])
+def agora() -> datetime:
+    return datetime.now().replace(second=0, microsecond=0)
 
 
-def proximo_codigo_manual(db: Session, ano: int) -> str:
-    prefixo = f"MAN-{ano}-"
-    ultimo = db.scalar(select(func.max(Demanda.codigo)).where(Demanda.codigo.like(f"{prefixo}%")))
-    seq = int(ultimo.rsplit("-", 1)[1]) + 1 if ultimo else 1
-    return f"{prefixo}{seq:04d}"
+def fdata(d: date) -> str:
+    return d.strftime("%d/%m/%Y")
 
 
-def registrar_entrada(
-    db: Session,
-    *,
-    origem: Origem,
-    tipo: TipoOcorrencia,
-    orgao: str,
-    municipio: str,
-    descricao: str,
-    data_entrada: date,
-    prazo_legal: date | None = None,
-    empresa: str | None = None,
-    ramo: str | None = None,
-    prioridade: Prioridade = Prioridade.MEDIA,
-    numero_sei: str | None = None,
-    autor: Usuario | None = None,
-    commit: bool = True,
-) -> Demanda:
-    if origem == Origem.SEI and not numero_sei:
-        raise rules.RegraNegocioError("Demanda de origem SEI exige número do processo.")
-    codigo = numero_sei if origem == Origem.SEI else proximo_codigo_manual(db, data_entrada.year)
-    d = Demanda(
-        codigo=codigo,
-        origem=origem,
-        numero_sei=numero_sei,
-        tipo_ocorrencia=tipo,
-        orgao_demandante=orgao,
-        municipio=municipio,
-        empresa=empresa,
-        ramo_atividade=ramo,
-        descricao=descricao,
-        prioridade=prioridade,
-        etapa=Etapa.RECEBIDA,
-        data_entrada=data_entrada,
-        prazo_legal=prazo_legal or prazo_padrao(tipo, data_entrada),
-        criado_por_id=autor.id if autor else None,
-    )
-    via = "sincronização com o SEI" if origem == Origem.SEI else "cadastro manual"
-    d.movimentacoes.append(
-        Movimentacao(
-            etapa=Etapa.RECEBIDA, autor_id=autor.id if autor else None, descricao=f"Solicitação recebida via {via}."
-        )
-    )
-    db.add(d)
-    db.flush()  # garante que o próximo código MAN-AAAA-NNNN enxergue este registro
-    if commit:
-        db.commit()
-        db.refresh(d)
+def nome_de(db: Session, uid: str | None) -> str:
+    if uid == "sei":
+        return "Sincronização SEI"
+    u = db.get(Usuario, uid) if uid else None
+    return u.nome if u else "—"
+
+
+def registrar(d: Demanda, tipo: str, texto: str, por: str, em: datetime | None = None) -> None:
+    d.historico.append(Evento(tipo=tipo, texto=texto, por=por, em=em or agora()))
+
+
+# ------------------------------------------------------------------ parâmetros
+def get_param(db: Session, chave: str, padrao: str = "") -> str:
+    p = db.get(Parametro, chave)
+    return p.valor if p else padrao
+
+
+def set_param(db: Session, chave: str, valor: str) -> None:
+    p = db.get(Parametro, chave)
+    if p:
+        p.valor = valor
+    else:
+        db.add(Parametro(chave=chave, valor=valor))
+
+
+# ------------------------------------------------------------------ consultas
+def visiveis(db: Session, u: Usuario) -> list[Demanda]:
+    q = select(Demanda)
+    if not rules.perm(u.perfil).ver_todas:
+        q = q.where(Demanda.responsavel_id == u.id)
+    return list(db.scalars(q.order_by(Demanda.criada.desc())))
+
+
+def obter(db: Session, u: Usuario, demanda_id: str) -> Demanda:
+    d = db.get(Demanda, demanda_id)
+    if not d:
+        raise LookupError("Demanda não encontrada.")
+    if not rules.pode_ver(u.perfil, u.id, d.responsavel_id):
+        raise PermissaoNegadaError(MOTIVOS["ver"])
     return d
 
 
-# --------------------------------------------------------------- linha do tempo
-def ator_de(usuario: Usuario, demanda: Demanda) -> Ator:
-    return Ator(perfil=usuario.perfil, eh_responsavel=demanda.responsavel_id == usuario.id)
+def _dt(v: datetime | None) -> str | None:
+    return v.strftime("%Y-%m-%dT%H:%M") if v else None
 
 
-def avancar(db: Session, demanda: Demanda, destino: Etapa, usuario: Usuario, descricao: str = "") -> Demanda:
-    rules.validar_transicao(demanda.etapa, destino, ator_de(usuario, demanda), demanda.responsavel_id is not None)
-    demanda.etapa = destino
-    if destino == Etapa.CONCLUIDA:
-        demanda.concluida_em = date.today()
-    texto = descricao.strip() or f"Etapa '{ROTULO_ETAPA[destino]}' registrada."
-    demanda.movimentacoes.append(Movimentacao(etapa=destino, descricao=texto, autor_id=usuario.id))
-    db.commit()
-    db.refresh(demanda)
-    return demanda
-
-
-def atribuir(db: Session, demanda: Demanda, inspetor: Usuario, gestor: Usuario) -> Demanda:
-    if not rules.pode_atribuir(gestor.perfil):
-        raise rules.PermissaoNegadaError("Apenas o Gestor atribui responsáveis.")
-    if inspetor.perfil != Perfil.INSPETOR or not inspetor.ativo:
-        raise rules.RegraNegocioError("O responsável precisa ser um inspetor ativo.")
-    if demanda.etapa == Etapa.CONCLUIDA:
-        raise rules.RegraNegocioError("Demanda concluída não pode ser reatribuída.")
-    anterior = demanda.responsavel.nome if demanda.responsavel else None
-    demanda.responsavel_id = inspetor.id
-    texto = (
-        f"Responsável alterado de {anterior} para {inspetor.nome}."
-        if anterior
-        else f"{inspetor.nome} atribuído(a) como responsável."
-    )
-    demanda.movimentacoes.append(Movimentacao(etapa=None, descricao=texto, autor_id=gestor.id))
-    db.flush()
-    # Se está em triagem, a designação conclui a etapa "Inspetor designado".
-    if demanda.etapa == Etapa.TRIAGEM:
-        db.refresh(demanda)
-        return avancar(db, demanda, Etapa.INSPETOR_DESIGNADO, gestor, f"Inspetor designado: {inspetor.nome}.")
-    db.commit()
-    db.refresh(demanda)
-    return demanda
-
-
-# ------------------------------------------------------------------- dashboard
-def visao_geral(db: Session, demandas: list[Demanda], hoje: date | None = None) -> dict:
-    hoje = hoje or date.today()
-    abertas = [d for d in demandas if d.etapa != Etapa.CONCLUIDA]
-    concluidas = [d for d in demandas if d.etapa == Etapa.CONCLUIDA]
-    faixas = Counter(rules.classificar_prazo(d.prazo_legal, d.etapa, hoje) for d in abertas)
-    no_prazo = [d for d in concluidas if d.concluida_em and d.concluida_em <= d.prazo_legal]
-    tempos = [(d.concluida_em - d.data_entrada).days for d in concluidas if d.concluida_em]
-    carga = Counter(d.responsavel.nome for d in abertas if d.responsavel)
-    inspetores = db.scalars(select(Usuario).where(Usuario.perfil == Perfil.INSPETOR, Usuario.ativo)).all()
+def demanda_json(d: Demanda) -> dict:
+    """Formato exato do objeto `demanda` do protótipo (+ municipio/bairro)."""
     return {
-        "recebidas": len(demandas),
-        "em_andamento": len(abertas),
-        "concluidas": len(concluidas),
-        "sem_responsavel": sum(1 for d in abertas if d.responsavel_id is None),
-        "radar": {f: faixas.get(f, 0) for f in rules.FAIXAS_RADAR},
-        "alertas": faixas.get(rules.VENCIDA, 0) + faixas.get(rules.URGENTE, 0),
-        "pct_concluidas_no_prazo": round(100 * len(no_prazo) / len(concluidas)) if concluidas else None,
-        "tempo_medio_resposta_dias": round(sum(tempos) / len(tempos), 1) if tempos else None,
-        "carga_por_inspetor": sorted(
-            ({"nome": u.nome, "abertas": carga.get(u.nome, 0)} for u in inspetores), key=lambda x: -x["abertas"]
-        ),
-        "por_tipo": Counter(d.tipo_ocorrencia.value for d in demandas).most_common(),
+        "id": d.id,
+        "origem": d.origem,
+        "titulo": d.titulo,
+        "descricao": d.descricao,
+        "tipo": d.tipo,
+        "estabelecimento": d.estabelecimento,
+        "municipio": d.municipio,
+        "bairro": d.bairro,
+        "prioridade": d.prioridade,
+        "status": d.status,
+        "responsavel": d.responsavel_id,
+        "prazo": d.prazo.isoformat(),
+        "criada": _dt(d.criada),
+        "concluidaEm": _dt(d.concluida_em),
+        "conclusaoSolicitada": {"por": d.sol_por, "em": _dt(d.sol_em), "obs": d.sol_obs} if d.sol_por else None,
+        "docs": [
+            {"id": x.id, "nome": x.nome, "tam": x.tam, "por": x.por, "em": _dt(x.em), "arquivo": bool(x.caminho)}
+            for x in d.docs
+        ],
+        "historico": [{"tipo": e.tipo, "por": e.por, "em": _dt(e.em), "texto": e.texto} for e in d.historico],
     }
+
+
+# ------------------------------------------------------------------ entrada
+def proximo_id_manual(db: Session, ano: int) -> str:
+    prefixo = f"MAN-{ano}-"
+    ultimo = db.scalar(select(func.max(Demanda.id)).where(Demanda.id.like(f"{prefixo}%")))
+    n = int(ultimo.rsplit("-", 1)[1]) + 1 if ultimo else 1
+    return f"{prefixo}{n:04d}"
+
+
+def _validar_local(municipio: str | None, bairro: str | None) -> tuple[str, str | None]:
+    municipio = (municipio or "Recife").strip()
+    if municipio not in geo.MUNICIPIOS:
+        raise RegraNegocioError("Município fora da Região Metropolitana do Recife.")
+    bairro = (bairro or "").strip() or None
+    return municipio, bairro
+
+
+def criar_manual(
+    db: Session,
+    u: Usuario,
+    *,
+    titulo: str,
+    tipo: str,
+    estabelecimento: str = "",
+    descricao: str = "",
+    resp: str | None = None,
+    prioridade: str = "Média",
+    prazo: date | None = None,
+    municipio: str | None = None,
+    bairro: str | None = None,
+) -> Demanda:
+    """FORMS.nova do protótipo. Inspetor: atribuída a ele, prioridade Média e prazo padrão."""
+    p = rules.perm(u.perfil)
+    titulo = (titulo or "").strip()
+    if not titulo:
+        raise RegraNegocioError("Informe o título da demanda.")
+    if tipo not in rules.TIPOS:
+        raise RegraNegocioError("Tipo inválido.")
+    hoje = date.today()
+    if p.atribuir_no_cadastro:
+        if prioridade not in rules.PRIORIDADES:
+            raise RegraNegocioError("Prioridade inválida.")
+        if not prazo:
+            raise RegraNegocioError("Informe o prazo.")
+        if prazo < hoje:
+            raise RegraNegocioError("O prazo não pode estar no passado.")
+        if resp:
+            alvo = db.get(Usuario, resp)
+            if not alvo or alvo.perfil != "inspetor":
+                raise RegraNegocioError("Responsável deve ser um inspetor.")
+    else:
+        resp, prioridade, prazo = u.id, "Média", hoje + timedelta(days=config.DIAS_PRAZO_PADRAO)
+    municipio, bairro = _validar_local(municipio, bairro)
+    d = Demanda(
+        id=proximo_id_manual(db, hoje.year),
+        origem="Manual",
+        titulo=titulo[:140],
+        descricao=(descricao or "").strip()[:2000],
+        tipo=tipo,
+        estabelecimento=(estabelecimento or "").strip()[:120],
+        municipio=municipio,
+        bairro=bairro,
+        prioridade=prioridade,
+        status="Nova",
+        responsavel_id=resp or None,
+        prazo=prazo,
+        criada=agora(),
+    )
+    registrar(d, "criacao", "Demanda cadastrada manualmente", u.id)
+    if resp:
+        txt = (
+            f"Atribuída a {nome_de(db, resp)}"
+            if p.atribuir_no_cadastro
+            else f"Atribuída automaticamente a {nome_de(db, resp)}"
+        )
+        registrar(d, "reatribuicao", txt, u.id)
+    db.add(d)
+    db.commit()
+    return d
+
+
+def registrar_sei(
+    db: Session,
+    *,
+    id_sei: str,
+    titulo: str,
+    tipo: str,
+    estabelecimento: str,
+    prioridade: str,
+    municipio: str,
+    bairro: str | None,
+    autuacao: date,
+    descricao: str = "",
+) -> Demanda:
+    """Entrada pela sincronização com o SEI (usada pelo coletor). Não faz commit."""
+    prazo = autuacao + timedelta(days=config.PRAZO_SEI_POR_TIPO.get(tipo, config.DIAS_PRAZO_PADRAO))
+    d = Demanda(
+        id=id_sei,
+        origem="SEI",
+        titulo=titulo,
+        descricao=descricao or "Demanda importada automaticamente do SEI.",
+        tipo=tipo,
+        estabelecimento=estabelecimento,
+        municipio=municipio,
+        bairro=bairro,
+        prioridade=prioridade,
+        status="Nova",
+        responsavel_id=None,
+        prazo=prazo,
+        criada=agora(),
+    )
+    registrar(d, "criacao", "Demanda importada do SEI", "sei")
+    db.add(d)
+    db.flush()
+    return d
+
+
+# ------------------------------------------------------------------ ações
+def atribuir(db: Session, u: Usuario, ids: list[str], resp: str | None, commit: bool = True) -> int:
+    if not rules.perm(u.perfil).atribuir:
+        raise PermissaoNegadaError(MOTIVOS["atribuir"])
+    if resp:
+        alvo = db.get(Usuario, resp)
+        if not alvo or alvo.perfil != "inspetor":
+            raise RegraNegocioError("Responsável deve ser um inspetor.")
+    n = 0
+    for demanda_id in ids:
+        d = db.get(Demanda, demanda_id)
+        if not d or d.responsavel_id == (resp or None):
+            continue
+        ant = d.responsavel_id
+        d.responsavel_id = resp or None
+        texto = (
+            f"Responsável alterado de {nome_de(db, ant)} para {nome_de(db, resp) if resp else 'sem responsável'}"
+            if ant
+            else f"Atribuída a {nome_de(db, resp)}"
+        )
+        registrar(d, "reatribuicao", texto, u.id)
+        n += 1
+    if commit:
+        db.commit()
+    return n
+
+
+def _concluir(d: Demanda, obs: str, por: str) -> None:
+    d.status, d.concluida_em = CONCLUIDA, agora()
+    d.sol_por = d.sol_em = d.sol_obs = None
+    registrar(d, "conclusao", f"Demanda concluída. Observação: {obs}", por)
+
+
+def mudar_status(db: Session, u: Usuario, d: Demanda, novo: str, obs: str | None = None) -> str:
+    tipo = rules.validar_mudanca_status(u.perfil, d.status, novo, obs)
+    if tipo == "concluir":
+        _concluir(d, obs.strip(), u.id)
+    elif tipo == "reabrir":
+        d.status, d.concluida_em = novo, None
+        registrar(d, "status", f"Demanda reaberta ({novo}). Motivo: {obs.strip()}", u.id)
+    else:
+        registrar(d, "status", f"Alterado de {d.status} para {novo}", u.id)
+        d.status = novo
+    db.commit()
+    return tipo
+
+
+def solicitar_conclusao(db: Session, u: Usuario, d: Demanda, obs: str) -> None:
+    if not rules.perm(u.perfil).solicitar_conclusao:
+        raise PermissaoNegadaError("Somente Inspetor solicita conclusão; o Gestor conclui diretamente.")
+    if not rules.aberta(d.status):
+        raise PermissaoNegadaError(MOTIVOS["reabrir"])
+    if d.sol_por:
+        raise RegraNegocioError(MOTIVOS["solicitarPendente"])
+    obs = (obs or "").strip()
+    if not obs:
+        raise RegraNegocioError("A observação é obrigatória para solicitar a conclusão.")
+    d.sol_por, d.sol_em, d.sol_obs = u.id, agora(), obs
+    registrar(d, "status", f"Conclusão solicitada ao Gestor: {obs}", u.id)
+    db.commit()
+
+
+def aprovar(db: Session, u: Usuario, d: Demanda) -> None:
+    if not rules.perm(u.perfil).aprovar_conclusao:
+        raise PermissaoNegadaError(MOTIVOS["concluir"])
+    if not d.sol_por:
+        raise RegraNegocioError("Não há conclusão solicitada para esta demanda.")
+    _concluir(d, f"{d.sol_obs} (aprovada pelo Gestor)", u.id)
+    db.commit()
+
+
+def devolver(db: Session, u: Usuario, d: Demanda, obs: str) -> None:
+    if not rules.perm(u.perfil).aprovar_conclusao:
+        raise PermissaoNegadaError(MOTIVOS["concluir"])
+    if not d.sol_por:
+        raise RegraNegocioError("Não há conclusão solicitada para esta demanda.")
+    obs = (obs or "").strip()
+    if not obs:
+        raise RegraNegocioError("Informe o motivo da devolução.")
+    d.sol_por = d.sol_em = d.sol_obs = None
+    registrar(d, "status", f"Conclusão devolvida ao inspetor. Motivo: {obs}", u.id)
+    db.commit()
+
+
+def salvar_gestao(
+    db: Session, u: Usuario, d: Demanda, *, resp: str | None, prioridade: str, prazo: date | None
+) -> None:
+    p = rules.perm(u.perfil)
+    if not (p.atribuir or p.prioridade_prazo):
+        raise PermissaoNegadaError(MOTIVOS["atribuir"])
+    if not prazo:
+        raise RegraNegocioError("Informe o prazo.")
+    if prazo != d.prazo and prazo < date.today():
+        raise RegraNegocioError("O prazo não pode estar no passado.")
+    if prioridade not in rules.PRIORIDADES:
+        raise RegraNegocioError("Prioridade inválida.")
+    m_resp, m_pr, m_pz = (resp or None) != d.responsavel_id, prioridade != d.prioridade, prazo != d.prazo
+    if not (m_resp or m_pr or m_pz):
+        raise RegraNegocioError("Nenhuma alteração para salvar.")
+    if m_resp:
+        atribuir(db, u, [d.id], resp, commit=False)
+    partes = []
+    if m_pr:
+        partes.append(f"prioridade de {d.prioridade} para {prioridade}")
+        d.prioridade = prioridade
+    if m_pz:
+        partes.append(f"prazo de {fdata(d.prazo)} para {fdata(prazo)}")
+        d.prazo = prazo
+    if partes:
+        registrar(d, "edicao", f"Alterado: {'; '.join(partes)}", u.id)
+    db.commit()
+
+
+def observar(db: Session, u: Usuario, d: Demanda, texto: str) -> None:
+    if not rules.pode_conteudo(u.perfil, u.id, d.responsavel_id, d.status):
+        raise PermissaoNegadaError(MOTIVOS["conteudo"])
+    texto = (texto or "").strip()
+    if not texto:
+        raise RegraNegocioError("Escreva a observação antes de registrar.")
+    registrar(d, "observacao", texto[:4000], u.id)
+    db.commit()
+
+
+def anexar(db: Session, u: Usuario, d: Demanda, nome: str, conteudo: bytes) -> Documento:
+    if not rules.pode_conteudo(u.perfil, u.id, d.responsavel_id, d.status):
+        raise PermissaoNegadaError(MOTIVOS["conteudo"])
+    em = agora()
+    doc_id = f"{d.id}-d{int(datetime.now().timestamp() * 1000)}"
+    pasta = config.UPLOAD_DIR / "".join(c if c.isalnum() else "_" for c in d.id)
+    pasta.mkdir(parents=True, exist_ok=True)
+    ext = ("." + nome.rsplit(".", 1)[-1].lower()) if "." in nome else ""
+    destino = pasta / f"{doc_id.rsplit('-d', 1)[1]}{ext}"
+    destino.write_bytes(conteudo)
+    doc = Documento(id=doc_id, nome=nome, tam=len(conteudo), por=u.id, em=em, caminho=str(destino))
+    d.docs.append(doc)
+    registrar(d, "documento", f"Anexado: {nome}", u.id, em)
+    db.commit()
+    return doc

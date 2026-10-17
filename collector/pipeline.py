@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app import services
-from backend.app.models import Demanda, Origem
+from backend.app.models import Demanda
 
 from .normalizer import RegistroInvalido, normalizar
 from .sources.base import FonteDeDemandas
@@ -22,14 +22,14 @@ class ResultadoSync:
     duplicados: int = 0
     invalidos: int = 0
     erros: list[str] = field(default_factory=list)
-    codigos_novos: list[str] = field(default_factory=list)
+    ids_novos: list[str] = field(default_factory=list)
 
 
 def sincronizar(db: Session, fonte: FonteDeDemandas) -> ResultadoSync:
     res = ResultadoSync()
     brutos = fonte.coletar()
     res.lidos = len(brutos)
-    existentes = set(db.scalars(select(Demanda.numero_sei).where(Demanda.numero_sei.is_not(None))))
+    existentes = set(db.scalars(select(Demanda.id).where(Demanda.origem == "SEI")))
     for bruto in brutos:
         try:
             n = normalizar(bruto)
@@ -37,24 +37,23 @@ def sincronizar(db: Session, fonte: FonteDeDemandas) -> ResultadoSync:
             res.invalidos += 1
             res.erros.append(str(e))
             continue
-        if n.numero_sei in existentes:  # idempotência: rodar 2x não duplica
+        if n.id_sei in existentes:  # idempotência: rodar de novo não duplica
             res.duplicados += 1
             continue
-        services.registrar_entrada(
+        services.registrar_sei(
             db,
-            origem=Origem.SEI,
-            numero_sei=n.numero_sei,
+            id_sei=n.id_sei,
+            titulo=n.titulo,
             tipo=n.tipo,
-            orgao=n.orgao,
-            municipio=n.municipio,
-            empresa=n.empresa,
-            descricao=n.descricao,
-            data_entrada=n.data_entrada,
+            estabelecimento=n.estabelecimento,
             prioridade=n.prioridade,
-            commit=False,
+            municipio=n.municipio,
+            bairro=n.bairro,
+            autuacao=n.autuacao,
         )
-        existentes.add(n.numero_sei)
+        existentes.add(n.id_sei)
         res.novos += 1
-        res.codigos_novos.append(n.numero_sei)
+        res.ids_novos.append(n.id_sei)
+    services.set_param(db, "ultima_sync", services.agora().strftime("%Y-%m-%dT%H:%M"))
     db.commit()
     return res

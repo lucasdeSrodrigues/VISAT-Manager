@@ -1,122 +1,92 @@
-"""Modelo de dados — espelha o item 4.4 (Banco de Dados) da Definição da Arquitetura."""
+"""Modelo de dados — mesmo formato de demanda usado no protótipo (index.html).
 
-import enum
+Demanda: id, origem, titulo, descricao, tipo, estabelecimento, prioridade, status,
+responsavel, prazo, criada, docs, conclusaoSolicitada, concluidaEm, historico
+(+ municipio e bairro, usados pelo Mapa de demandas).
+"""
+
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
 
 
-class Perfil(str, enum.Enum):
-    GESTOR = "GESTOR"
-    INSPETOR = "INSPETOR"
-
-
-class Origem(str, enum.Enum):
-    SEI = "SEI"
-    MANUAL = "MANUAL"
-
-
-class Prioridade(str, enum.Enum):
-    ALTA = "ALTA"
-    MEDIA = "MEDIA"
-    BAIXA = "BAIXA"
-
-
-class TipoOcorrencia(str, enum.Enum):
-    REQUISICAO_MPT = "REQUISICAO_MPT"
-    DENUNCIA_SINDICAL = "DENUNCIA_SINDICAL"
-    DEMANDA_CONSELHO_SAUDE = "DEMANDA_CONSELHO_SAUDE"
-    ACIDENTE_GRAVE_FATAL = "ACIDENTE_GRAVE_FATAL"
-    DOENCA_TRABALHO = "DOENCA_TRABALHO"
-    INSPECAO_AMBIENTE = "INSPECAO_AMBIENTE"
-    SOLICITACAO_INFORMACAO = "SOLICITACAO_INFORMACAO"
-
-
-class Etapa(str, enum.Enum):
-    """Etapas da Linha do Tempo, na ordem do wireframe 'Detalhe da demanda'."""
-
-    RECEBIDA = "RECEBIDA"
-    TRIAGEM = "TRIAGEM"
-    INSPETOR_DESIGNADO = "INSPETOR_DESIGNADO"
-    INSPECAO_REALIZADA = "INSPECAO_REALIZADA"
-    RELATORIO = "RELATORIO"
-    CONCLUIDA = "CONCLUIDA"
-
-
 class Usuario(Base):
     __tablename__ = "usuarios"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)  # g1, i1, i2…
     nome: Mapped[str] = mapped_column(String(120))
-    email: Mapped[str] = mapped_column(String(120), unique=True, index=True)
-    senha_hash: Mapped[str] = mapped_column(String(200))
-    perfil: Mapped[Perfil] = mapped_column(Enum(Perfil))
+    cargo: Mapped[str] = mapped_column(String(120))
+    perfil: Mapped[str] = mapped_column(String(20))  # gestor | inspetor
     ativo: Mapped[bool] = mapped_column(default=True)
 
 
 class Sessao(Base):
     __tablename__ = "sessoes"
     token: Mapped[str] = mapped_column(String(64), primary_key=True)
-    usuario_id: Mapped[int] = mapped_column(ForeignKey("usuarios.id"))
+    usuario_id: Mapped[str] = mapped_column(ForeignKey("usuarios.id"))
     expira_em: Mapped[datetime] = mapped_column(DateTime)
     usuario: Mapped[Usuario] = relationship()
 
 
+class Parametro(Base):
+    """Pares chave/valor do sistema (ex.: data da última sincronização com o SEI)."""
+
+    __tablename__ = "parametros"
+    chave: Mapped[str] = mapped_column(String(40), primary_key=True)
+    valor: Mapped[str] = mapped_column(String(200))
+
+
 class Demanda(Base):
     __tablename__ = "demandas"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    codigo: Mapped[str] = mapped_column(String(40), unique=True, index=True)
-    origem: Mapped[Origem] = mapped_column(Enum(Origem))
-    numero_sei: Mapped[str | None] = mapped_column(String(40), unique=True, nullable=True)
-    tipo_ocorrencia: Mapped[TipoOcorrencia] = mapped_column(Enum(TipoOcorrencia))
-    orgao_demandante: Mapped[str] = mapped_column(String(160))
-    municipio: Mapped[str] = mapped_column(String(80), index=True)
-    empresa: Mapped[str | None] = mapped_column(String(160), nullable=True)
-    ramo_atividade: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)  # 00089.000001/2026-01 ou MAN-2026-0001
+    origem: Mapped[str] = mapped_column(String(10))  # SEI | Manual
+    titulo: Mapped[str] = mapped_column(String(140))
     descricao: Mapped[str] = mapped_column(Text, default="")
-    prioridade: Mapped[Prioridade] = mapped_column(Enum(Prioridade), default=Prioridade.MEDIA)
-    etapa: Mapped[Etapa] = mapped_column(Enum(Etapa), default=Etapa.RECEBIDA, index=True)
-    data_entrada: Mapped[date] = mapped_column(Date)
-    prazo_legal: Mapped[date] = mapped_column(Date, index=True)
-    concluida_em: Mapped[date | None] = mapped_column(Date, nullable=True)
-    responsavel_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True)
-    criado_por_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True)
+    tipo: Mapped[str] = mapped_column(String(40))
+    estabelecimento: Mapped[str] = mapped_column(String(120), default="")
+    municipio: Mapped[str] = mapped_column(String(80), default="Recife")
+    bairro: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    prioridade: Mapped[str] = mapped_column(String(10), default="Média")
+    status: Mapped[str] = mapped_column(String(30), default="Nova", index=True)
+    responsavel_id: Mapped[str | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True, index=True)
+    prazo: Mapped[date] = mapped_column(Date, index=True)
+    criada: Mapped[datetime] = mapped_column(DateTime)
+    concluida_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # conclusão solicitada pelo inspetor, aguardando o Gestor
+    sol_por: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    sol_em: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    sol_obs: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    responsavel: Mapped[Usuario | None] = relationship(foreign_keys=[responsavel_id])
-    movimentacoes: Mapped[list["Movimentacao"]] = relationship(
-        back_populates="demanda", order_by="Movimentacao.id", cascade="all, delete-orphan"
+    historico: Mapped[list["Evento"]] = relationship(
+        back_populates="demanda", order_by="Evento.em, Evento.id", cascade="all, delete-orphan"
     )
-    documentos: Mapped[list["Documento"]] = relationship(
-        back_populates="demanda", order_by="Documento.id", cascade="all, delete-orphan"
+    docs: Mapped[list["Documento"]] = relationship(
+        back_populates="demanda", order_by="Documento.em, Documento.id", cascade="all, delete-orphan"
     )
 
 
-class Movimentacao(Base):
-    """Registro imutável do histórico — base da rastreabilidade."""
+class Evento(Base):
+    """Linha do tempo / histórico — só inclusão, nunca edição (rastreabilidade)."""
 
-    __tablename__ = "movimentacoes"
+    __tablename__ = "eventos"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    demanda_id: Mapped[int] = mapped_column(ForeignKey("demandas.id"), index=True)
-    etapa: Mapped[Etapa | None] = mapped_column(Enum(Etapa), nullable=True)  # None = observação
-    descricao: Mapped[str] = mapped_column(Text)
-    autor_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True)  # None = sistema
-    criada_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-
-    demanda: Mapped[Demanda] = relationship(back_populates="movimentacoes")
-    autor: Mapped[Usuario | None] = relationship()
+    demanda_id: Mapped[str] = mapped_column(ForeignKey("demandas.id"), index=True)
+    tipo: Mapped[str] = mapped_column(String(20))  # criacao status documento observacao reatribuicao edicao conclusao
+    por: Mapped[str] = mapped_column(String(20))  # id do usuário ou "sei"
+    em: Mapped[datetime] = mapped_column(DateTime)
+    texto: Mapped[str] = mapped_column(Text)
+    demanda: Mapped[Demanda] = relationship(back_populates="historico")
 
 
 class Documento(Base):
     __tablename__ = "documentos"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    demanda_id: Mapped[int] = mapped_column(ForeignKey("demandas.id"), index=True)
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    demanda_id: Mapped[str] = mapped_column(ForeignKey("demandas.id"), index=True)
     nome: Mapped[str] = mapped_column(String(200))
-    caminho: Mapped[str] = mapped_column(String(300))
-    tamanho: Mapped[int] = mapped_column(Integer)
-    autor_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id"), nullable=True)
-    criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-
-    demanda: Mapped[Demanda] = relationship(back_populates="documentos")
-    autor: Mapped[Usuario | None] = relationship()
+    tam: Mapped[int] = mapped_column(Integer)
+    por: Mapped[str] = mapped_column(String(20))
+    em: Mapped[datetime] = mapped_column(DateTime)
+    caminho: Mapped[str | None] = mapped_column(String(300), nullable=True)  # None = registro de exemplo sem arquivo
+    demanda: Mapped[Demanda] = relationship(back_populates="docs")

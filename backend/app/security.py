@@ -1,10 +1,10 @@
-"""Autenticação simples por token de sessão (adequada ao MVP acadêmico).
+"""Sessão por token.
 
-Senhas com PBKDF2-SHA256 + salt. Em produção: SSO/LDAP da Prefeitura (ver docs/decisoes.md).
+Login de DEMONSTRAÇÃO, idêntico ao protótipo: usuário e senha precisam estar preenchidos
+e o perfil é escolhido na tela. Autenticação real (SSO/LDAP da Prefeitura) é evolução
+planejada — ver docs/decisoes.md.
 """
 
-import hashlib
-import hmac
 import secrets
 from datetime import datetime, timedelta
 
@@ -13,24 +13,7 @@ from sqlalchemy.orm import Session
 
 from . import config
 from .database import get_db
-from .models import Perfil, Sessao, Usuario
-
-_ITER = 120_000
-
-
-def hash_senha(senha: str) -> str:
-    salt = secrets.token_hex(16)
-    dig = hashlib.pbkdf2_hmac("sha256", senha.encode(), bytes.fromhex(salt), _ITER).hex()
-    return f"pbkdf2${salt}${dig}"
-
-
-def verificar_senha(senha: str, armazenado: str) -> bool:
-    try:
-        _, salt, dig = armazenado.split("$")
-    except ValueError:
-        return False
-    calc = hashlib.pbkdf2_hmac("sha256", senha.encode(), bytes.fromhex(salt), _ITER).hex()
-    return hmac.compare_digest(calc, dig)
+from .models import Sessao, Usuario
 
 
 def criar_sessao(db: Session, usuario: Usuario) -> str:
@@ -47,9 +30,3 @@ def usuario_atual(authorization: str | None = Header(default=None), db: Session 
     if not sessao or sessao.expira_em < datetime.now() or not sessao.usuario.ativo:
         raise HTTPException(401, "Sessão inválida ou expirada.")
     return sessao.usuario
-
-
-def exigir_gestor(usuario: Usuario = Depends(usuario_atual)) -> Usuario:
-    if usuario.perfil != Perfil.GESTOR:
-        raise HTTPException(403, "Ação restrita ao perfil Gestor.")
-    return usuario

@@ -1,50 +1,98 @@
-from fastapi import APIRouter, Depends, HTTPException
+"""Estado inicial da tela, sincronização SEI, restauração, mapa e relatório do período."""
+
+from collections import defaultdict
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from collector.pipeline import sincronizar
 from collector.sources.sei_mock import SeiMockSource
 
-from .. import config, rules, services
+from .. import config, geo, relatorios, rules, seed, services
 from ..database import get_db
-from ..models import Demanda, Etapa, Perfil, Usuario
-from ..schemas import SyncOut, UsuarioOut
-from ..security import exigir_gestor, usuario_atual
-from ..serializers import resumo
-from .demandas import query_visiveis
+from ..models import Usuario
+from ..security import usuario_atual
+from .auth import usuario_json
 
 router = APIRouter(prefix="/api", tags=["Painel"])
 
 
-@router.get("/dashboard")
-def dashboard(usuario: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
-    """Visão geral (wireframe Dashboard). Para o inspetor, considera só as demandas dele."""
-    return services.visao_geral(db, list(db.scalars(query_visiveis(usuario))))
+@router.get("/estado")
+def estado(u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Tudo o que o protótipo mantinha em memória: usuários, demandas visíveis e última sincronização."""
+    return {
+        "usuario": usuario_json(u),
+        "usuarios": [usuario_json(x) for x in db.scalars(select(Usuario).order_by(Usuario.id))],
+        "demandas": [services.demanda_json(d) for d in services.visiveis(db, u)],
+        "ultimaSync": services.get_param(db, "ultima_sync") or None,
+        "municipios": geo.municipios(),
+        "bairros": geo.bairros_recife(),
+    }
 
 
-@router.get("/radar")
-def radar(usuario: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
-    """Radar de Prazos: demandas abertas agrupadas em Vencidas, Urgentes, Atenção e Prazo seguro."""
-    stmt = query_visiveis(usuario).where(Demanda.etapa != Etapa.CONCLUIDA).order_by(Demanda.prazo_legal)
-    grupos = {f: [] for f in rules.FAIXAS_RADAR}
-    for d in db.scalars(stmt):
-        r = resumo(d)
-        grupos[r.saude].append(r)
-    return {"limites": {"urgente": config.LIMITE_URGENTE_DIAS, "atencao": config.LIMITE_ATENCAO_DIAS}, "grupos": grupos}
-
-
-@router.get("/inspetores", response_model=list[UsuarioOut])
-def inspetores(_: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
-    return db.scalars(
-        select(Usuario).where(Usuario.perfil == Perfil.INSPETOR, Usuario.ativo).order_by(Usuario.nome)
-    ).all()
-
-
-@router.post("/sync/sei", response_model=SyncOut)
-def sync_sei(_: Usuario = Depends(exigir_gestor), db: Session = Depends(get_db)):
-    """Dispara a sincronização (coletor) — o mesmo pipeline do CLI `python -m collector.run`."""
+@router.post("/sync/sei")
+def sync_sei(u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    if not rules.perm(u.perfil).sincronizar_sei:
+        raise HTTPException(403, rules.MOTIVOS["sincronizarSEI"])
     try:
         r = sincronizar(db, SeiMockSource(config.SEI_EXPORT_PATH))
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(502, f"Falha ao ler a fonte SEI: {e}") from e
-    return SyncOut(**r.__dict__)
+    return {**r.__dict__, "ultimaSync": services.get_param(db, "ultima_sync")}
+
+
+@router.post("/restaurar")
+def restaurar(u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Botão "Restaurar dados de exemplo" do protótipo: recria os dados de demonstração."""
+    db.close()
+    seed.recriar_banco()
+    seed.gerar_exportacao_sei()
+    return {"ok": True}
+
+
+@router.get("/mapa")
+def mapa(u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)):
+    """Demandas visíveis agrupadas por local (bairro do Recife ou município da RMR)."""
+    pontos: dict[str, dict] = {}
+    por_municipio: dict[str, dict] = defaultdict(lambda: {"abertas": 0, "vencidas": 0, "total": 0})
+    hoje = date.today()
+    for d in services.visiveis(db, u):
+        loc = geo.localizar(d.municipio, d.bairro)
+        m = por_municipio[d.municipio]
+        m["total"] += 1
+        urg = rules.urgencia(d.prazo, d.status, hoje)
+        if rules.aberta(d.status):
+            m["abertas"] += 1
+            m["vencidas"] += urg["k"] == "venc"
+        if not loc:
+            continue
+        p = pontos.setdefault(loc["rotulo"], {**loc, "demandas": []})
+        p["demandas"].append(
+            {
+                "id": d.id,
+                "titulo": d.titulo,
+                "status": d.status,
+                "prioridade": d.prioridade,
+                "tipo": d.tipo,
+                "prazo": d.prazo.isoformat(),
+                "responsavel": d.responsavel_id,
+                "estabelecimento": d.estabelecimento,
+                "urgencia": urg,
+            }
+        )
+    return {"pontos": list(pontos.values()), "porMunicipio": por_municipio}
+
+
+@router.get("/relatorios.pdf")
+def relatorio_periodo(
+    dias: int = Query(30, ge=1, le=365), u: Usuario = Depends(usuario_atual), db: Session = Depends(get_db)
+):
+    pdf = relatorios.pdf_periodo(db, u, dias)
+    return Response(
+        pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="relatorio-visat-{date.today()}-{dias}d.pdf"'},
+    )

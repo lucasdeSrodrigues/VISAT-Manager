@@ -13,19 +13,16 @@ UPLOAD_DIR = Path(os.getenv("VISAT_UPLOAD_DIR", BASE_DIR / "uploads"))
 SEI_EXPORT_PATH = Path(os.getenv("VISAT_SEI_EXPORT", BASE_DIR / "collector" / "data" / "sei_export.html"))
 TOKEN_HORAS = int(os.getenv("VISAT_TOKEN_HORAS", "8"))
 
-# Faixas do Radar de Prazos / Saúde da demanda (dias restantes até o prazo legal).
-# vencida: < 0 | urgente: 0..URGENTE | atenção: URGENTE+1..ATENCAO | seguro: > ATENCAO
-LIMITE_URGENTE_DIAS = int(os.getenv("VISAT_LIMITE_URGENTE", "3"))
-LIMITE_ATENCAO_DIAS = int(os.getenv("VISAT_LIMITE_ATENCAO", "7"))
+# Prazo padrão de uma demanda cadastrada pelo Inspetor (igual ao protótipo: DIAS_PRAZO_PADRAO).
+DIAS_PRAZO_PADRAO = int(os.getenv("VISAT_DIAS_PRAZO_PADRAO", "30"))
 
-# Prazo padrão (dias corridos) por tipo de ocorrência, usado quando a fonte não
-# informa prazo. PREMISSA: valores a validar com a coordenação da VISAT (Sprint 5).
-PRAZO_PADRAO_DIAS = {
-    "ACIDENTE_GRAVE_FATAL": 7,
-    "REQUISICAO_MPT": 15,
-    "DENUNCIA_SINDICAL": 15,
-    "DEMANDA_CONSELHO_SAUDE": 20,
-    "DOENCA_TRABALHO": 30,
-    "INSPECAO_AMBIENTE": 30,
-    "SOLICITACAO_INFORMACAO": 10,
+# Prazo padrão (dias corridos a partir da autuação) das demandas vindas do SEI, por tipo.
+# PREMISSA a validar com a coordenação da VISAT.
+PRAZO_SEI_POR_TIPO = {
+    "Denúncia": 10,
+    "Reclamação": 15,
+    "Licenciamento": 30,
+    "Inspeção": 20,
+    "Inspeção de rotina": 30,
+    "Solicitação de informação": 15,
 }

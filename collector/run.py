@@ -19,7 +19,7 @@ def main() -> None:
     with SessionLocal() as db:
         r = sincronizar(db, fonte)
     print(f"[collector] Lidos: {r.lidos} | Novos: {r.novos} | Duplicados: {r.duplicados} | Inválidos: {r.invalidos}")
-    for c in r.codigos_novos:
+    for c in r.ids_novos:
         print(f"  + {c}")
     for e in r.erros:
         print(f"  ! {e}")
