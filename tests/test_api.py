@@ -1,203 +1,243 @@
-"""Testes ponta a ponta da API — histórias US01 a US07 da Sprint 1."""
+"""Fluxos ponta a ponta pela API — as mesmas ações do protótipo, agora com dados persistidos."""
 
 from datetime import date, timedelta
 
+from tests.conftest import achar, demandas, entrar, url
 
-def primeira(client, h, **params):
-    r = client.get("/api/demandas", headers=h, params=params)
-    assert r.status_code == 200, r.text
-    return r.json()["itens"][0]
+HOJE = date.today()
 
 
-# ------------------------------------------------------------------ US01
-def test_login_invalido(client):
-    r = client.post("/api/auth/login", json={"email": "gestor@visat.demo", "senha": "errada"})
-    assert r.status_code == 401
+# ------------------------------------------------------------------ acesso
+def test_login_exige_usuario_senha_e_perfil_valido(client):
+    assert client.post("/api/login", json={"user": "", "senha": "x", "perfil": "g1"}).status_code == 422
+    assert client.post("/api/login", json={"user": "x", "senha": "", "perfil": "g1"}).status_code == 422
+    assert client.post("/api/login", json={"user": "x", "senha": "y", "perfil": "zz"}).status_code == 401
 
 
-def test_rotas_exigem_autenticacao(client):
-    assert client.get("/api/demandas").status_code == 401
-    assert client.get("/api/dashboard", headers={"Authorization": "Bearer falso"}).status_code == 401
+def test_rotas_exigem_sessao_e_logout_encerra(client, gestor):
+    assert client.get("/api/estado").status_code == 401
+    assert client.get("/api/estado", headers=gestor).status_code == 200
+    assert client.post("/api/logout", headers=gestor).status_code == 204
+    assert client.get("/api/estado", headers=gestor).status_code == 401
 
 
-def test_me_retorna_perfil(client, gestor, rodrigo):
-    assert client.get("/api/auth/me", headers=gestor).json()["perfil"] == "GESTOR"
-    assert client.get("/api/auth/me", headers=rodrigo).json()["perfil"] == "INSPETOR"
-
-
-def test_logout_invalida_sessao(client, gestor):
-    assert client.post("/api/auth/logout", headers=gestor).status_code == 204
-    assert client.get("/api/auth/me", headers=gestor).status_code == 401
-
-
-# ------------------------------------------------------------------ US02
-def test_sync_restrita_ao_gestor(client, gestor, rodrigo):
-    assert client.post("/api/sync/sei", headers=rodrigo).status_code == 403
-    r = client.post("/api/sync/sei", headers=gestor)
-    assert r.status_code == 200 and r.json()["novos"] == 8
-
-
-# ------------------------------------------------------------------ US03
-def novo(**kw):
-    base = {
-        "tipo_ocorrencia": "DENUNCIA_SINDICAL",
-        "orgao_demandante": "Sindicato dos Padeiros",
-        "municipio": "Recife",
-        "empresa": "Panificadora Exemplo",
-        "descricao": "Calor excessivo no setor de fornos.",
-        "prioridade": "ALTA",
+def test_dados_de_exemplo_sao_os_do_prototipo(client, gestor):
+    e = client.get("/api/estado", headers=gestor).json()
+    assert len(e["demandas"]) == 28
+    assert {u["nome"] for u in e["usuarios"]} == {
+        "Marina Albuquerque",
+        "Carlos Menezes",
+        "Ana Beatriz Lopes",
+        "Rafael Tavares",
     }
-    base.update(kw)
-    return base
+    d = achar(client, gestor, titulo="Denúncia de armazenamento inadequado de alimentos")
+    assert d["id"] == f"00089.000001/{HOJE.year}-01" and d["status"] == "Em andamento"
+    assert [x["nome"] for x in d["docs"]] == ["denuncia_original.pdf", "fotos_local.zip"]
 
 
-def test_cadastro_manual_gera_codigo_e_prazo_padrao(client, rodrigo):
-    r = client.post("/api/demandas", headers=rodrigo, json=novo())
+def test_inspetor_ve_somente_as_suas(client, carlos, gestor):
+    minhas = demandas(client, carlos)
+    assert len(minhas) == 9 and all(d["responsavel"] == "i1" for d in minhas)
+    alheia = achar(client, gestor, responsavel="i2")
+    assert client.get(url(alheia["id"]), headers=carlos).status_code == 403
+
+
+# ------------------------------------------------------------------ cadastro
+def test_gestor_cadastra_com_responsavel_prioridade_e_prazo(client, gestor):
+    prazo = (HOJE + timedelta(days=5)).isoformat()
+    r = client.post(
+        "/api/demandas",
+        headers=gestor,
+        json={
+            "titulo": "Denúncia de fumaça em padaria",
+            "tipo": "Denúncia",
+            "estabelecimento": "Padaria X",
+            "resp": "i2",
+            "prioridade": "Alta",
+            "prazo": prazo,
+            "municipio": "Recife",
+            "bairro": "Torre",
+        },
+    )
     assert r.status_code == 201, r.text
     d = r.json()
-    ano = date.today().year
-    assert d["codigo"].startswith(f"MAN-{ano}-") and d["origem"] == "MANUAL"
-    assert d["etapa"] == "RECEBIDA" and d["movimentacoes"][0]["rotulo"] == "Solicitação recebida"
-    assert date.fromisoformat(d["prazo_legal"]) == date.today() + timedelta(days=15)
-    # inspetor que cadastrou continua vendo a demanda
-    assert client.get(f"/api/demandas/{d['id']}", headers=rodrigo).status_code == 200
-
-
-def test_codigos_manuais_sequenciais(client, gestor):
-    a = client.post("/api/demandas", headers=gestor, json=novo()).json()["codigo"]
-    b = client.post("/api/demandas", headers=gestor, json=novo()).json()["codigo"]
-    assert int(b[-4:]) == int(a[-4:]) + 1
-
-
-def test_cadastro_valida_campos(client, gestor):
-    assert client.post("/api/demandas", headers=gestor, json=novo(descricao="curta")).status_code == 422
-    assert client.post("/api/demandas", headers=gestor, json=novo(tipo_ocorrencia="X")).status_code == 422
-    ontem = (date.today() - timedelta(days=1)).isoformat()
-    r = client.post("/api/demandas", headers=gestor, json=novo(prazo_legal=ontem))
-    assert r.status_code == 422 and "prazo legal" in r.text
-
-
-# ------------------------------------------------------------------ US04
-def test_lista_filtra_por_status_prioridade_responsavel_origem(client, gestor):
-    todos = client.get("/api/demandas", headers=gestor, params={"por_pagina": 100}).json()
-    assert todos["total"] == 16
-    alta = client.get("/api/demandas", headers=gestor, params={"prioridade": "ALTA"}).json()["itens"]
-    assert alta and all(i["prioridade"] == "ALTA" for i in alta)
-    sei = client.get("/api/demandas", headers=gestor, params={"origem": "MANUAL"}).json()["itens"]
-    assert sei and all(i["origem"] == "MANUAL" for i in sei)
-    tri = client.get("/api/demandas", headers=gestor, params={"etapa": "TRIAGEM"}).json()["itens"]
-    assert tri and all(i["etapa"] == "TRIAGEM" for i in tri)
-    sem = client.get("/api/demandas", headers=gestor, params={"sem_responsavel": True, "abertas": True}).json()
-    assert all(i["responsavel"] is None for i in sem["itens"])
-
-
-def test_lista_ordenada_por_prazo_e_busca(client, gestor):
-    itens = client.get("/api/demandas", headers=gestor, params={"abertas": True}).json()["itens"]
-    prazos = [i["prazo_legal"] for i in itens]
-    assert prazos == sorted(prazos)
-    achou = client.get("/api/demandas", headers=gestor, params={"q": "Frigorífico"}).json()
-    assert achou["total"] == 1
-
-
-def test_inspetor_ve_apenas_suas_demandas(client, gestor, rodrigo):
-    itens = client.get("/api/demandas", headers=rodrigo, params={"por_pagina": 100}).json()["itens"]
-    assert itens and all(i["responsavel"]["email"] == "rodrigo@visat.demo" for i in itens)
-    alheia = primeira(client, gestor, responsavel_id=3)  # camila
-    assert client.get(f"/api/demandas/{alheia['id']}", headers=rodrigo).status_code == 403
-
-
-# ------------------------------------------------------------------ US05
-def test_fluxo_completo_da_linha_do_tempo(client, gestor, rodrigo):
-    d = client.post("/api/demandas", headers=gestor, json=novo()).json()
-    url = f"/api/demandas/{d['id']}"
-    assert client.post(f"{url}/avancar", headers=gestor, json={"etapa": "TRIAGEM"}).status_code == 200
-    # designação exige responsável
-    r = client.post(f"{url}/avancar", headers=gestor, json={"etapa": "INSPETOR_DESIGNADO"})
-    assert r.status_code == 409
-    # atribuir em triagem avança automaticamente para "Inspetor designado"
-    r = client.post(f"{url}/atribuir", headers=gestor, json={"responsavel_id": 2})
-    assert r.json()["etapa"] == "INSPETOR_DESIGNADO"
-    # inspetor responsável registra inspeção e relatório
-    assert (
-        client.post(
-            f"{url}/avancar", headers=rodrigo, json={"etapa": "INSPECAO_REALIZADA", "descricao": "Vistoria in loco."}
-        ).status_code
-        == 200
-    )
-    det = client.post(f"{url}/avancar", headers=rodrigo, json={"etapa": "RELATORIO"}).json()
-    assert det["etapas_permitidas"] == []  # inspetor não conclui
-    assert client.post(f"{url}/avancar", headers=rodrigo, json={"etapa": "CONCLUIDA"}).status_code == 403
-    fim = client.post(f"{url}/avancar", headers=gestor, json={"etapa": "CONCLUIDA"}).json()
-    assert fim["etapa"] == "CONCLUIDA" and fim["concluida_em"] == date.today().isoformat()
-    rotulos = [m["rotulo"] for m in fim["movimentacoes"] if m["etapa"]]
-    assert rotulos == [
-        "Solicitação recebida",
-        "Triagem",
-        "Inspetor designado",
-        "Inspeção realizada",
-        "Relatório",
-        "Concluída",
+    assert d["id"].startswith(f"MAN-{HOJE.year}-") and d["origem"] == "Manual"
+    assert (d["responsavel"], d["prioridade"], d["prazo"], d["bairro"]) == ("i2", "Alta", prazo, "Torre")
+    assert [(e["tipo"], e["texto"]) for e in d["historico"]] == [
+        ("criacao", "Demanda cadastrada manualmente"),
+        ("reatribuicao", "Atribuída a Ana Beatriz Lopes"),
     ]
 
 
-def test_nao_pula_etapa_via_api(client, gestor):
-    d = client.post("/api/demandas", headers=gestor, json=novo()).json()
-    r = client.post(f"/api/demandas/{d['id']}/avancar", headers=gestor, json={"etapa": "RELATORIO"})
-    assert r.status_code == 409 and "Transição inválida" in r.json()["detail"]
+def test_inspetor_cadastra_atribuida_a_ele_com_padroes(client, carlos):
+    d = client.post(
+        "/api/demandas",
+        headers=carlos,
+        json={
+            "titulo": "Reclamação em lanchonete",
+            "tipo": "Reclamação",
+            "resp": "i3",
+            "prioridade": "Alta",
+            "prazo": HOJE.isoformat(),
+        },
+    ).json()
+    assert (d["responsavel"], d["prioridade"]) == ("i1", "Média")
+    assert d["prazo"] == (HOJE + timedelta(days=30)).isoformat()
+    assert d["historico"][1]["texto"] == "Atribuída automaticamente a Carlos Menezes"
 
 
-def test_atribuir_e_editar_sao_do_gestor(client, rodrigo):
-    d = primeira(client, rodrigo)
+def test_cadastro_valida_titulo_prazo_e_municipio(client, gestor):
+    ontem = (HOJE - timedelta(days=1)).isoformat()
     assert (
-        client.post(f"/api/demandas/{d['id']}/atribuir", headers=rodrigo, json={"responsavel_id": 3}).status_code == 403
+        client.post("/api/demandas", headers=gestor, json={"titulo": " ", "prazo": HOJE.isoformat()}).status_code == 409
     )
-    assert client.patch(f"/api/demandas/{d['id']}", headers=rodrigo, json={"prioridade": "BAIXA"}).status_code == 403
-
-
-def test_edicao_fica_no_historico(client, gestor):
-    d = primeira(client, gestor, abertas=True)
-    det = client.patch(f"/api/demandas/{d['id']}", headers=gestor, json={"prioridade": "BAIXA"}).json()
-    assert "prioridade" in det["movimentacoes"][-1]["descricao"]
-
-
-def test_observacao_e_documento(client, rodrigo):
-    d = primeira(client, rodrigo)
-    url = f"/api/demandas/{d['id']}"
-    assert (
-        client.post(f"{url}/observacoes", headers=rodrigo, json={"descricao": "Empresa notificada."}).status_code == 201
-    )
+    r = client.post("/api/demandas", headers=gestor, json={"titulo": "X", "prazo": ontem})
+    assert r.status_code == 409 and "passado" in r.json()["detail"]
     r = client.post(
-        f"{url}/documentos", headers=rodrigo, files={"arquivo": ("termo.pdf", b"%PDF-1.4 teste", "application/pdf")}
+        "/api/demandas", headers=gestor, json={"titulo": "X", "prazo": HOJE.isoformat(), "municipio": "Natal"}
+    )
+    assert r.status_code == 409
+
+
+# ------------------------------------------------------------------ atribuição e gestão
+def test_atribuicao_em_lote_somente_gestor(client, gestor, carlos):
+    sem = [d["id"] for d in demandas(client, gestor) if not d["responsavel"]]
+    assert client.post("/api/demandas/atribuir", headers=carlos, json={"ids": sem, "resp": "i1"}).status_code == 403
+    r = client.post("/api/demandas/atribuir", headers=gestor, json={"ids": sem, "resp": "i3"})
+    assert r.json()["alteradas"] == len(sem) == 5
+    d = client.get(url(sem[0]), headers=gestor).json()
+    assert d["historico"][-1]["texto"] == "Atribuída a Rafael Tavares"
+
+
+def test_salvar_gestao_registra_edicao_e_valida(client, gestor, carlos):
+    d = achar(client, gestor, responsavel="i1", status="Nova")
+    novo_prazo = (HOJE + timedelta(days=40)).isoformat()
+    corpo = {"resp": "i1", "prioridade": "Alta", "prazo": novo_prazo}
+    assert client.post(url(d["id"], "/gestao"), headers=carlos, json=corpo).status_code == 403
+    r = client.post(url(d["id"], "/gestao"), headers=gestor, json=corpo).json()
+    assert r["historico"][-1]["tipo"] == "edicao" and "prioridade de Média para Alta" in r["historico"][-1]["texto"]
+    assert (
+        client.post(url(d["id"], "/gestao"), headers=gestor, json=corpo).json()["detail"]
+        == "Nenhuma alteração para salvar."
+    )
+    ontem = (HOJE - timedelta(days=1)).isoformat()
+    assert (
+        "passado"
+        in client.post(url(d["id"], "/gestao"), headers=gestor, json={**corpo, "prazo": ontem}).json()["detail"]
+    )
+
+
+# ------------------------------------------------------------------ status e conclusão
+def test_inspetor_muda_status_mas_nao_conclui(client, carlos):
+    d = achar(client, carlos, status="Nova")
+    r = client.post(url(d["id"], "/status"), headers=carlos, json={"status": "Em análise"}).json()
+    assert r["status"] == "Em análise" and r["historico"][-1]["texto"] == "Alterado de Nova para Em análise"
+    r = client.post(url(d["id"], "/status"), headers=carlos, json={"status": "Concluída", "obs": "feito"})
+    assert r.status_code == 403 and "Solicitar conclusão" in r.json()["detail"]
+
+
+def test_fluxo_solicitar_devolver_e_aprovar_conclusao(client, carlos, gestor):
+    d = achar(client, carlos, status="Em análise")
+    assert client.post(url(d["id"], "/solicitar-conclusao"), headers=carlos, json={"obs": ""}).status_code == 409
+    r = client.post(url(d["id"], "/solicitar-conclusao"), headers=carlos, json={"obs": "Vistoria ok."}).json()
+    assert r["conclusaoSolicitada"]["obs"] == "Vistoria ok."
+    assert client.post(url(d["id"], "/solicitar-conclusao"), headers=carlos, json={"obs": "de novo"}).status_code == 409
+    assert client.post(url(d["id"], "/aprovar"), headers=carlos).status_code == 403
+    assert client.post(url(d["id"], "/devolver"), headers=gestor, json={"obs": ""}).status_code == 409
+    r = client.post(url(d["id"], "/devolver"), headers=gestor, json={"obs": "Falta o laudo."}).json()
+    assert r["conclusaoSolicitada"] is None and "Falta o laudo." in r["historico"][-1]["texto"]
+    client.post(url(d["id"], "/solicitar-conclusao"), headers=carlos, json={"obs": "Laudo anexado."})
+    r = client.post(url(d["id"], "/aprovar"), headers=gestor).json()
+    assert r["status"] == "Concluída" and r["concluidaEm"]
+    assert r["historico"][-1] == {
+        **r["historico"][-1],
+        "tipo": "conclusao",
+        "texto": "Demanda concluída. Observação: Laudo anexado. (aprovada pelo Gestor)",
+    }
+
+
+def test_gestor_conclui_e_reabre_com_justificativa(client, gestor, carlos):
+    d = achar(client, gestor, status="Aguardando documento")
+    assert client.post(url(d["id"], "/status"), headers=gestor, json={"status": "Concluída"}).status_code == 409
+    assert (
+        client.post(url(d["id"], "/status"), headers=gestor, json={"status": "Concluída", "obs": "ok"}).json()["status"]
+        == "Concluída"
+    )
+    if d["responsavel"] == "i1":
+        assert client.post(url(d["id"], "/status"), headers=carlos, json={"status": "Em andamento"}).status_code == 403
+    assert client.post(url(d["id"], "/status"), headers=gestor, json={"status": "Em andamento"}).status_code == 409
+    r = client.post(
+        url(d["id"], "/status"), headers=gestor, json={"status": "Em andamento", "obs": "Faltou vistoria"}
+    ).json()
+    assert r["status"] == "Em andamento" and r["concluidaEm"] is None
+    assert r["historico"][-1]["texto"] == "Demanda reaberta (Em andamento). Motivo: Faltou vistoria"
+
+
+# ------------------------------------------------------------------ conteúdo
+def test_observacao_e_anexo_respeitam_permissao(client, carlos):
+    aberta = achar(client, carlos, status="Em andamento")
+    concluida = achar(client, carlos, status="Concluída")
+    assert client.post(url(concluida["id"], "/observacoes"), headers=carlos, json={"texto": "x"}).status_code == 403
+    assert client.post(url(aberta["id"], "/observacoes"), headers=carlos, json={"texto": " "}).status_code == 409
+    r = client.post(url(aberta["id"], "/observacoes"), headers=carlos, json={"texto": "Empresa notificada."}).json()
+    assert r["historico"][-1]["tipo"] == "observacao"
+    r = client.post(
+        url(aberta["id"], "/documentos"),
+        headers=carlos,
+        files={"arquivo": ("termo de inspeção.pdf", b"%PDF-1.4 teste", "application/pdf")},
     )
     assert r.status_code == 201
-    doc = r.json()["documentos"][-1]
-    baixado = client.get(f"{url}/documentos/{doc['id']}", headers=rodrigo)
+    doc = r.json()["docs"][-1]
+    assert doc["arquivo"] and doc["tam"] == 14
+    baixado = client.get(url(aberta["id"], f"/documentos/{doc['id']}"), headers=carlos)
     assert baixado.status_code == 200 and baixado.content == b"%PDF-1.4 teste"
     ruim = client.post(
-        f"{url}/documentos", headers=rodrigo, files={"arquivo": ("x.exe", b"MZ", "application/octet-stream")}
+        url(aberta["id"], "/documentos"),
+        headers=carlos,
+        files={"arquivo": ("x.exe", b"MZ", "application/octet-stream")},
     )
     assert ruim.status_code == 422
 
 
-# ------------------------------------------------------------------ US06 / US07
-def test_radar_agrupa_nas_quatro_faixas(client, gestor):
-    r = client.get("/api/radar", headers=gestor).json()
-    g = r["grupos"]
-    assert set(g) == {"VENCIDA", "URGENTE", "ATENCAO", "SEGURO"}
-    assert all(len(g[f]) > 0 for f in g)  # seed cobre todas as faixas
-    assert all(i["dias_restantes"] < 0 for i in g["VENCIDA"])
-    assert all(0 <= i["dias_restantes"] <= 3 for i in g["URGENTE"])
+def test_documento_de_exemplo_sem_arquivo(client, gestor):
+    d = achar(client, gestor, titulo="Denúncia de armazenamento inadequado de alimentos")
+    r = client.get(url(d["id"], f"/documentos/{d['docs'][0]['id']}"), headers=gestor)
+    assert r.status_code == 404 and "exemplo" in r.json()["detail"]
 
 
-def test_dashboard_visao_geral(client, gestor):
-    k = client.get("/api/dashboard", headers=gestor).json()
-    assert k["recebidas"] == 16 and k["concluidas"] == 4 and k["em_andamento"] == 12
-    assert k["alertas"] == k["radar"]["VENCIDA"] + k["radar"]["URGENTE"]
-    assert k["pct_concluidas_no_prazo"] == 75  # 3 de 4 no prazo
-    assert k["tempo_medio_resposta_dias"] is not None
-    assert len(k["carga_por_inspetor"]) == 4
+# ------------------------------------------------------------------ SEI, mapa, relatórios, restaurar
+def test_sincronizacao_sei(client, gestor, carlos):
+    assert client.post("/api/sync/sei", headers=carlos).status_code == 403
+    r = client.post("/api/sync/sei", headers=gestor).json()
+    assert (r["novos"], r["invalidos"]) == (8, 2)
+    assert client.post("/api/sync/sei", headers=gestor).json()["novos"] == 0
+    nova = achar(client, gestor, titulo="Denúncia de manipulação inadequada de carnes")
+    assert (nova["origem"], nova["status"], nova["prioridade"], nova["bairro"]) == ("SEI", "Nova", "Alta", "Boa Viagem")
 
 
-def test_dashboard_do_inspetor_considera_so_as_dele(client, rodrigo):
-    k = client.get("/api/dashboard", headers=rodrigo).json()
-    assert k["recebidas"] == 3
+def test_mapa_agrupa_por_local_e_respeita_perfil(client, gestor, carlos):
+    m = client.get("/api/mapa", headers=gestor).json()
+    assert sum(len(p["demandas"]) for p in m["pontos"]) == 28
+    assert all(-8.6 < p["lat"] < -7.6 and -35.3 < p["lng"] < -34.8 for p in m["pontos"])
+    recife = [p for p in m["pontos"] if p["nivel"] == "bairro"]
+    assert recife and all(p["rotulo"].endswith("· Recife") for p in recife)
+    meu = client.get("/api/mapa", headers=carlos).json()
+    assert sum(len(p["demandas"]) for p in meu["pontos"]) == 9
+
+
+def test_relatorios_pdf(client, gestor, carlos):
+    d = achar(client, gestor, responsavel="i2")
+    r = client.get(url(d["id"], "/relatorio.pdf"), headers=gestor)
+    assert r.status_code == 200 and r.content.startswith(b"%PDF") and r.headers["content-type"] == "application/pdf"
+    assert client.get(url(d["id"], "/relatorio.pdf"), headers=carlos).status_code == 403
+    for h in (gestor, carlos):
+        r = client.get("/api/relatorios.pdf?dias=90", headers=h)
+        assert r.status_code == 200 and r.content.startswith(b"%PDF")
+
+
+def test_restaurar_dados_de_exemplo(client, gestor):
+    client.post("/api/demandas", headers=gestor, json={"titulo": "Temporária", "prazo": HOJE.isoformat()})
+    assert len(demandas(client, gestor)) == 29
+    assert client.post("/api/restaurar", headers=gestor).status_code == 200
+    h = entrar(client, "g1")
+    assert len(demandas(client, h)) == 28

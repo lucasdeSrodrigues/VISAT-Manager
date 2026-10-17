@@ -16,3 +16,6 @@ ignore = ["B008", "UP042"]  # B008: Depends() é o idioma do FastAPI · UP042: (
 testpaths = ["tests"]
 addopts = "-q"
 filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/app/seed.py" = ["E501"]  # linhas de dados de exemplo
