@@ -106,6 +106,7 @@ visat-manager/
 - [Decisões técnicas, premissas e LGPD](docs/decisoes.md)
 - [Evidências de funcionamento](docs/evidencias/)
 - [Roteiro da apresentação](docs/apresentacao.md)
+- [Checklist da entrega](docs/checklist_entrega.md)
 - [Como contribuir (branches e commits)](CONTRIBUTING.md)
 
 ## Roadmap
