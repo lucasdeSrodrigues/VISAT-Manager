@@ -2,11 +2,11 @@
 
 ## Por que revisar
 
-Depois do SR1, o grupo detalhou a **Arquitetura**, o **Fluxo de Dados** e os **Wireframes**. Ao cruzar esses documentos com o MoSCoW original, apareceram três inconsistências:
+Depois do SR1 o grupo detalhou a **Arquitetura**, o **Fluxo de Dados**, os **Wireframes** e o **protótipo navegável**. Ao cruzar esses documentos com o MoSCoW original, apareceram três inconsistências:
 
-1. **O núcleo do problema estava como SHOULD/COULD.** O desafio fala em "reduzir atrasos" e "fluxo rastreável". O Radar de Prazos e a Linha do Tempo resolvem exatamente isso e estão nos wireframes, mas tinham prioridade baixa.
-2. **Havia MUSTs que não aparecem em nenhum documento técnico.** Copiloto IA e Base de Conhecimento não estão na arquitetura, no fluxo de dados nem nas telas do MVP, e dependem de um histórico de dados que ainda não existe.
-3. **As entradas de dados não estavam priorizadas.** A arquitetura define duas entradas obrigatórias (sincronização SEI e cadastro manual), mas elas nem constavam do MoSCoW.
+1. **O núcleo do problema estava como SHOULD/COULD.** O desafio fala em "reduzir atrasos" e "fluxo rastreável". Os alertas de prazo e a linha do tempo resolvem exatamente isso e já estavam no protótipo.
+2. **Havia MUSTs sem respaldo técnico.** Copiloto IA e Base de Conhecimento não aparecem na arquitetura nem no protótipo, e dependem de um histórico de dados que ainda não existe.
+3. **As entradas de dados não estavam priorizadas.** A arquitetura define duas entradas obrigatórias (sincronização SEI e cadastro manual), mas elas não constavam do MoSCoW.
 
 ## Antes (MoSCoW do SR1)
 
@@ -14,34 +14,33 @@ Depois do SR1, o grupo detalhou a **Arquitetura**, o **Fluxo de Dados** e os **W
 |---|---|---|---|
 | Painel Central de Demandas · Mapa de Demandas · Dashboard Estratégico · Base de Conhecimento · Copiloto IA da VISAT | Radar de Prazos · Saúde das Demandas · Geração Assistida de Relatórios · Priorização Inteligente · Acompanhamento de Solicitações · Distribuição de Inspeções | Timeline da Fiscalização · Notificações Inteligentes · Portal dos Demandantes | Detecção de Gargalos |
 
-## Depois (revisado para o MVP)
+## Depois (revisado)
 
-| Item | Antes | Depois | Justificativa | Documento que sustenta |
-|---|---|---|---|---|
-| Sincronização SEI (coletor) | — | **MUST** | Uma das duas entradas obrigatórias, evita redigitação | Arquitetura 4.5 · Fluxo de dados |
-| Cadastro manual | — | **MUST** | Segunda entrada obrigatória, para demandas fora do SEI | Arquitetura 4.6 · Fluxo de dados |
-| Acesso por perfil (Gestor/Inspetor) | — | **MUST** | Perfis com permissões diferentes | Arquitetura 4.1 |
-| Painel Central de Demandas | MUST | **MUST** | Mantido: é a "Lista de Demandas" do fluxo | Fluxo de dados · Wireframe Demandas |
-| Timeline da Fiscalização | COULD | **MUST** ⬆ | É a rastreabilidade pedida no desafio; está no wireframe do Detalhe | Proposta · Fluxo de dados · Wireframe Detalhe |
-| Radar de Prazos | SHOULD | **MUST** ⬆ | Resolve a dor nº 1 (prazos legais); tem tela própria e sino no topo | Proposta (monitoramento de prazos) · Wireframe Radar |
-| Saúde das Demandas | SHOULD | **MUST** ⬆ | Mesmo cálculo do Radar, exibido no Detalhe | Wireframe Detalhe |
-| Distribuição de Inspeções | SHOULD | **MUST** ⬆ | Sem atribuição de responsável, a etapa "Inspetor designado" não existe | Wireframe Detalhe · Linha do tempo |
-| Dashboard — visão geral | MUST | **MUST** | Mantido na forma do wireframe (Recebidas/Andamento/Concluídas) | Wireframe Dashboard |
-| Dashboard estratégico (analítico) | MUST | **SHOULD** ⬇ | Precisa de histórico acumulado; Trello prevê "dashboard com dados reais" na Sprint 3 | Trello Sprint 3 |
-| Mapa de Demandas | MUST | **SHOULD** ⬇ | Útil para rotas, mas não atua sobre prazo; depende de geocodificação | Trello Sprint 3 ("primeiras visualizações") |
-| Geração Assistida de Relatórios | SHOULD | **SHOULD** | Mantido (botão "Gerar relatório" do wireframe, Sprint 4) | Wireframe Detalhe |
-| Acompanhamento de Solicitações | SHOULD | **COULD** ⬇ | Visão do órgão externo; depende de acesso externo seguro | — |
-| Notificações Inteligentes | COULD | **COULD** | Mantido: o sino já cobre o alerta interno; e-mail fica para a Sprint 4 | — |
-| Priorização Inteligente | SHOULD | **COULD** ⬇ | Hoje é regra simples (acidente grave e MPT entram como ALTA); "inteligente" exige dados | — |
-| Detecção de Gargalos | WON'T | **COULD** ⬆ | A linha do tempo já guarda data/hora de cada etapa, o que torna o cálculo viável na Sprint 5 | Modelo de dados (Movimentação) |
-| Base de Conhecimento | MUST | **COULD** ⬇ | Fora da arquitetura e das telas do MVP | Arquitetura (não citada) |
-| Copiloto IA da VISAT | MUST | **WON'T (neste semestre)** ⬇ | Exige base de dados histórica, análise LGPD (dados de saúde) e validação; risco alto para o MVP | LGPD art. 11 |
-| Portal dos Demandantes | COULD | **WON'T (neste semestre)** | Acesso externo amplia superfície de ataque e escopo | — |
+| Item | Antes | Depois | Justificativa | Onde se apoia | Situação |
+|---|---|---|---|---|---|
+| Sincronização SEI (coletor) | — | **MUST** | Uma das duas entradas obrigatórias | Arquitetura 4.5 · Fluxo de dados | ✅ Sprint 1 |
+| Cadastro manual | — | **MUST** | Segunda entrada obrigatória | Arquitetura 4.6 · Fluxo de dados | ✅ Sprint 1 |
+| Acesso por perfil | — | **MUST** | Gestor e Inspetor com permissões diferentes | Arquitetura 4.1 · `PERMS` do protótipo | ✅ Sprint 1 |
+| Painel Central de Demandas | MUST | **MUST** | É a "Lista de Demandas" do fluxo | Fluxo de dados · protótipo | ✅ Sprint 1 |
+| Timeline da Fiscalização | COULD | **MUST** ⬆ | É a rastreabilidade pedida no desafio | Proposta · "Observações e histórico" do protótipo | ✅ Sprint 1 |
+| Radar de Prazos / Saúde das Demandas | SHOULD | **MUST** ⬆ | Dor nº 1: prazo descumprido | Proposta · selo de urgência e "Vencidas e vencendo" do protótipo | ✅ Sprint 1 |
+| Distribuição de Inspeções | SHOULD | **MUST** ⬆ | Sem responsável não há execução; o protótipo tem atribuição em lote | Protótipo · tela Equipe | ✅ Sprint 1 |
+| Acompanhamento de Solicitações (aprovação de conclusão) | SHOULD | **MUST** ⬆ | O inspetor não pode encerrar sozinho: o Gestor aprova | Fluxo "Solicitar conclusão" do protótipo | ✅ Sprint 1 |
+| Dashboard (visão da equipe) | MUST | **MUST** | KPIs de abertas, vencidas e a aprovar | Protótipo | ✅ Sprint 1 |
+| Mapa de Demandas | MUST | **SHOULD** ⬇ | Útil para rotas, mas não atua sobre prazo | Trello Sprint 3 | ✅ **antecipado** |
+| Geração de Relatórios | SHOULD | **SHOULD** | Prestação de contas e resposta ao órgão | Botão "Gerar relatório" do wireframe | ✅ **antecipado** (CSV + PDF) |
+| Dashboard analítico (séries históricas) | MUST | **SHOULD** ⬇ | Precisa de histórico acumulado | Trello Sprint 3 | Sprint 3 |
+| Notificações Inteligentes | COULD | **COULD** | O painel já alerta; e-mail fica para depois | — | Sprint 4 |
+| Priorização Inteligente | SHOULD | **COULD** ⬇ | Hoje é regra simples (Denúncia/Reclamação entram como Alta); "inteligente" exige dados | — | Sprint 5+ |
+| Detecção de Gargalos | WON'T | **COULD** ⬆ | O histórico já registra cada mudança de status com data e hora | Modelo de dados (Evento) | Sprint 5 |
+| Base de Conhecimento | MUST | **COULD** ⬇ | Fora da arquitetura e do protótipo | — | Futuro |
+| Copiloto IA da VISAT | MUST | **WON'T (semestre)** ⬇ | Exige base histórica, análise LGPD e validação | LGPD art. 11 | — |
+| Portal dos Demandantes | COULD | **WON'T (semestre)** | Acesso externo amplia escopo e riscos | — | — |
 
 ## Resultado
 
 | MUST (MVP) | SHOULD | COULD | WON'T (agora) |
 |---|---|---|---|
-| Sincronização SEI · Cadastro manual · Acesso por perfil · Painel Central · Timeline · Radar de Prazos · Saúde das Demandas · Distribuição de Inspeções · Dashboard (visão geral) | Dashboard analítico · Mapa de Demandas · Geração de Relatórios | Notificações · Priorização Inteligente · Detecção de Gargalos · Acompanhamento de Solicitações · Base de Conhecimento | Copiloto IA · Portal dos Demandantes |
+| Sincronização SEI · Cadastro manual · Acesso por perfil · Painel Central · Timeline · Alertas de prazo · Distribuição · Aprovação de conclusão · Dashboard | Mapa ✅ · Relatórios ✅ · Dashboard analítico | Notificações · Priorização inteligente · Gargalos · Base de Conhecimento | Copiloto IA · Portal dos Demandantes |
 
-**Todos os MUST foram entregues na Sprint 1.** Com isso, as Sprints 2 a 5 ficam livres para refinar dados (scraper, pré-processamento), visualizações e validação com a VISAT, como previsto no Trello.
+**Todos os MUST foram entregues na Sprint 1, e dois SHOULD (Mapa e Relatórios) foram antecipados.** As Sprints 2 a 5 ficam para qualidade dos dados (scraper agendado, autenticação real), visualizações analíticas e validação com a VISAT.

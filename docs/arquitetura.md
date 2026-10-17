@@ -1,6 +1,6 @@
 # Arquitetura implementada (Sprint 1)
 
-Implementa as **três camadas** e as **duas entradas** da *Definição da Arquitetura da Solução*.
+Implementa as **três camadas** e as **duas entradas** da *Definição da Arquitetura da Solução*. A interface é o **protótipo validado (index.html)**, agora ligado a um servidor real.
 
 ```mermaid
 flowchart LR
@@ -12,76 +12,97 @@ flowchart LR
         SRC[SeiMockSource<br/>scraper BeautifulSoup] --> NORM[normalizer<br/>valida e mapeia] --> PIPE[pipeline<br/>deduplica pelo nº SEI]
     end
     subgraph Backend["backend/ — Lógica da aplicação (FastAPI)"]
-        SVC[services.registrar_entrada<br/>ponto ÚNICO de entrada]
-        RULES[rules.py<br/>prazos · etapas · permissões]
+        SVC[services<br/>uma função por ação do protótipo]
+        RULES[rules.py<br/>matriz PERMS · status · prazos]
+        REL[relatorios.py<br/>PDF]
         API[API REST /api/*]
     end
     DB[(Banco central<br/>SQLite → PostgreSQL)]
     subgraph Frontend["frontend/ — Interface web"]
-        UI[Login · Dashboard · Lista · Cadastro<br/>Detalhe/Linha do tempo · Radar · Inspetores]
+        UI[index.html do protótipo<br/>+ Leaflet + limites IBGE]
     end
     SEI --> SRC
     PIPE --> SVC
-    MAN --> UI --> API --> SVC
-    SVC --> DB
+    MAN --> UI --> API --> SVC --> DB
     API <--> RULES
-    API <--> DB
+    API --> REL
 ```
+
+## Do protótipo para o sistema
+
+| No protótipo (só no navegador) | Agora |
+|---|---|
+| `estado.demandas` no `localStorage` | Banco de dados (tabelas `demandas`, `eventos`, `documentos`) |
+| `PERMS` só na tela | A mesma matriz em `rules.py`, verificada **em toda chamada da API** |
+| `SEED` de exemplo | `backend/app/seed.py`, com os mesmos dados e datas relativas a hoje |
+| `sincronizar()` com modelos fixos | Coletor real: lê a exportação do SEI, valida, deduplica e grava |
+| Anexo: só nome e tamanho | Arquivo enviado e guardado; pré-visualização de imagem e PDF |
+| Relatórios só na tela | Mesmos indicadores + PDF do período e PDF de cada demanda |
+| — | **Mapa de demandas** (nova tela, mesmo visual) |
 
 ## Fluxo de dados (documento oficial → código)
 
-| Passo do fluxo oficial | Onde está no código |
+| Passo do fluxo oficial | Onde está |
 |---|---|
-| SEI → Sincronização | `collector/sources/sei_mock.py` → `collector/normalizer.py` → `collector/pipeline.py` |
-| Cadastro Manual | `POST /api/demandas` (`routers/demandas.py`) |
-| → Sistema/banco de dados | `services.registrar_entrada()`: **as duas origens passam pela mesma função** |
-| → Dashboard / Lista de Demandas | `GET /api/dashboard`, `GET /api/demandas` (filtros: status, prioridade, responsável, origem) |
+| SEI → Sincronização | `collector/sources/sei_mock.py` → `normalizer.py` → `pipeline.py` → `services.registrar_sei()` |
+| Cadastro Manual | `POST /api/demandas` → `services.criar_manual()` |
+| → Banco de dados | SQLAlchemy (`models.py`) |
+| → Dashboard / Lista | `GET /api/estado` (o protótipo calcula KPIs, filtros e gráficos na tela) |
 | → Detalhes (Histórico/Documentos) | `GET /api/demandas/{id}`, `POST .../observacoes`, `POST .../documentos` |
-| → Atualizações (Linha do tempo) | `POST .../avancar`, com validação em `rules.validar_transicao()` |
-| → Conclusão | etapa `CONCLUIDA`, registra `concluida_em` (alimenta tempo médio e % no prazo) |
+| → Atualizações (Linha do tempo) | `POST .../status`, `.../gestao`, `/api/demandas/atribuir` |
+| → Conclusão | `POST .../solicitar-conclusao` → `.../aprovar` ou `.../devolver` |
 
 ## Modelo de dados
 
 ```mermaid
 erDiagram
-    USUARIO ||--o{ DEMANDA : "responsável por"
-    DEMANDA ||--o{ MOVIMENTACAO : "linha do tempo / histórico"
+    USUARIO ||--o{ DEMANDA : "responsável"
+    DEMANDA ||--o{ EVENTO : "linha do tempo"
     DEMANDA ||--o{ DOCUMENTO : "anexos"
-    USUARIO ||--o{ MOVIMENTACAO : "autor"
-    USUARIO { int id string nome string email enum perfil }
-    DEMANDA { string codigo enum origem string numero_sei enum tipo_ocorrencia string orgao_demandante string municipio string empresa enum prioridade enum etapa date data_entrada date prazo_legal date concluida_em }
-    MOVIMENTACAO { enum etapa "null = observação" text descricao datetime criada_em }
-    DOCUMENTO { string nome int tamanho datetime criado_em }
+    USUARIO { string id string nome string cargo string perfil }
+    DEMANDA { string id string origem string titulo string tipo string estabelecimento string municipio string bairro string prioridade string status date prazo datetime criada datetime concluida_em string sol_por }
+    EVENTO { string tipo string por datetime em text texto }
+    DOCUMENTO { string nome int tam string por datetime em string caminho }
 ```
 
-**Saúde da demanda não é gravada no banco.** Ela é calculada na hora (`rules.classificar_prazo`), a partir do prazo legal e da data de hoje. Assim nunca fica desatualizada.
-
-## Máquina de estados da Linha do Tempo
+## Ciclo de status
 
 ```mermaid
 stateDiagram-v2
-    [*] --> RECEBIDA: SEI ou manual
-    RECEBIDA --> TRIAGEM: Gestor
-    TRIAGEM --> INSPETOR_DESIGNADO: Gestor (exige responsável)
-    INSPETOR_DESIGNADO --> INSPECAO_REALIZADA: Inspetor responsável ou Gestor
-    INSPECAO_REALIZADA --> RELATORIO: Inspetor responsável ou Gestor
-    RELATORIO --> CONCLUIDA: Gestor
-    CONCLUIDA --> [*]
+    [*] --> Nova: SEI ou manual
+    Nova --> EmAnalise: Gestor ou Inspetor
+    EmAnalise --> EmAndamento
+    EmAndamento --> AguardandoDocumento
+    AguardandoDocumento --> EmAndamento
+    EmAndamento --> ConclusaoSolicitada: Inspetor (com observação)
+    ConclusaoSolicitada --> EmAndamento: Gestor devolve (com motivo)
+    ConclusaoSolicitada --> Concluida: Gestor aprova
+    EmAndamento --> Concluida: Gestor conclui (com observação)
+    Concluida --> EmAndamento: só Gestor reabre (com motivo)
 ```
 
 ## Endpoints
 
-| Método | Rota | Perfil | História |
+| Método | Rota | Quem | História |
 |---|---|---|---|
-| POST | `/api/auth/login` · `/api/auth/logout` · GET `/api/auth/me` | todos | US01 |
+| POST | `/api/login` · `/api/logout` · GET `/api/usuarios` | todos | US01 |
+| GET | `/api/estado` | todos (inspetor recebe só as suas) | US04 · US08 |
 | POST | `/api/sync/sei` | Gestor | US02 |
 | POST | `/api/demandas` | todos | US03 |
-| GET | `/api/demandas` | todos (inspetor vê só as suas) | US04 |
 | GET | `/api/demandas/{id}` | com acesso | US05 |
-| POST | `/api/demandas/{id}/avancar` | conforme etapa | US05 |
-| POST | `/api/demandas/{id}/observacoes` · `/documentos` | com acesso | US08 |
-| POST/PATCH | `/api/demandas/{id}/atribuir` · `/api/demandas/{id}` | Gestor | US09 |
-| GET | `/api/radar` | todos | US06 |
-| GET | `/api/dashboard` · `/api/inspetores` | todos | US07 · US10 |
+| POST | `/api/demandas/{id}/status` | conforme `PERMS` | US06 |
+| POST | `/api/demandas/{id}/solicitar-conclusao` · `/aprovar` · `/devolver` | Inspetor / Gestor | US06 |
+| POST | `/api/demandas/atribuir` · `/api/demandas/{id}/gestao` | Gestor | US09 |
+| POST/GET | `/api/demandas/{id}/observacoes` · `/documentos` | dono da demanda ou Gestor | US10 |
+| GET | `/api/mapa` | todos | US11 |
+| GET | `/api/relatorios.pdf` · `/api/demandas/{id}/relatorio.pdf` | todos (escopo do perfil) | US12 |
+| POST | `/api/restaurar` | todos (demonstração) | — |
 
-A documentação interativa fica em `http://localhost:8000/docs` (Swagger, gerado pelo FastAPI).
+Documentação interativa: `http://localhost:8000/docs`.
+
+## Mapa
+
+- Biblioteca **Leaflet 1.9.4**, incluída no repositório (`frontend/vendor/`): funciona sem CDN.
+- **Limites municipais do IBGE** da Região Metropolitana do Recife (`frontend/data/rmr_municipios.geojson`, simplificado a 16 KB): o mapa aparece mesmo sem internet.
+- Com internet, o mapa de ruas do OpenStreetMap aparece por baixo.
+- Posição: bairro do Recife (ponto aproximado do bairro) ou centro do município. Geocodificação por endereço é a US17.
