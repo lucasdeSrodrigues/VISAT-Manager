@@ -1,0 +1,162 @@
+.cadastro-page {
+  width: 100%;
+  max-width: 1100px;
+}
+
+.cadastro-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.cadastro-page-header h1 {
+  margin: 0 0 8px;
+  color: #1f2937;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.cadastro-page-header p {
+  margin: 0;
+  color: #667085;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.origem-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 1px solid #bdd6ea;
+  border-radius: 20px;
+  background-color: #eaf4fc;
+  color: #1f5f99;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cadastro-form {
+  overflow: hidden;
+  border: 1px solid #e1e7ed;
+  border-radius: 12px;
+  background-color: #ffffff;
+  box-shadow: 0 3px 12px rgba(31, 41, 55, 0.08);
+}
+
+.form-section-header {
+  padding: 22px 26px;
+  border-bottom: 1px solid #e5eaf0;
+}
+
+.form-section-header h2 {
+  margin: 0 0 5px;
+  color: #233244;
+  font-size: 19px;
+}
+
+.form-section-header p {
+  margin: 0;
+  color: #7a8694;
+  font-size: 13px;
+}
+
+.form-error {
+  margin: 22px 26px 0;
+  padding: 12px 15px;
+  border: 1px solid #efb4b4;
+  border-radius: 8px;
+  background-color: #fff1f1;
+  color: #a43434;
+  font-size: 14px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 24px;
+  padding: 26px;
+}
+
+.form-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field-full {
+  grid-column: 1 / -1;
+}
+
+.form-field label {
+  color: #344054;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form-field label span {
+  color: #cf3f3f;
+}
+
+.form-field input,
+.form-field textarea {
+  width: 100%;
+  border: 1px solid #cfd7df;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #263442;
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-field input {
+  height: 44px;
+  padding: 0 13px;
+}
+
+.form-field textarea {
+  min-height: 125px;
+  padding: 12px 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder {
+  color: #98a2af;
+}
+
+.form-field input:focus,
+.form-field textarea:focus {
+  border-color: #2f75b5;
+  box-shadow: 0 0 0 3px rgba(47, 117, 181, 0.14);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 26px;
+  border-top: 1px solid #e5eaf0;
+  background-color: #f8fafc;
+}
+
+.form-actions button {
+  min-height: 42px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 
