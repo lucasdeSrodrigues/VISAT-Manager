@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Demandas from './pages/Demandas'
 import CadastroDemanda from './pages/CadastroDemanda'
+import DetalhesDemanda from './pages/DetalhesDemanda'
 
 import Layout from './components/Layout'
 
@@ -13,7 +14,6 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         <Route path="/" element={<Login />} />
 
         <Route
@@ -35,6 +35,15 @@ function App() {
         />
 
         <Route
+          path="/demandas/:id"
+          element={
+            <Layout>
+              <DetalhesDemanda />
+            </Layout>
+          }
+        />
+
+        <Route
           path="/cadastro"
           element={
             <Layout>
@@ -42,7 +51,6 @@ function App() {
             </Layout>
           }
         />
-
       </Routes>
     </BrowserRouter>
   )

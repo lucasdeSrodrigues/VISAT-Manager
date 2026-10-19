@@ -1,26 +1,63 @@
 .layout {
   display: flex;
   min-height: 100vh;
+  background-color: #f2f5f8;
 }
-
 
 .sidebar {
-  width: 240px;
-  background-color: #1f5f99;
-  color: white;
-  padding: 25px;
+  position: sticky;
+  top: 0;
 
   display: flex;
-  flex-direction: column;
+  width: 240px;
   height: 100vh;
+  flex-shrink: 0;
+  flex-direction: column;
+
+  padding: 25px;
+  box-sizing: border-box;
+
+  overflow-y: auto;
+
+  background-color: #1f5f99;
+  color: #ffffff;
 }
 
+/* Nome do sistema: visual de título, mas continua clicável */
 
-.sidebar h1 {
+.sidebar-brand {
+  width: fit-content;
+  margin: 0 0 40px;
+  padding: 0;
+
+  border: none;
+  border-radius: 5px;
+
+  background-color: transparent;
+  color: #ffffff;
+
+  font-family: inherit;
   font-size: 22px;
-  margin-bottom: 40px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
 }
 
+.sidebar-brand:hover {
+  color: #e4f2fe;
+  opacity: 0.9;
+}
+
+.sidebar-brand:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.42);
+  outline-offset: 5px;
+}
 
 .menu {
   display: flex;
@@ -28,63 +65,251 @@
 }
 
 .menu a {
-  color: white;
-  text-decoration: none;
-  padding: 14px 16px;
   margin-bottom: 12px;
+  padding: 14px 16px;
+
+  border: 1px solid transparent;
   border-radius: 10px;
+
+  color: #ffffff;
   font-size: 20px;
   font-weight: 500;
-  transition: all 0.25s ease;
+  text-decoration: none;
+
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .menu a:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .menu a.active {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 10px;
+  border-color: rgba(255, 255, 255, 0.35);
+  background-color: rgba(255, 255, 255, 0.12);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
+.menu a:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
 
 .content {
+  min-width: 0;
   flex: 1;
   background-color: #f2f5f8;
 }
 
+/* Cabeçalho com título e botão de alertas */
 
 .header {
-  background-color: white;
-  padding: 20px 30px;
-  border-bottom: 1px solid #ddd;
-}
+  display: flex;
+  min-height: 70px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
 
+  padding: 14px 30px;
+  box-sizing: border-box;
+
+  border-bottom: 1px solid #dddddd;
+
+  background-color: #ffffff;
+}
 
 .header h2 {
+  margin: 0;
+
+  color: #263442;
+
   font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
-
-main {
+.content main {
   padding: 30px;
 }
 
+/* Botão que abre a Central de Alertas */
+
+.alertas-button {
+  position: relative;
+
+  display: inline-flex;
+  min-height: 42px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  padding: 0 13px;
+
+  border: 1px solid #d8e0e7;
+  border-radius: 9px;
+
+  background-color: #ffffff;
+  color: #435466;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  box-shadow: 0 1px 3px rgba(31, 41, 55, 0.05);
+
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease;
+}
+
+.alertas-button:hover {
+  border-color: #a9c9e3;
+  background-color: #f4f9fd;
+  color: #1f5f99;
+  box-shadow: 0 2px 7px rgba(31, 95, 153, 0.1);
+}
+
+.alertas-button:focus-visible {
+  outline: 3px solid rgba(47, 117, 181, 0.22);
+  outline-offset: 2px;
+}
+
+.alertas-button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 17px;
+  line-height: 1;
+}
+
+.alertas-button-text {
+  line-height: 1;
+}
+
+/* Contador de demandas próximas do prazo */
+
+.alertas-button-count {
+  display: inline-flex;
+  min-width: 21px;
+  height: 21px;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 6px;
+  box-sizing: border-box;
+
+  border-radius: 20px;
+
+  background-color: #d92d20;
+  color: #ffffff;
+
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Botão de saída */
+
 .logout-button {
-  margin-top: auto;
   width: 100%;
+  margin-top: auto;
   padding: 12px;
+
   border: none;
   border-radius: 8px;
+
   background-color: #d9534f;
-  color: white;
+  color: #ffffff;
+
+  font-family: inherit;
   font-size: 15px;
+  font-weight: 600;
+
   cursor: pointer;
+
   transition: background-color 0.2s ease;
 }
 
 .logout-button:hover {
   background-color: #c9302c;
+}
+
+.logout-button:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .sidebar {
+    width: 200px;
+    padding: 20px 16px;
+  }
+
+  .sidebar-brand {
+    margin-bottom: 32px;
+    font-size: 19px;
+  }
+
+  .menu a {
+    padding: 12px;
+    font-size: 16px;
+  }
+
+  .header {
+    min-height: 66px;
+    padding: 12px 20px;
+  }
+
+  .header h2 {
+    font-size: 16px;
+  }
+
+  .content main {
+    padding: 20px;
+  }
+
+  .alertas-button {
+    padding: 0 11px;
+  }
+
+  .alertas-button-text {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .sidebar {
+    width: 170px;
+    padding: 18px 12px;
+  }
+
+  .sidebar-brand {
+    font-size: 17px;
+  }
+
+  .menu a {
+    padding: 11px 10px;
+    font-size: 14px;
+  }
+
+  .header {
+    gap: 12px;
+    padding: 12px 15px;
+  }
+
+  .header h2 {
+    font-size: 14px;
+  }
+
+  .content main {
+    padding: 16px;
+  }
 }
