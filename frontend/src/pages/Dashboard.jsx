@@ -32,9 +32,9 @@ function Dashboard() {
   const { demandas } = useDemandas()
 
   const demandasComInformacoes = demandas.map((demanda) => {
-    const prioridade = calcularPrioridade(
-      demanda.prazoResposta,
-    )
+    const prioridade =
+      demanda.prioridadeManual ||
+      calcularPrioridade(demanda.prazoResposta)
 
     const diasRestantes = calcularDiasRestantes(
       demanda.prazoResposta,
