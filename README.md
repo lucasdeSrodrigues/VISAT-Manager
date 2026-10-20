@@ -54,6 +54,10 @@ https://www.figma.com/proto/LaXeDczTlSIBvWNcISJIjI/Sem-t%C3%ADtulo?node-id=0-1&t
 
 https://1drv.ms/v/c/1c1c8fc2654f999f/IQDhKngsunz_Q6siTCEosNfHAfA8Gh6V9wxFa7QBFa8Dngw?e=NwtuHh
 
+## Pair programming
+
+Como nossa equipe na matéria de FDS é restrita a apenas 3 pessoas, decidimos em vez de programar em pares, fazer parte do código em trio. Realizamos a ideação inicial, a base e a US16 em conjunto, em uma reunião presencial. Com isso, o resto do código ficou muito mais simples de ser implementado
+
 ## 👨‍💻Equipe
 
 - Lucas de Souza 
