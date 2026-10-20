@@ -1,4 +1,3 @@
-
 # ⭐VISAT Manager
 Plataforma integrada que organiza, monitora e transforma as demandas recebidas pelo SEI em informações estratégicas para uma gestão mais eficiente da VISAT.
 
@@ -31,11 +30,11 @@ As próximas etapas incluem a continuidade das histórias de usuário previstas 
 
 Histórias de usuário selecionadas e implementadas nesta sprint:
 
-- **UH02 — Listar demnadas em painel central**
-- **UH03 — Classificar demandas por prioridade**
-- **UH09 — Receber alerta de prazo próximo**
-- **UH11 — Dashboard gerencial**
-- **UH16 — Cadastrar demanda manualmente**
+- **UH02 — Listar demandas em painel central**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBIFN6yAHtWT5DeeIHSx4OsAcJRBHjRzqJRZBpTF3l4PdE?e=OA2KSK
+- **UH03 — Classificar demandas por prioridade** https://1drv.ms/v/c/1c1c8fc2654f999f/IQCPfIMlI6WAQo-0prqA4nhBAcQcAc9DoJO9v33xvDJfhcU?e=RbQLnT 
+- **UH09 — Receber alerta de prazo próximo**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQCF5KikdggPRbPeK85XbYSkAXTzlt24iQ3h2T2WcwyJJh8?e=caB7k1
+- **UH11 — Dashboard gerencial**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQC62kJFFdTITYiDuUGfiYYSAZWCpblojSVy7ya2N9MKDaU?e=Dir3l4
+- **UH16 — Cadastrar demanda manualmente**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBxXrr8RVtjRKONxFK1i5wqAcIlP26ChfSZNzqTz-1BWQ8?e=gCHoR6
 
 **Status:** ✅ Concluída
 
