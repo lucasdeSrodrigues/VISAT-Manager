@@ -25,6 +25,20 @@ O frontend foi desenvolvido com **React, Vite e JavaScript** e está publicado n
 
 As próximas etapas incluem a continuidade das histórias de usuário previstas no backlog, o refinamento das funcionalidades existentes e, futuramente, a implementação de backend e banco de dados para permitir o armazenamento centralizado e o compartilhamento das demandas entre diferentes dispositivos.
 
+## 🏃 Sprints
+
+### Sprint 01
+
+Histórias de usuário selecionadas e implementadas nesta sprint:
+
+- **UH02 — Listar demnadas em painel central**
+- **UH03 — Classificar demandas por prioridade**
+- **UH09 — Receber alerta de prazo próximo**
+- **UH11 — Dashboard gerencial**
+- **UH16 — Cadastrar demanda manualmente**
+
+**Status:** ✅ Concluída
+
 ## Tela do board/backlog
 
 <img width="1896" height="874" alt="Captura de tela_23-9-2026_1785_trello com" src="https://github.com/user-attachments/assets/81a99cd2-afe2-4b3f-8a2a-694b90d69669" />
