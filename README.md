@@ -8,12 +8,22 @@ Nosso projeto está alinhado principalmente com o **ODS 8 – Trabalho Decente e
 ## ❌Problema 
 Como podemos transformar o processo de recebimento, acompanhamento e resposta às demandas de vigilância em saúde do trabalhador do Recife em um fluxo digital rastreável, integrado e orientado por dados, reduzindo atrasos, retrabalho e vulnerabilidade institucional? 
 
+## 🌐Acesso ao sistema
+
+O frontend do VISAT Manager está publicado e pode ser acessado diretamente pelo navegador:
+
+🔗 **[Acessar o VISAT Manager](https://visat-manager.vercel.app)**
+
+> Nesta versão, os dados são armazenados localmente no navegador. Por isso, cada navegador e dispositivo mantém seus próprios registros.
+
 ## 🔎 Status Atual
-O projeto **VISAT Manager** está em fase de **imersão, definição e planejamento**.
+O **VISAT Manager** encontra-se atualmente em fase de **desenvolvimento incremental e validação das funcionalidades da Sprint 01**.
 
-Neste momento, a equipe já avançou na compreensão do problema, na identificação das necessidades da VISAT e na estruturação da proposta da solução. Também já foram produzidos materiais como levantamento do contexto, definição do escopo inicial, histórias de usuário, protótipos de baixa fidelidade e organização do planejamento do projeto.
+Após as etapas de imersão, definição e planejamento, a equipe avançou para a implementação do frontend da solução. A versão atual já conta com cadastro manual de demandas, listagem centralizada, classificação automática e manual de prioridades, visualização detalhada, exclusão com confirmação, Dashboard gerencial e Central de Alertas para prazos próximos.
 
-Ainda não iniciamos a etapa de implementação, pois a prioridade atual é consolidar os requisitos, revisar o escopo, estruturar o backlog da disciplina e preparar o material do **Status Report 1**.
+O frontend foi desenvolvido com **React, Vite e JavaScript** e está publicado na **Vercel**, permitindo o acesso ao sistema diretamente pelo navegador, sem a necessidade de executar o projeto localmente. Nesta etapa, os dados são armazenados no `localStorage`, permanecendo disponíveis apenas no navegador e dispositivo em que foram cadastrados.
+
+As próximas etapas incluem a continuidade das histórias de usuário previstas no backlog, o refinamento das funcionalidades existentes e, futuramente, a implementação de backend e banco de dados para permitir o armazenamento centralizado e o compartilhamento das demandas entre diferentes dispositivos.
 
 ## Tela do board/backlog
 
