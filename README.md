@@ -24,11 +24,11 @@ O frontend foi desenvolvido com React, Vite e JavaScript e está publicado na Ve
 
 Com o início da Sprint 02, a equipe definiu a implementação das seguintes histórias de usuário:
 
-UH04: Buscar e filtrar demandas por áreas/bairros;
-UH05: Filtrar demandas por responsável;
-UH06: Atualizar o status da demanda;
-UH07: Visualizar a linha do tempo da demanda;
-UH15: Consultar o histórico completo da demanda.
+UH04: Buscar e filtrar demandas por áreas/bairros;\
+UH05: Filtrar demandas por responsável;\
+UH06: Atualizar o status da demanda;\
+UH07: Visualizar a linha do tempo da demanda;\
+UH15: Consultar o histórico completo da demanda.\
 
 Além dessas funcionalidades, a Sprint 02 contemplará a criação da infraestrutura de backend e banco de dados da aplicação. O objetivo é substituir gradualmente o armazenamento local por uma solução centralizada, permitindo compartilhamento de informações entre dispositivos, persistência permanente dos dados e suporte às futuras evoluções do sistema.
 
