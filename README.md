@@ -16,13 +16,23 @@ O frontend do VISAT Manager está publicado e pode ser acessado diretamente pelo
 > Nesta versão, os dados são armazenados localmente no navegador. Por isso, cada navegador e dispositivo mantém seus próprios registros.
 
 ## 🔎 Status Atual
-O **VISAT Manager** encontra-se atualmente em fase de **desenvolvimento incremental e validação das funcionalidades da Sprint 01**.
+O VISAT Manager encontra-se atualmente em fase de desenvolvimento incremental da Sprint 02, após a conclusão e validação das funcionalidades previstas para a Sprint 01.
 
-Após as etapas de imersão, definição e planejamento, a equipe avançou para a implementação do frontend da solução. A versão atual já conta com cadastro manual de demandas, listagem centralizada, classificação automática e manual de prioridades, visualização detalhada, exclusão com confirmação, Dashboard gerencial e Central de Alertas para prazos próximos.
+Durante a primeira sprint, foram implementadas as histórias de usuário relacionadas ao cadastro manual de demandas, listagem centralizada, classificação automática e manual de prioridades, visualização detalhada das demandas, Dashboard gerencial e Central de Alertas para acompanhamento de prazos. Essas funcionalidades já se encontram operacionais e acessíveis por meio da interface da aplicação.
 
-O frontend foi desenvolvido com **React, Vite e JavaScript** e está publicado na **Vercel**, permitindo o acesso ao sistema diretamente pelo navegador, sem a necessidade de executar o projeto localmente. Nesta etapa, os dados são armazenados no `localStorage`, permanecendo disponíveis apenas no navegador e dispositivo em que foram cadastrados.
+O frontend foi desenvolvido com React, Vite e JavaScript e está publicado na Vercel, permitindo o acesso ao sistema diretamente pelo navegador, sem necessidade de execução local. Atualmente, os dados continuam sendo armazenados no localStorage, o que possibilita a persistência das informações apenas no navegador e dispositivo em que foram registradas.
 
-As próximas etapas incluem a continuidade das histórias de usuário previstas no backlog, o refinamento das funcionalidades existentes e, futuramente, a implementação de backend e banco de dados para permitir o armazenamento centralizado e o compartilhamento das demandas entre diferentes dispositivos.
+Com o início da Sprint 02, a equipe definiu a implementação das seguintes histórias de usuário:
+
+UH04: Buscar e filtrar demandas por áreas/bairros;
+UH05: Filtrar demandas por responsável;
+UH06: Atualizar o status da demanda;
+UH07: Visualizar a linha do tempo da demanda;
+UH15: Consultar o histórico completo da demanda.
+
+Além dessas funcionalidades, a Sprint 02 contemplará a criação da infraestrutura de backend e banco de dados da aplicação. O objetivo é substituir gradualmente o armazenamento local por uma solução centralizada, permitindo compartilhamento de informações entre dispositivos, persistência permanente dos dados e suporte às futuras evoluções do sistema.
+
+A arquitetura definida para essa etapa será composta por React/Vite no frontend, Python com Flask no backend e SQLite como banco de dados. Essa estrutura servirá como base para as funcionalidades de controle de status, responsáveis, histórico e rastreabilidade das demandas, além de preparar o sistema para futuras integrações e funcionalidades previstas no backlog.
 
 ## 🏃 Sprints
 
