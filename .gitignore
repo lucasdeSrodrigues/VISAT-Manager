@@ -1,0 +1,4 @@
+backend/database_backup.db
+backend/venv/
+backend/__pycache__/
+*.pyc
