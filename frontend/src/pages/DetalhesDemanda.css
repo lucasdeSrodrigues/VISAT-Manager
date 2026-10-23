@@ -1060,3 +1060,435 @@
     width: 100%;
   }
 }
+
+.responsavel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.responsavel-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.responsavel-form-field {
+  display: flex;
+  width: min(100%, 360px);
+  flex-direction: column;
+  gap: 8px;
+}
+
+.responsavel-form-field label {
+  color: #344054;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.responsavel-form-field select {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #cfd7df;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #344054;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.responsavel-form-field select:focus {
+  border-color: #2f75b5;
+  box-shadow: 0 0 0 3px rgba(47, 117, 181, 0.14);
+}
+
+.salvar-responsavel-button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #1f5f99;
+  border-radius: 8px;
+  background-color: #1f5f99;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.salvar-responsavel-button:hover {
+  background-color: #174d7e;
+}
+
+.responsavel-atual {
+  display: flex;
+  padding: 14px 16px;
+  border: 1px solid #e1e7ed;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.responsavel-atual span {
+  color: #7a8694;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.responsavel-atual strong {
+  color: #233244;
+  font-size: 15px;
+}
+
+.responsavel-mensagem {
+  margin: 0;
+  color: #217a49;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .responsavel-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .responsavel-form-field {
+    width: 100%;
+  }
+
+  .salvar-responsavel-button {
+    width: 100%;
+  }
+}
+
+/* Organização final da seção de responsável */
+
+.responsavel-card {
+  display: flex;
+  padding: 0;
+  flex-direction: column;
+  gap: 0;
+}
+
+.responsavel-card-header {
+  display: flex;
+  padding: 24px 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  border-bottom: 1px solid #e1e7ed;
+}
+
+.responsavel-card-texto {
+  flex: 1;
+}
+
+.responsavel-card-texto h2 {
+  margin: 0 0 6px;
+}
+
+.responsavel-card-texto p {
+  max-width: 720px;
+  margin: 0;
+}
+
+.responsavel-atual-resumo {
+  display: flex;
+  min-width: 220px;
+  padding: 14px 18px;
+  border: 1px solid #cfe0ef;
+  border-radius: 8px;
+  background-color: #f5f9fd;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.responsavel-atual-resumo span {
+  color: #667085;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.responsavel-atual-resumo strong {
+  color: #233244;
+  font-size: 15px;
+}
+
+.responsavel-form {
+  display: grid;
+  padding: 24px 30px 28px;
+  align-items: end;
+  grid-template-columns: minmax(280px, 520px) 200px;
+  gap: 16px;
+}
+
+.responsavel-form-field {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.responsavel-form-field label {
+  color: #344054;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.responsavel-form-field select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid #cfd7df;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #344054;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.responsavel-form-field select:focus {
+  border-color: #2f75b5;
+  box-shadow: 0 0 0 3px rgba(47, 117, 181, 0.14);
+}
+
+.salvar-responsavel-button {
+  width: 200px;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid #1f5f99;
+  border-radius: 8px;
+  background-color: #1f5f99;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.salvar-responsavel-button:hover {
+  border-color: #174d7e;
+  background-color: #174d7e;
+}
+
+.responsavel-mensagem {
+  margin: -8px 30px 24px;
+  padding: 11px 14px;
+  border: 1px solid #a9dfc1;
+  border-radius: 8px;
+  background-color: #eaf8f0;
+  color: #217a49;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.responsavel-atual {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .responsavel-card-header {
+    padding: 22px 20px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .responsavel-atual-resumo {
+    min-width: 0;
+  }
+
+  .responsavel-form {
+    padding: 20px;
+    grid-template-columns: 1fr;
+  }
+
+  .salvar-responsavel-button {
+    width: 100%;
+  }
+
+  .responsavel-mensagem {
+    margin-right: 20px;
+    margin-left: 20px;
+  }
+}
+
+/* Atualização de status da demanda - UH06 */
+
+.status-card {
+  display: flex;
+  padding: 0;
+  flex-direction: column;
+  gap: 0;
+}
+
+.status-card-header {
+  display: flex;
+  padding: 24px 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  border-bottom: 1px solid #e1e7ed;
+}
+
+.status-card-texto {
+  flex: 1;
+}
+
+.status-card-texto h2 {
+  margin: 0 0 6px;
+}
+
+.status-card-texto p {
+  max-width: 720px;
+  margin: 0;
+}
+
+.status-atual-resumo {
+  display: flex;
+  min-width: 220px;
+  padding: 14px 18px;
+  border: 1px solid #e1e7ed;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.status-atual-resumo > span {
+  color: #667085;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.status-atual-badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-em-andamento {
+  border-color: #f0d38a;
+  background-color: #fff7df;
+  color: #8a6112;
+}
+
+.status-em-revisao {
+  border-color: #bfd6ef;
+  background-color: #eef6ff;
+  color: #245f91;
+}
+
+.status-finalizada {
+  border-color: #a9dfc1;
+  background-color: #eaf8f0;
+  color: #217a49;
+}
+
+.status-form {
+  display: grid;
+  padding: 24px 30px 28px;
+  align-items: end;
+  grid-template-columns: minmax(280px, 520px) 200px;
+  gap: 16px;
+}
+
+.status-form-field {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-form-field label {
+  color: #344054;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.status-form-field select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid #cfd7df;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #344054;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.status-form-field select:focus {
+  border-color: #2f75b5;
+  box-shadow: 0 0 0 3px rgba(47, 117, 181, 0.14);
+}
+
+.salvar-status-button {
+  width: 200px;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid #1f5f99;
+  border-radius: 8px;
+  background-color: #1f5f99;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.salvar-status-button:hover {
+  border-color: #174d7e;
+  background-color: #174d7e;
+}
+
+.status-mensagem {
+  margin: -8px 30px 24px;
+  padding: 11px 14px;
+  border: 1px solid #a9dfc1;
+  border-radius: 8px;
+  background-color: #eaf8f0;
+  color: #217a49;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .status-card-header {
+    padding: 22px 20px;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .status-atual-resumo {
+    min-width: 0;
+  }
+
+  .status-form {
+    padding: 20px;
+    grid-template-columns: 1fr;
+  }
+
+  .salvar-status-button {
+    width: 100%;
+  }
+
+  .status-mensagem {
+    margin-right: 20px;
+    margin-left: 20px;
+  }
+}

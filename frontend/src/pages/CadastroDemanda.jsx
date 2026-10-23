@@ -29,7 +29,7 @@ function CadastroDemanda() {
     }))
   }
 
-  function enviarFormulario(evento) {
+  async function enviarFormulario(evento) {
     evento.preventDefault()
 
     const camposObrigatorios = [
@@ -51,13 +51,21 @@ function CadastroDemanda() {
       return
     }
 
-    cadastrarDemanda({
-      ...formulario,
-      status: 'Em andamento',
-    })
+    try {
+      await cadastrarDemanda({
+        ...formulario,
+        status: 'Em andamento',
+      })
 
-    setMensagemErro('')
-    navigate('/demandas')
+      setMensagemErro('')
+      navigate('/demandas')
+    } catch (erro) {
+      console.error('Erro ao cadastrar demanda:', erro)
+
+      setMensagemErro(
+        'Não foi possível cadastrar a demanda. Verifique se o backend está funcionando.',
+      )
+    }
   }
 
   return (

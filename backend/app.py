@@ -43,33 +43,46 @@ def criar_demanda():
             numero_processo,
             orgao_solicitante,
             municipio,
+            bairro,
             tipo_ocorrencia,
             data_entrada,
             prazo_resposta,
+            descricao,
             prioridade_manual,
+            justificativa_prioridade,
+            data_alteracao_prioridade,
             responsavel,
             status,
-            origem
+            origem,
+            data_cadastro
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         dados.get("numero_processo"),
         dados.get("orgao_solicitante"),
         dados.get("municipio"),
+        dados.get("bairro"),
         dados.get("tipo_ocorrencia"),
         dados.get("data_entrada"),
         dados.get("prazo_resposta"),
+        dados.get("descricao"),
         dados.get("prioridade_manual"),
+        dados.get("justificativa_prioridade"),
+        dados.get("data_alteracao_prioridade"),
         dados.get("responsavel"),
         dados.get("status"),
-        dados.get("origem")
+        dados.get("origem"),
+        dados.get("data_cadastro")
     ))
+
+    demanda_id = cursor.lastrowid
 
     conn.commit()
     conn.close()
 
     return {
-        "mensagem": "Demanda cadastrada com sucesso!"
+        "mensagem": "Demanda cadastrada com sucesso!",
+        "id": demanda_id
     }, 201
 
 @app.route("/api/teste")
@@ -128,6 +141,42 @@ def excluir_demanda(id):
 
     return {
         "mensagem": "Demanda removida com sucesso!"
+    }
+
+
+@app.route("/api/demandas/<int:id>", methods=["PUT"])
+def atualizar_demanda(id):
+    dados = request.json
+
+    conn = sqlite3.connect("database.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE demandas
+        SET
+            prioridade_manual = ?,
+            justificativa_prioridade = ?,
+            data_alteracao_prioridade = ?
+        WHERE id = ?
+    """, (
+        dados.get("prioridade_manual"),
+        dados.get("justificativa_prioridade"),
+        dados.get("data_alteracao_prioridade"),
+        id
+    ))
+
+    if cursor.rowcount == 0:
+        conn.close()
+
+        return {
+            "mensagem": "Demanda não encontrada."
+        }, 404
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "mensagem": "Demanda atualizada com sucesso!"
     }
 
 if __name__ == "__main__":

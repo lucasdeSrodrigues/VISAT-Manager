@@ -1,9 +1,26 @@
-import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import {
+  useNavigate,
+  useParams,
+} from 'react-router-dom'
 
 import { useDemandas } from '../context/DemandasContext.jsx'
 import { calcularPrioridade } from '../utils/prioridade.js'
 import './DetalhesDemanda.css'
+
+const RESPONSAVEIS = [
+  'Integrante 1',
+  'Integrante 2',
+  'Integrante 3',
+  'Integrante 4',
+  'Integrante 5',
+]
+
+const STATUS = [
+  'Em andamento',
+  'Em revisão',
+  'Finalizada',
+]
 
 function formatarData(data) {
   if (!data) {
@@ -40,6 +57,14 @@ function criarClassePrioridade(prioridade) {
     .replace(/\s+/g, '-')
 }
 
+function criarClasseStatus(status) {
+  return (status || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '-')
+}
+
 function DetalhesDemanda() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -49,24 +74,60 @@ function DetalhesDemanda() {
     excluirDemanda,
     alterarPrioridade,
     restaurarPrioridadeAutomatica,
+    atribuirResponsavel,
+    alterarStatus,
   } = useDemandas()
 
   const [confirmacaoAberta, setConfirmacaoAberta] =
     useState(false)
 
-  const [modalPrioridadeAberto, setModalPrioridadeAberto] =
-    useState(false)
+  const [
+    modalPrioridadeAberto,
+    setModalPrioridadeAberto,
+  ] = useState(false)
 
   const [novaPrioridade, setNovaPrioridade] =
     useState('')
 
-  const [justificativaPrioridade, setJustificativaPrioridade] =
-    useState('')
+  const [
+    justificativaPrioridade,
+    setJustificativaPrioridade,
+  ] = useState('')
 
   const [erroPrioridade, setErroPrioridade] =
     useState('')
 
+  const [
+    responsavelSelecionado,
+    setResponsavelSelecionado,
+  ] = useState('')
+
+  const [
+    mensagemResponsavel,
+    setMensagemResponsavel,
+  ] = useState('')
+
+  const [statusSelecionado, setStatusSelecionado] =
+    useState('Em andamento')
+
+  const [mensagemStatus, setMensagemStatus] =
+    useState('')
+
   const demanda = buscarDemandaPorId(id)
+
+  useEffect(() => {
+    if (!demanda) {
+      return
+    }
+
+    setResponsavelSelecionado(
+      demanda.responsavel || '',
+    )
+
+    setStatusSelecionado(
+      demanda.status || 'Em andamento',
+    )
+  }, [demanda])
 
   function abrirConfirmacao() {
     setConfirmacaoAberta(true)
@@ -76,9 +137,29 @@ function DetalhesDemanda() {
     setConfirmacaoAberta(false)
   }
 
-  function confirmarExclusao() {
-    excluirDemanda(id)
-    navigate('/demandas')
+  async function confirmarExclusao() {
+    try {
+      const demandaExcluida =
+        await excluirDemanda(id)
+
+      if (!demandaExcluida) {
+        window.alert(
+          'Não foi possível encontrar a demanda para exclusão.',
+        )
+        return
+      }
+
+      navigate('/demandas')
+    } catch (erro) {
+      console.error(
+        'Erro ao excluir demanda:',
+        erro,
+      )
+
+      window.alert(
+        'Não foi possível excluir a demanda. Verifique se o backend está funcionando.',
+      )
+    }
   }
 
   function abrirModalPrioridade() {
@@ -86,12 +167,14 @@ function DetalhesDemanda() {
       return
     }
 
-    const prioridadeAutomatica = calcularPrioridade(
-      demanda.prazoResposta,
-    )
+    const prioridadeAutomatica =
+      calcularPrioridade(
+        demanda.prazoResposta,
+      )
 
     setNovaPrioridade(
-      demanda.prioridadeManual || prioridadeAutomatica,
+      demanda.prioridadeManual ||
+        prioridadeAutomatica,
     )
 
     setJustificativaPrioridade(
@@ -107,48 +190,124 @@ function DetalhesDemanda() {
     setErroPrioridade('')
   }
 
- function salvarPrioridadeManual(evento) {
-  evento.preventDefault()
+  async function salvarPrioridadeManual(evento) {
+    evento.preventDefault()
 
-  if (!novaPrioridade) {
-    setErroPrioridade(
-      'Selecione a nova prioridade da demanda.',
-    )
-    return
-  }
-
-  const prioridadeAlterada = alterarPrioridade(
-    id,
-    novaPrioridade,
-    justificativaPrioridade,
-  )
-
-  if (!prioridadeAlterada) {
-    setErroPrioridade(
-      'Não foi possível alterar a prioridade. Tente novamente.',
-    )
-    return
-  }
-
-  setModalPrioridadeAberto(false)
-  setErroPrioridade('')
-}
-
-  function restaurarPrioridade() {
-    const prioridadeRestaurada =
-      restaurarPrioridadeAutomatica(id)
-
-    if (!prioridadeRestaurada) {
+    if (!novaPrioridade) {
       setErroPrioridade(
-        'Não foi possível restaurar a prioridade automática.',
+        'Selecione a nova prioridade da demanda.',
       )
       return
     }
 
-    setModalPrioridadeAberto(false)
-    setErroPrioridade('')
-    setNovaPrioridade('')
-    setJustificativaPrioridade('')
+    try {
+      const prioridadeAlterada =
+        await alterarPrioridade(
+          id,
+          novaPrioridade,
+          justificativaPrioridade,
+        )
+
+      if (!prioridadeAlterada) {
+        setErroPrioridade(
+          'Não foi possível alterar a prioridade. Tente novamente.',
+        )
+        return
+      }
+
+      setModalPrioridadeAberto(false)
+      setErroPrioridade('')
+    } catch (erro) {
+      console.error(
+        'Erro ao alterar prioridade:',
+        erro,
+      )
+
+      setErroPrioridade(
+        'Não foi possível salvar a prioridade. Verifique se o backend está funcionando.',
+      )
+    }
+  }
+
+  async function restaurarPrioridade() {
+    try {
+      const prioridadeRestaurada =
+        await restaurarPrioridadeAutomatica(id)
+
+      if (!prioridadeRestaurada) {
+        setErroPrioridade(
+          'Não foi possível restaurar a prioridade automática.',
+        )
+        return
+      }
+
+      setModalPrioridadeAberto(false)
+      setErroPrioridade('')
+      setNovaPrioridade('')
+      setJustificativaPrioridade('')
+    } catch (erro) {
+      console.error(
+        'Erro ao restaurar prioridade automática:',
+        erro,
+      )
+
+      setErroPrioridade(
+        'Não foi possível restaurar a prioridade. Verifique se o backend está funcionando.',
+      )
+    }
+  }
+
+  function salvarResponsavel(evento) {
+    evento.preventDefault()
+
+    const responsavelAtualizado =
+      atribuirResponsavel(
+        id,
+        responsavelSelecionado,
+      )
+
+    if (!responsavelAtualizado) {
+      setMensagemResponsavel(
+        'Não foi possível atualizar o responsável.',
+      )
+      return
+    }
+
+    setMensagemResponsavel(
+      responsavelSelecionado
+        ? 'Responsável atribuído com sucesso.'
+        : 'Responsável removido da demanda.',
+    )
+  }
+
+  function salvarStatus(evento) {
+    evento.preventDefault()
+
+    if (
+      statusSelecionado === demanda.status
+    ) {
+      setMensagemStatus(
+        'A demanda já está com este status.',
+      )
+      return
+    }
+
+    const statusAtualizado =
+      alterarStatus(
+        id,
+        statusSelecionado,
+      )
+
+    if (!statusAtualizado) {
+      setMensagemStatus(
+        'Não foi possível atualizar o status.',
+      )
+      return
+    }
+
+    setMensagemStatus(
+      'Status atualizado com sucesso.',
+    )
   }
 
   if (!demanda) {
@@ -158,7 +317,8 @@ function DetalhesDemanda() {
           <h1>Demanda não encontrada</h1>
 
           <p>
-            O registro solicitado não existe ou não está mais disponível.
+            O registro solicitado não existe ou não está
+            mais disponível.
           </p>
 
           <button
@@ -172,21 +332,30 @@ function DetalhesDemanda() {
     )
   }
 
-  const prioridadeAutomatica = calcularPrioridade(
-    demanda.prazoResposta,
-  )
+  const prioridadeAutomatica =
+    calcularPrioridade(
+      demanda.prazoResposta,
+    )
 
   const prioridadeAtual =
-    demanda.prioridadeManual || prioridadeAutomatica
+    demanda.prioridadeManual ||
+    prioridadeAutomatica
 
   const prioridadeFoiAjustada =
     Boolean(demanda.prioridadeManual)
 
   const classePrioridade =
-    criarClassePrioridade(prioridadeAtual)
+    criarClassePrioridade(
+      prioridadeAtual,
+    )
 
   const classePrioridadeAutomatica =
-    criarClassePrioridade(prioridadeAutomatica)
+    criarClassePrioridade(
+      prioridadeAutomatica,
+    )
+
+  const classeStatus =
+    criarClasseStatus(demanda.status)
 
   return (
     <div className="detalhes-page">
@@ -203,7 +372,9 @@ function DetalhesDemanda() {
 
         <span aria-hidden="true">›</span>
 
-        <strong>{demanda.orgaoSolicitante}</strong>
+        <strong>
+          {demanda.orgaoSolicitante}
+        </strong>
       </nav>
 
       <div className="detalhes-page-header">
@@ -212,10 +383,13 @@ function DetalhesDemanda() {
             Demanda selecionada
           </span>
 
-          <h1>{demanda.orgaoSolicitante}</h1>
+          <h1>
+            {demanda.orgaoSolicitante}
+          </h1>
 
           <p>
-            Consulte as informações registradas para esta demanda.
+            Consulte as informações registradas para esta
+            demanda.
           </p>
         </div>
 
@@ -228,44 +402,151 @@ function DetalhesDemanda() {
         </button>
       </div>
 
-      <section className="detalhes-resumo">
-        <div className="resumo-item resumo-prioridade">
-          <span>Prioridade atual</span>
+      <section className="detalhes-card responsavel-card">
+        <div className="detalhes-card-header responsavel-card-header">
+          <div className="responsavel-card-texto">
+            <h2>Responsável pela demanda</h2>
 
-          <div className="resumo-prioridade-conteudo">
-            <span
-              className={`detalhes-prioridade-badge prioridade-${classePrioridade}`}
-            >
-              {prioridadeAtual}
-            </span>
+            <p>
+              Atribua a demanda a um integrante da equipe
+              para acompanhar a distribuição do trabalho.
+            </p>
+          </div>
 
-            {prioridadeFoiAjustada && (
-              <small className="prioridade-manual-label">
-                Ajustada manualmente
-              </small>
-            )}
+          <div className="responsavel-atual-resumo">
+            <span>Responsável atual</span>
+
+            <strong>
+              {demanda.responsavel ||
+                'Sem responsável'}
+            </strong>
           </div>
         </div>
 
-        <div className="resumo-item">
-          <span>Status</span>
+        <form
+          className="responsavel-form"
+          onSubmit={salvarResponsavel}
+        >
+          <div className="responsavel-form-field">
+            <label htmlFor="responsavelDemanda">
+              Integrante responsável
+            </label>
 
-          <strong>{demanda.status}</strong>
+            <select
+              id="responsavelDemanda"
+              value={responsavelSelecionado}
+              onChange={(evento) => {
+                setResponsavelSelecionado(
+                  evento.target.value,
+                )
+
+                setMensagemResponsavel('')
+              }}
+            >
+              <option value="">
+                Sem responsável
+              </option>
+
+              {RESPONSAVEIS.map(
+                (responsavel) => (
+                  <option
+                    key={responsavel}
+                    value={responsavel}
+                  >
+                    {responsavel}
+                  </option>
+                ),
+              )}
+            </select>
+          </div>
+
+          <button
+            className="salvar-responsavel-button"
+            type="submit"
+          >
+            Salvar responsável
+          </button>
+        </form>
+
+        {mensagemResponsavel && (
+          <p
+            className="responsavel-mensagem"
+            role="status"
+          >
+            {mensagemResponsavel}
+          </p>
+        )}
+      </section>
+
+      <section className="detalhes-card status-card">
+        <div className="detalhes-card-header status-card-header">
+          <div className="status-card-texto">
+            <h2>Status da demanda</h2>
+
+            <p>
+              Registre a etapa atual da demanda para manter
+              o acompanhamento do processo atualizado.
+            </p>
+          </div>
+
+          <div className="status-atual-resumo">
+            <span>Status atual</span>
+
+            <strong
+              className={`status-atual-badge status-${classeStatus}`}
+            >
+              {demanda.status}
+            </strong>
+          </div>
         </div>
 
-        <div className="resumo-item">
-          <span>Prazo de resposta</span>
+        <form
+          className="status-form"
+          onSubmit={salvarStatus}
+        >
+          <div className="status-form-field">
+            <label htmlFor="statusDemanda">
+              Novo status
+            </label>
 
-          <strong>
-            {formatarData(demanda.prazoResposta)}
-          </strong>
-        </div>
+            <select
+              id="statusDemanda"
+              value={statusSelecionado}
+              onChange={(evento) => {
+                setStatusSelecionado(
+                  evento.target.value,
+                )
 
-        <div className="resumo-item">
-          <span>Origem</span>
+                setMensagemStatus('')
+              }}
+            >
+              {STATUS.map((status) => (
+                <option
+                  key={status}
+                  value={status}
+                >
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <strong>{demanda.origem}</strong>
-        </div>
+          <button
+            className="salvar-status-button"
+            type="submit"
+          >
+            Salvar status
+          </button>
+        </form>
+
+        {mensagemStatus && (
+          <p
+            className="status-mensagem"
+            role="status"
+          >
+            {mensagemStatus}
+          </p>
+        )}
       </section>
 
       <section className="detalhes-card prioridade-card">
@@ -274,8 +555,9 @@ function DetalhesDemanda() {
             <h2>Classificação de prioridade</h2>
 
             <p>
-              A prioridade inicial é calculada automaticamente pelo prazo
-              e pode ser ajustada conforme a complexidade da demanda.
+              A prioridade inicial é calculada
+              automaticamente pelo prazo e pode ser ajustada
+              conforme a complexidade da demanda.
             </p>
           </div>
 
@@ -300,7 +582,9 @@ function DetalhesDemanda() {
               </span>
 
               {prioridadeFoiAjustada && (
-                <small>Ajustada manualmente</small>
+                <small>
+                  Ajustada manualmente
+                </small>
               )}
             </div>
           </div>
@@ -327,7 +611,10 @@ function DetalhesDemanda() {
             <div>
               <span>Justificativa do ajuste</span>
 
-              <p>{demanda.justificativaPrioridade}</p>
+              <p>
+                {demanda.justificativaPrioridade ||
+                  'Nenhuma justificativa informada.'}
+              </p>
             </div>
 
             <small>
@@ -342,44 +629,66 @@ function DetalhesDemanda() {
 
       <section className="detalhes-card">
         <div className="detalhes-card-header">
-          <h2>Informações da demanda</h2>
+          <div>
+            <h2>Informações da demanda</h2>
 
-          <p>Dados registrados no cadastro manual.</p>
+            <p>
+              Dados registrados no cadastro manual.
+            </p>
+          </div>
         </div>
 
         <div className="detalhes-grid">
           <div className="detalhes-campo">
             <span>Órgão solicitante</span>
-            <strong>{demanda.orgaoSolicitante}</strong>
+
+            <strong>
+              {demanda.orgaoSolicitante}
+            </strong>
           </div>
 
           <div className="detalhes-campo">
             <span>Tipo de ocorrência</span>
-            <strong>{demanda.tipoOcorrencia}</strong>
+
+            <strong>
+              {demanda.tipoOcorrencia}
+            </strong>
           </div>
 
           <div className="detalhes-campo">
             <span>Data de entrada</span>
+
             <strong>
-              {formatarData(demanda.dataEntrada)}
+              {formatarData(
+                demanda.dataEntrada,
+              )}
             </strong>
           </div>
 
           <div className="detalhes-campo">
             <span>Prazo de resposta</span>
+
             <strong>
-              {formatarData(demanda.prazoResposta)}
+              {formatarData(
+                demanda.prazoResposta,
+              )}
             </strong>
           </div>
 
           <div className="detalhes-campo">
             <span>Município</span>
-            <strong>{demanda.municipio}</strong>
+
+            <strong>
+              {demanda.municipio}
+            </strong>
           </div>
 
           <div className="detalhes-campo">
             <span>Bairro ou área</span>
-            <strong>{demanda.bairro}</strong>
+
+            <strong>
+              {demanda.bairro}
+            </strong>
           </div>
 
           <div className="detalhes-campo detalhes-campo-completo">
@@ -392,37 +701,48 @@ function DetalhesDemanda() {
 
       <section className="detalhes-card">
         <div className="detalhes-card-header">
-          <h2>Documentos e anexos</h2>
+          <div>
+            <h2>Documentos e anexos</h2>
 
-          <p>
-            Espaço reservado para os documentos vinculados à demanda.
-          </p>
+            <p>
+              Espaço reservado para os documentos vinculados
+              à demanda.
+            </p>
+          </div>
         </div>
 
         <div className="funcionalidade-futura">
-          <strong>Nenhum documento disponível</strong>
+          <strong>
+            Nenhum documento disponível
+          </strong>
 
           <p>
-            A anexação de documentos será implementada em uma etapa futura.
+            A anexação de documentos será implementada em
+            uma etapa futura.
           </p>
         </div>
       </section>
 
       <section className="detalhes-card">
         <div className="detalhes-card-header">
-          <h2>Movimentações e histórico</h2>
+          <div>
+            <h2>Movimentações e histórico</h2>
 
-          <p>
-            Espaço reservado para o acompanhamento das ações realizadas.
-          </p>
+            <p>
+              Espaço reservado para o acompanhamento das
+              ações realizadas.
+            </p>
+          </div>
         </div>
 
         <div className="funcionalidade-futura">
-          <strong>Nenhuma movimentação registrada</strong>
+          <strong>
+            Nenhuma movimentação registrada
+          </strong>
 
           <p>
-            O histórico e a linha do tempo serão implementados em uma etapa
-            futura.
+            O histórico e a linha do tempo serão
+            implementados em uma etapa futura.
           </p>
         </div>
       </section>
@@ -432,7 +752,8 @@ function DetalhesDemanda() {
           <h2>Excluir demanda</h2>
 
           <p>
-            Esta ação removerá a demanda da lista e não poderá ser desfeita.
+            Esta ação removerá a demanda da lista e não
+            poderá ser desfeita.
           </p>
         </div>
 
@@ -472,8 +793,8 @@ function DetalhesDemanda() {
                 </h2>
 
                 <p id="prioridade-modal-descricao">
-                  Ajuste a prioridade conforme a complexidade e a
-                  necessidade de trabalho da demanda.
+                  Ajuste a prioridade conforme a complexidade
+                  e a necessidade de trabalho da demanda.
                 </p>
               </div>
 
@@ -492,7 +813,9 @@ function DetalhesDemanda() {
               onSubmit={salvarPrioridadeManual}
             >
               <div className="prioridade-sugestao">
-                <span>Sugestão automática pelo prazo</span>
+                <span>
+                  Sugestão automática pelo prazo
+                </span>
 
                 <strong>
                   <span
@@ -521,7 +844,9 @@ function DetalhesDemanda() {
                   id="novaPrioridade"
                   value={novaPrioridade}
                   onChange={(evento) =>
-                    setNovaPrioridade(evento.target.value)
+                    setNovaPrioridade(
+                      evento.target.value,
+                    )
                   }
                 >
                   <option value="">
@@ -544,7 +869,8 @@ function DetalhesDemanda() {
 
               <div className="prioridade-form-field">
                 <label htmlFor="justificativaPrioridade">
-                  Justificativa <small>(opcional)</small>
+                  Justificativa{' '}
+                  <small>(opcional)</small>
                 </label>
 
                 <textarea
@@ -631,6 +957,7 @@ function DetalhesDemanda() {
             <div className="confirmacao-detalhes">
               <div>
                 <span>Tipo de ocorrência</span>
+
                 <strong>
                   {demanda.tipoOcorrencia}
                 </strong>
@@ -638,6 +965,7 @@ function DetalhesDemanda() {
 
               <div>
                 <span>Prazo de resposta</span>
+
                 <strong>
                   {formatarData(
                     demanda.prazoResposta,
