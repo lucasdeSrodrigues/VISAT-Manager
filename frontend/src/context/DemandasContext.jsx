@@ -7,7 +7,8 @@ import {
 
 const DemandasContext = createContext()
 
-const API_URL = 'http://127.0.0.1:5000/api/demandas'
+const API_URL =
+  'http://127.0.0.1:5000/api/demandas'
 
 const PRIORIDADES_VALIDAS = [
   'Baixa',
@@ -29,13 +30,91 @@ const STATUS_VALIDOS = [
   'Finalizada',
 ]
 
-export function DemandasProvider({ children }) {
-  const [demandas, setDemandas] = useState([])
+function formatarEventoHistorico(
+  evento,
+) {
+  return {
+    id: String(evento.id),
+    demandaId: String(
+      evento.demanda_id,
+    ),
+    dataHora: evento.data_hora,
+    tipoAcao: evento.tipo_acao,
+    descricao: evento.descricao,
+    usuario: evento.usuario,
+    statusAnterior:
+      evento.status_anterior,
+    statusPosterior:
+      evento.status_posterior,
+  }
+}
+
+function formatarDemanda(demanda) {
+  return {
+    id: String(demanda.id),
+    numeroProcesso:
+      demanda.numero_processo,
+    orgaoSolicitante:
+      demanda.orgao_solicitante,
+    municipio: demanda.municipio,
+    bairro: demanda.bairro,
+    tipoOcorrencia:
+      demanda.tipo_ocorrencia,
+    dataEntrada:
+      demanda.data_entrada,
+    prazoResposta:
+      demanda.prazo_resposta,
+    descricao: demanda.descricao,
+    prioridadeManual:
+      demanda.prioridade_manual,
+    justificativaPrioridade:
+      demanda.justificativa_prioridade,
+    dataAlteracaoPrioridade:
+      demanda.data_alteracao_prioridade,
+    responsavel:
+      demanda.responsavel,
+    status:
+      demanda.status ||
+      'Em andamento',
+    origem: demanda.origem,
+    dataCadastro:
+      demanda.data_cadastro,
+    dataFinalizacao:
+      demanda.data_finalizacao,
+    arquivada:
+      Boolean(demanda.arquivada),
+    dataArquivamento:
+      demanda.data_arquivamento,
+    historico: (
+      demanda.historico || []
+    ).map(formatarEventoHistorico),
+  }
+}
+
+export function DemandasProvider({
+  children,
+}) {
+  const [demandas, setDemandas] =
+    useState([])
+
+  const [
+    carregandoDemandas,
+    setCarregandoDemandas,
+  ] = useState(true)
+
+  const [
+    erroAoCarregar,
+    setErroAoCarregar,
+  ] = useState('')
 
   useEffect(() => {
     async function carregarDemandas() {
       try {
-        const resposta = await fetch(API_URL)
+        setCarregandoDemandas(true)
+        setErroAoCarregar('')
+
+        const resposta =
+          await fetch(API_URL)
 
         if (!resposta.ok) {
           throw new Error(
@@ -43,61 +122,63 @@ export function DemandasProvider({ children }) {
           )
         }
 
-        const dados = await resposta.json()
+        const dados =
+          await resposta.json()
 
-        const demandasFormatadas = dados.map(
-          (demanda) => ({
-            id: String(demanda.id),
-            numeroProcesso:
-              demanda.numero_processo,
-            orgaoSolicitante:
-              demanda.orgao_solicitante,
-            municipio: demanda.municipio,
-            bairro: demanda.bairro,
-            tipoOcorrencia:
-              demanda.tipo_ocorrencia,
-            dataEntrada:
-              demanda.data_entrada,
-            prazoResposta:
-              demanda.prazo_resposta,
-            descricao: demanda.descricao,
-            prioridadeManual:
-              demanda.prioridade_manual,
-            justificativaPrioridade:
-              demanda.justificativa_prioridade,
-            dataAlteracaoPrioridade:
-              demanda.data_alteracao_prioridade,
-            responsavel:
-              demanda.responsavel,
-            status: demanda.status,
-            origem: demanda.origem,
-            dataCadastro:
-              demanda.data_cadastro,
-          }),
+        setDemandas(
+          dados.map(formatarDemanda),
         )
-
-        setDemandas(demandasFormatadas)
       } catch (erro) {
         console.error(
           'Erro ao carregar demandas:',
           erro,
         )
+
+        setErroAoCarregar(
+          'Não foi possível carregar as demandas. Verifique se o backend está funcionando.',
+        )
+      } finally {
+        setCarregandoDemandas(false)
       }
     }
 
     carregarDemandas()
   }, [])
 
-  async function cadastrarDemanda(novaDemanda) {
+  function substituirDemanda(
+    demandaAtualizada,
+  ) {
+    const demandaFormatada =
+      formatarDemanda(
+        demandaAtualizada,
+      )
+
+    setDemandas((demandasAtuais) =>
+      demandasAtuais.map((demanda) =>
+        demanda.id ===
+        demandaFormatada.id
+          ? demandaFormatada
+          : demanda,
+      ),
+    )
+
+    return demandaFormatada
+  }
+
+  async function cadastrarDemanda(
+    novaDemanda,
+  ) {
     const dataCadastro =
       new Date().toISOString()
 
     const dadosParaApi = {
       numero_processo:
-        novaDemanda.numeroProcesso || null,
+        novaDemanda.numeroProcesso ||
+        null,
       orgao_solicitante:
         novaDemanda.orgaoSolicitante,
-      municipio: novaDemanda.municipio,
+      municipio:
+        novaDemanda.municipio,
       bairro: novaDemanda.bairro,
       tipo_ocorrencia:
         novaDemanda.tipoOcorrencia,
@@ -105,29 +186,42 @@ export function DemandasProvider({ children }) {
         novaDemanda.dataEntrada,
       prazo_resposta:
         novaDemanda.prazoResposta,
-      descricao: novaDemanda.descricao,
+      descricao:
+        novaDemanda.descricao,
       prioridade_manual:
-        novaDemanda.prioridadeManual || null,
+        novaDemanda.prioridadeManual ||
+        null,
       justificativa_prioridade:
-        novaDemanda.justificativaPrioridade ||
+        novaDemanda
+          .justificativaPrioridade ||
         null,
       data_alteracao_prioridade:
-        novaDemanda.dataAlteracaoPrioridade ||
+        novaDemanda
+          .dataAlteracaoPrioridade ||
         null,
       responsavel:
-        novaDemanda.responsavel || null,
-      status: novaDemanda.status,
+        novaDemanda.responsavel ||
+        null,
+      status:
+        novaDemanda.status ||
+        'Em andamento',
       origem: 'Manual',
       data_cadastro: dataCadastro,
     }
 
-    const resposta = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const resposta = await fetch(
+      API_URL,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify(
+          dadosParaApi,
+        ),
       },
-      body: JSON.stringify(dadosParaApi),
-    })
+    )
 
     if (!resposta.ok) {
       throw new Error(
@@ -135,16 +229,11 @@ export function DemandasProvider({ children }) {
       )
     }
 
-    const resultado = await resposta.json()
+    const resultado =
+      await resposta.json()
 
-    const demandaCadastrada = {
-      ...novaDemanda,
-      id: String(resultado.id),
-      origem: 'Manual',
-      dataCadastro,
-      responsavel:
-        novaDemanda.responsavel || null,
-    }
+    const demandaCadastrada =
+      formatarDemanda(resultado)
 
     setDemandas((demandasAtuais) => [
       ...demandasAtuais,
@@ -161,13 +250,46 @@ export function DemandasProvider({ children }) {
     )
   }
 
+  async function atualizarDemanda(
+    id,
+    dados,
+  ) {
+    const idTratado = String(id)
+
+    const resposta = await fetch(
+      `${API_URL}/${idTratado}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify(dados),
+      },
+    )
+
+    if (!resposta.ok) {
+      throw new Error(
+        'Não foi possível atualizar a demanda.',
+      )
+    }
+
+    const resultado =
+      await resposta.json()
+
+    return substituirDemanda(
+      resultado,
+    )
+  }
+
   async function excluirDemanda(id) {
     const idTratado = String(id)
 
-    const demandaExiste = demandas.some(
-      (demanda) =>
-        demanda.id === idTratado,
-    )
+    const demandaExiste =
+      demandas.some(
+        (demanda) =>
+          demanda.id === idTratado,
+      )
 
     if (!demandaExiste) {
       return false
@@ -201,8 +323,6 @@ export function DemandasProvider({ children }) {
     novaPrioridade,
     justificativa,
   ) {
-    const idTratado = String(id)
-
     if (
       !PRIORIDADES_VALIDAS.includes(
         novaPrioridade,
@@ -211,61 +331,28 @@ export function DemandasProvider({ children }) {
       return false
     }
 
-    const demandaExiste = demandas.some(
-      (demanda) =>
-        demanda.id === idTratado,
-    )
+    const demanda =
+      buscarDemandaPorId(id)
 
-    if (!demandaExiste) {
+    if (!demanda) {
       return false
     }
 
     const justificativaTratada =
       justificativa.trim()
 
-    const dataAlteracaoPrioridade =
-      new Date().toISOString()
-
-    const resposta = await fetch(
-      `${API_URL}/${idTratado}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prioridade_manual:
-            novaPrioridade,
-          justificativa_prioridade:
-            justificativaTratada || null,
-          data_alteracao_prioridade:
-            dataAlteracaoPrioridade,
-        }),
-      },
-    )
-
-    if (!resposta.ok) {
-      throw new Error(
-        'Não foi possível alterar a prioridade.',
-      )
-    }
-
-    setDemandas((demandasAtuais) =>
-      demandasAtuais.map((demanda) => {
-        if (demanda.id !== idTratado) {
-          return demanda
-        }
-
-        return {
-          ...demanda,
-          prioridadeManual:
-            novaPrioridade,
-          justificativaPrioridade:
-            justificativaTratada || null,
-          dataAlteracaoPrioridade,
-        }
-      }),
-    )
+    await atualizarDemanda(id, {
+      prioridade_manual:
+        novaPrioridade,
+      justificativa_prioridade:
+        justificativaTratada ||
+        null,
+      data_alteracao_prioridade:
+        new Date().toISOString(),
+      usuario:
+        demanda.responsavel ||
+        'Usuário não identificado',
+    })
 
     return true
   }
@@ -273,131 +360,86 @@ export function DemandasProvider({ children }) {
   async function restaurarPrioridadeAutomatica(
     id,
   ) {
-    const idTratado = String(id)
+    const demanda =
+      buscarDemandaPorId(id)
 
-    const demandaExiste = demandas.some(
-      (demanda) =>
-        demanda.id === idTratado,
-    )
-
-    if (!demandaExiste) {
+    if (!demanda) {
       return false
     }
 
-    const resposta = await fetch(
-      `${API_URL}/${idTratado}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prioridade_manual: null,
-          justificativa_prioridade: null,
-          data_alteracao_prioridade: null,
-        }),
-      },
-    )
-
-    if (!resposta.ok) {
-      throw new Error(
-        'Não foi possível restaurar a prioridade automática.',
-      )
-    }
-
-    setDemandas((demandasAtuais) =>
-      demandasAtuais.map((demanda) => {
-        if (demanda.id !== idTratado) {
-          return demanda
-        }
-
-        return {
-          ...demanda,
-          prioridadeManual: null,
-          justificativaPrioridade: null,
-          dataAlteracaoPrioridade: null,
-        }
-      }),
-    )
+    await atualizarDemanda(id, {
+      prioridade_manual: null,
+      justificativa_prioridade: null,
+      data_alteracao_prioridade:
+        null,
+      usuario:
+        demanda.responsavel ||
+        'Usuário não identificado',
+    })
 
     return true
   }
 
-  function atribuirResponsavel(
+  async function atribuirResponsavel(
     id,
     novoResponsavel,
   ) {
-    const idTratado = String(id)
-
     const responsavelTratado =
       novoResponsavel || null
 
-    const responsavelValido =
-      responsavelTratado === null ||
-      RESPONSAVEIS_VALIDOS.includes(
+    if (
+      responsavelTratado !== null &&
+      !RESPONSAVEIS_VALIDOS.includes(
         responsavelTratado,
       )
-
-    if (!responsavelValido) {
-      return false
-    }
-
-    const demandaExiste = demandas.some(
-      (demanda) =>
-        demanda.id === idTratado,
-    )
-
-    if (!demandaExiste) {
-      return false
-    }
-
-    setDemandas((demandasAtuais) =>
-      demandasAtuais.map((demanda) => {
-        if (demanda.id !== idTratado) {
-          return demanda
-        }
-
-        return {
-          ...demanda,
-          responsavel:
-            responsavelTratado,
-        }
-      }),
-    )
-
-    return true
-  }
-
-  function alterarStatus(id, novoStatus) {
-    const idTratado = String(id)
-
-    if (
-      !STATUS_VALIDOS.includes(novoStatus)
     ) {
       return false
     }
 
-    const demandaExiste = demandas.some(
-      (demanda) =>
-        demanda.id === idTratado,
-    )
+    const demanda =
+      buscarDemandaPorId(id)
 
-    if (!demandaExiste) {
+    if (!demanda) {
       return false
     }
 
-    setDemandas((demandasAtuais) =>
-      demandasAtuais.map((demanda) => {
-        if (demanda.id !== idTratado) {
-          return demanda
-        }
+    await atualizarDemanda(id, {
+      responsavel:
+        responsavelTratado,
+      usuario:
+        responsavelTratado ||
+        demanda.responsavel ||
+        'Usuário não identificado',
+    })
 
-        return {
-          ...demanda,
-          status: novoStatus,
-        }
-      }),
-    )
+    return true
+  }
+
+  async function alterarStatus(
+    id,
+    novoStatus,
+  ) {
+    if (
+      !STATUS_VALIDOS.includes(
+        novoStatus,
+      )
+    ) {
+      return false
+    }
+
+    const demanda =
+      buscarDemandaPorId(id)
+
+    if (!demanda) {
+      return false
+    }
+
+    await atualizarDemanda(id, {
+      status: novoStatus,
+      usuario:
+        demanda.responsavel ||
+        'Usuário não identificado',
+    })
 
     return true
   }
@@ -406,6 +448,8 @@ export function DemandasProvider({ children }) {
     <DemandasContext.Provider
       value={{
         demandas,
+        carregandoDemandas,
+        erroAoCarregar,
         cadastrarDemanda,
         buscarDemandaPorId,
         excluirDemanda,

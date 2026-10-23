@@ -4,6 +4,7 @@ import {
   useParams,
 } from 'react-router-dom'
 
+import HistoricoDemanda from '../components/HistoricoDemanda.jsx'
 import { useDemandas } from '../context/DemandasContext.jsx'
 import { calcularPrioridade } from '../utils/prioridade.js'
 import './DetalhesDemanda.css'
@@ -257,30 +258,41 @@ function DetalhesDemanda() {
     }
   }
 
-  function salvarResponsavel(evento) {
+  async function salvarResponsavel(evento) {
     evento.preventDefault()
 
-    const responsavelAtualizado =
-      atribuirResponsavel(
-        id,
-        responsavelSelecionado,
-      )
+    try {
+      const responsavelAtualizado =
+        await atribuirResponsavel(
+          id,
+          responsavelSelecionado,
+        )
 
-    if (!responsavelAtualizado) {
+      if (!responsavelAtualizado) {
+        setMensagemResponsavel(
+          'Não foi possível atualizar o responsável.',
+        )
+        return
+      }
+
       setMensagemResponsavel(
-        'Não foi possível atualizar o responsável.',
+        responsavelSelecionado
+          ? 'Responsável atribuído com sucesso.'
+          : 'Responsável removido da demanda.',
       )
-      return
-    }
+    } catch (erro) {
+      console.error(
+        'Erro ao atualizar responsável:',
+        erro,
+      )
 
-    setMensagemResponsavel(
-      responsavelSelecionado
-        ? 'Responsável atribuído com sucesso.'
-        : 'Responsável removido da demanda.',
-    )
+      setMensagemResponsavel(
+        'Não foi possível salvar o responsável. Verifique se o backend está funcionando.',
+      )
+    }
   }
 
-  function salvarStatus(evento) {
+  async function salvarStatus(evento) {
     evento.preventDefault()
 
     if (
@@ -292,22 +304,33 @@ function DetalhesDemanda() {
       return
     }
 
-    const statusAtualizado =
-      alterarStatus(
-        id,
-        statusSelecionado,
-      )
+    try {
+      const statusAtualizado =
+        await alterarStatus(
+          id,
+          statusSelecionado,
+        )
 
-    if (!statusAtualizado) {
+      if (!statusAtualizado) {
+        setMensagemStatus(
+          'Não foi possível atualizar o status.',
+        )
+        return
+      }
+
       setMensagemStatus(
-        'Não foi possível atualizar o status.',
+        'Status atualizado com sucesso.',
       )
-      return
-    }
+    } catch (erro) {
+      console.error(
+        'Erro ao atualizar status:',
+        erro,
+      )
 
-    setMensagemStatus(
-      'Status atualizado com sucesso.',
-    )
+      setMensagemStatus(
+        'Não foi possível salvar o status. Verifique se o backend está funcionando.',
+      )
+    }
   }
 
   if (!demanda) {
@@ -723,29 +746,9 @@ function DetalhesDemanda() {
         </div>
       </section>
 
-      <section className="detalhes-card">
-        <div className="detalhes-card-header">
-          <div>
-            <h2>Movimentações e histórico</h2>
-
-            <p>
-              Espaço reservado para o acompanhamento das
-              ações realizadas.
-            </p>
-          </div>
-        </div>
-
-        <div className="funcionalidade-futura">
-          <strong>
-            Nenhuma movimentação registrada
-          </strong>
-
-          <p>
-            O histórico e a linha do tempo serão
-            implementados em uma etapa futura.
-          </p>
-        </div>
-      </section>
+      <HistoricoDemanda
+        historico={demanda.historico || []}
+      />
 
       <section className="acoes-perigosas">
         <div className="acoes-perigosas-texto">

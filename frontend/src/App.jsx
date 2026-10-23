@@ -1,10 +1,15 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+} from 'react-router-dom'
 
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Demandas from './pages/Demandas'
 import CadastroDemanda from './pages/CadastroDemanda'
 import DetalhesDemanda from './pages/DetalhesDemanda'
+import HistoricoCompleto from './pages/HistoricoCompleto'
 
 import Layout from './components/Layout'
 
@@ -14,7 +19,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route
+          path="/"
+          element={<Login />}
+        />
 
         <Route
           path="/dashboard"
@@ -39,6 +47,15 @@ function App() {
           element={
             <Layout>
               <DetalhesDemanda />
+            </Layout>
+          }
+        />
+
+        <Route
+          path="/demandas/:id/historico"
+          element={
+            <Layout>
+              <HistoricoCompleto />
             </Layout>
           }
         />
