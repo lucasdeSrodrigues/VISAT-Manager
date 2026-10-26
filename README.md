@@ -50,7 +50,8 @@ Histórias de usuário selecionadas e implementadas nesta sprint:
 
 ## Tela do board/backlog
 
-<img width="1896" height="874" alt="Captura de tela_23-9-2026_1785_trello com" src="https://github.com/user-attachments/assets/81a99cd2-afe2-4b3f-8a2a-694b90d69669" />
+<img width="1536" height="816" alt="Colagem com três capturas" src="https://github.com/user-attachments/assets/3fc93fff-ed14-4720-be4d-9e54848a577c" />
+
 
 ## 📊Diagramas das UH's
 
