@@ -77,6 +77,7 @@ function DetalhesDemanda() {
     restaurarPrioridadeAutomatica,
     atribuirResponsavel,
     alterarStatus,
+    editarDemanda,
   } = useDemandas()
 
   const [confirmacaoAberta, setConfirmacaoAberta] =
@@ -114,6 +115,22 @@ function DetalhesDemanda() {
   const [mensagemStatus, setMensagemStatus] =
     useState('')
 
+  const [modoEdicao, setModoEdicao] =
+    useState(false)
+
+  const [dadosEdicao, setDadosEdicao] =
+    useState({
+      orgaoSolicitante: '',
+      municipio: '',
+      bairro: '',
+      tipoOcorrencia: '',
+      prazoResposta: '',
+      descricao: '',
+    })
+
+  const [mensagemEdicao, setMensagemEdicao] =
+    useState('')
+
   const demanda = buscarDemandaPorId(id)
 
   useEffect(() => {
@@ -128,6 +145,22 @@ function DetalhesDemanda() {
     setStatusSelecionado(
       demanda.status || 'Em andamento',
     )
+
+    setDadosEdicao({
+      orgaoSolicitante:
+        demanda.orgaoSolicitante || '',
+      municipio:
+        demanda.municipio || '',
+      bairro:
+        demanda.bairro || '',
+      tipoOcorrencia:
+        demanda.tipoOcorrencia || '',
+      prazoResposta:
+        demanda.prazoResposta || '',
+      descricao:
+        demanda.descricao || '',
+    })
+
   }, [demanda])
 
   function abrirConfirmacao() {
@@ -331,6 +364,59 @@ function DetalhesDemanda() {
         'Não foi possível salvar o status. Verifique se o backend está funcionando.',
       )
     }
+  }
+
+  async function salvarEdicao(evento) {
+    evento.preventDefault()
+
+    try {
+      const resultado =
+        await editarDemanda(
+          id,
+          dadosEdicao,
+        )
+
+      if (!resultado) {
+        setMensagemEdicao(
+          'Não foi possível atualizar a demanda.',
+        )
+        return
+      }
+
+      setModoEdicao(false)
+
+      setMensagemEdicao(
+        'Dados atualizados com sucesso.',
+      )
+    } catch (erro) {
+      console.error(
+        'Erro ao editar demanda:',
+        erro,
+      )
+
+      setMensagemEdicao(
+        'Não foi possível salvar as alterações.',
+      )
+    }
+  }
+
+  function cancelarEdicao() {
+    setModoEdicao(false)
+
+    setDadosEdicao({
+      orgaoSolicitante:
+        demanda.orgaoSolicitante || '',
+      municipio:
+        demanda.municipio || '',
+      bairro:
+        demanda.bairro || '',
+      tipoOcorrencia:
+        demanda.tipoOcorrencia || '',
+      prazoResposta:
+        demanda.prazoResposta || '',
+      descricao:
+        demanda.descricao || '',
+    })
   }
 
   if (!demanda) {
@@ -659,91 +745,213 @@ function DetalhesDemanda() {
               Dados registrados no cadastro manual.
             </p>
           </div>
+
+          {!modoEdicao && (
+            <button
+              type="button"
+              className="alterar-prioridade-button"
+              onClick={() => {
+                setModoEdicao(true)
+                setMensagemEdicao('')
+              }}
+            >
+              Editar dados
+            </button>
+          )}
         </div>
 
-        <div className="detalhes-grid">
-          <div className="detalhes-campo">
-            <span>Órgão solicitante</span>
-
-            <strong>
-              {demanda.orgaoSolicitante}
-            </strong>
-          </div>
-
-          <div className="detalhes-campo">
-            <span>Tipo de ocorrência</span>
-
-            <strong>
-              {demanda.tipoOcorrencia}
-            </strong>
-          </div>
-
-          <div className="detalhes-campo">
-            <span>Data de entrada</span>
-
-            <strong>
-              {formatarData(
-                demanda.dataEntrada,
-              )}
-            </strong>
-          </div>
-
-          <div className="detalhes-campo">
-            <span>Prazo de resposta</span>
-
-            <strong>
-              {formatarData(
-                demanda.prazoResposta,
-              )}
-            </strong>
-          </div>
-
-          <div className="detalhes-campo">
-            <span>Município</span>
-
-            <strong>
-              {demanda.municipio}
-            </strong>
-          </div>
-
-          <div className="detalhes-campo">
-            <span>Bairro ou área</span>
-
-            <strong>
-              {demanda.bairro}
-            </strong>
-          </div>
-
-          <div className="detalhes-campo detalhes-campo-completo">
-            <span>Descrição da demanda</span>
-
-            <p>{demanda.descricao}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="detalhes-card">
-        <div className="detalhes-card-header">
-          <div>
-            <h2>Documentos e anexos</h2>
-
-            <p>
-              Espaço reservado para os documentos vinculados
-              à demanda.
-            </p>
-          </div>
-        </div>
-
-        <div className="funcionalidade-futura">
-          <strong>
-            Nenhum documento disponível
-          </strong>
-
-          <p>
-            A anexação de documentos será implementada em
-            uma etapa futura.
+        {mensagemEdicao && (
+          <p className="status-mensagem">
+            {mensagemEdicao}
           </p>
-        </div>
+        )}
+
+        {!modoEdicao ? (
+          <div className="detalhes-grid">
+            <div className="detalhes-campo">
+              <span>Órgão solicitante</span>
+
+              <strong>
+                {demanda.orgaoSolicitante}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo">
+              <span>Tipo de ocorrência</span>
+
+              <strong>
+                {demanda.tipoOcorrencia}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo">
+              <span>Data de entrada</span>
+
+              <strong>
+                {formatarData(
+                  demanda.dataEntrada,
+                )}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo">
+              <span>Prazo de resposta</span>
+
+              <strong>
+                {formatarData(
+                  demanda.prazoResposta,
+                )}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo">
+              <span>Município</span>
+
+              <strong>
+                {demanda.municipio}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo">
+              <span>Bairro ou área</span>
+
+              <strong>
+                {demanda.bairro}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo detalhes-campo-completo">
+              <span>Descrição da demanda</span>
+
+              <p>{demanda.descricao}</p>
+            </div>
+          </div>
+        ) : (
+          <form
+            className="detalhes-grid"
+            onSubmit={salvarEdicao}
+          >
+            <div className="detalhes-campo">
+              <span>Órgão solicitante</span>
+
+              <input
+                type="text"
+                value={dadosEdicao.orgaoSolicitante}
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    orgaoSolicitante:
+                      evento.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="detalhes-campo">
+              <span>Tipo de ocorrência</span>
+
+              <input
+                type="text"
+                value={dadosEdicao.tipoOcorrencia}
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    tipoOcorrencia:
+                      evento.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="detalhes-campo">
+              <span>Prazo de resposta</span>
+
+              <input
+                type="date"
+                value={dadosEdicao.prazoResposta}
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    prazoResposta:
+                      evento.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="detalhes-campo">
+              <span>Município</span>
+
+              <input
+                type="text"
+                value={dadosEdicao.municipio}
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    municipio:
+                      evento.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="detalhes-campo">
+              <span>Bairro ou área</span>
+
+              <input
+                type="text"
+                value={dadosEdicao.bairro}
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    bairro:
+                      evento.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="detalhes-campo detalhes-campo-completo">
+              <span>Descrição da demanda</span>
+
+              <textarea
+                rows="5"
+                value={dadosEdicao.descricao}
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    descricao:
+                      evento.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="detalhes-campo detalhes-campo-completo">
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '1rem',
+                }}
+              >
+                <button
+                  type="submit"
+                  className="salvar-status-button"
+                >
+                  Salvar alterações
+                </button>
+
+                <button
+                  type="button"
+                  className="cancelar-prioridade-button"
+                  onClick={cancelarEdicao}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
       </section>
 
       <HistoricoDemanda

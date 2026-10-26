@@ -1492,3 +1492,291 @@
     margin-left: 20px;
   }
 }
+
+/* =========================================================
+   EDICAO DOS DADOS CADASTRAIS DA DEMANDA
+   ========================================================= */
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  ) {
+  border-color: #c9ddec;
+  box-shadow: 0 5px 18px rgba(31, 95, 153, 0.1);
+}
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .detalhes-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 30px;
+  background-color: #fbfdff;
+}
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .detalhes-grid {
+  gap: 22px 24px;
+  padding: 28px 30px 30px;
+  background-color: #ffffff;
+}
+
+.detalhes-grid input,
+.detalhes-grid textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cfd7df;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #263442;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.detalhes-grid input {
+  min-height: 46px;
+  padding: 0 14px;
+}
+
+.detalhes-grid input[type='date'] {
+  color-scheme: light;
+  cursor: pointer;
+}
+
+.detalhes-grid textarea {
+  min-height: 145px;
+  padding: 13px 14px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.detalhes-grid input:hover,
+.detalhes-grid textarea:hover {
+  border-color: #aebbc7;
+}
+
+.detalhes-grid input:focus,
+.detalhes-grid textarea:focus {
+  border-color: #2f75b5;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(47, 117, 181, 0.14);
+}
+
+.detalhes-grid input::placeholder,
+.detalhes-grid textarea::placeholder {
+  color: #98a2af;
+}
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .detalhes-campo
+  > span {
+  margin-bottom: 9px;
+  color: #475467;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+
+/* Área dos botões Salvar e Cancelar */
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .detalhes-campo-completo:last-child {
+  margin-top: 2px;
+  padding-top: 22px;
+  border-top: 1px solid #e5eaf0;
+}
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .detalhes-campo-completo:last-child
+  > div {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px !important;
+}
+
+/* Botão específico de edição */
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .salvar-status-button {
+  width: auto;
+  min-width: 170px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid #1f5f99;
+  border-radius: 8px;
+  background-color: #1f5f99;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .salvar-status-button:hover {
+  border-color: #174d7e;
+  background-color: #174d7e;
+}
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .salvar-status-button:focus-visible {
+  outline: 3px solid rgba(47, 117, 181, 0.22);
+  outline-offset: 2px;
+}
+
+/* Botão Cancelar dentro da edição */
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .cancelar-prioridade-button {
+  min-width: 110px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #cbd5df;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #435466;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .cancelar-prioridade-button:hover {
+  border-color: #9eabb8;
+  background-color: #f6f8fa;
+  color: #263442;
+}
+
+.detalhes-card:has(
+    .detalhes-grid input,
+    .detalhes-grid textarea
+  )
+  .cancelar-prioridade-button:focus-visible {
+  outline: 3px solid rgba(47, 117, 181, 0.2);
+  outline-offset: 2px;
+}
+
+/* Mensagem de sucesso exclusiva da seção de informações */
+
+.detalhes-card:has(.detalhes-grid)
+  > .status-mensagem {
+  margin: 20px 30px 0;
+  padding: 12px 15px;
+  border: 1px solid #a9dfc1;
+  border-radius: 8px;
+  background-color: #eaf8f0;
+  color: #217a49;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* Responsividade da edição */
+
+@media (max-width: 760px) {
+  .detalhes-card:has(
+      .detalhes-grid input,
+      .detalhes-grid textarea
+    )
+    .detalhes-card-header {
+    align-items: stretch;
+    padding: 22px 20px;
+    flex-direction: column;
+  }
+
+  .detalhes-card:has(
+      .detalhes-grid input,
+      .detalhes-grid textarea
+    )
+    .detalhes-grid {
+    padding: 22px 20px;
+    grid-template-columns: 1fr;
+  }
+
+  .detalhes-card:has(
+      .detalhes-grid input,
+      .detalhes-grid textarea
+    )
+    .detalhes-campo-completo {
+    grid-column: auto;
+  }
+
+  .detalhes-card:has(
+      .detalhes-grid input,
+      .detalhes-grid textarea
+    )
+    .detalhes-campo-completo:last-child
+    > div {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .detalhes-card:has(
+      .detalhes-grid input,
+      .detalhes-grid textarea
+    )
+    .salvar-status-button,
+  .detalhes-card:has(
+      .detalhes-grid input,
+      .detalhes-grid textarea
+    )
+    .cancelar-prioridade-button {
+    width: 100%;
+  }
+
+  .detalhes-card:has(.detalhes-grid)
+    > .status-mensagem {
+    margin-right: 20px;
+    margin-left: 20px;
+  }
+}
+
+.detalhes-card-header .alterar-prioridade-button {
+  margin-top: 12px;
+}

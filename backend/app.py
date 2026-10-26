@@ -433,11 +433,9 @@ def atualizar_demanda(demanda_id):
         ]
     )
 
-    novo_responsavel = (
-        dados.get(
-            "responsavel",
-            responsavel_atual,
-        )
+    novo_responsavel = dados.get(
+        "responsavel",
+        responsavel_atual,
     )
 
     novo_status = dados.get(
@@ -450,23 +448,76 @@ def atualizar_demanda(demanda_id):
         prioridade_atual,
     )
 
-    justificativa_prioridade = (
-        dados.get(
-            "justificativa_prioridade",
-            demanda_atual[
-                "justificativa_prioridade"
-            ],
-        )
+    novo_orgao_solicitante = dados.get(
+        "orgao_solicitante",
+        demanda_atual[
+            "orgao_solicitante"
+        ],
     )
 
-    data_alteracao_prioridade = (
-        dados.get(
-            "data_alteracao_prioridade",
-            demanda_atual[
-                "data_alteracao_prioridade"
-            ],
-        )
+    novo_municipio = dados.get(
+        "municipio",
+        demanda_atual["municipio"],
     )
+
+    novo_bairro = dados.get(
+        "bairro",
+        demanda_atual["bairro"],
+    )
+
+    novo_tipo_ocorrencia = dados.get(
+        "tipo_ocorrencia",
+        demanda_atual[
+            "tipo_ocorrencia"
+        ],
+    )
+
+    novo_prazo_resposta = dados.get(
+        "prazo_resposta",
+        demanda_atual[
+            "prazo_resposta"
+        ],
+    )
+
+    nova_descricao = dados.get(
+        "descricao",
+        demanda_atual["descricao"],
+    )
+
+    justificativa_prioridade = dados.get(
+        "justificativa_prioridade",
+        demanda_atual[
+            "justificativa_prioridade"
+        ],
+    )
+
+    data_alteracao_prioridade = dados.get(
+        "data_alteracao_prioridade",
+        demanda_atual[
+            "data_alteracao_prioridade"
+        ],
+    )
+
+    campos_cadastrais = [
+        novo_orgao_solicitante,
+        novo_municipio,
+        novo_bairro,
+        novo_tipo_ocorrencia,
+        novo_prazo_resposta,
+        nova_descricao,
+    ]
+
+    if any(
+        valor is None or
+        not str(valor).strip()
+        for valor in campos_cadastrais
+    ):
+        conn.close()
+
+        return {
+            "mensagem":
+                "Preencha todos os dados da demanda."
+        }, 400
 
     if (
         novo_responsavel is not None and
@@ -499,6 +550,27 @@ def atualizar_demanda(demanda_id):
             "mensagem":
                 "Prioridade inválida."
         }, 400
+
+    dados_cadastrais_alterados = (
+        demanda_atual[
+            "orgao_solicitante"
+        ] != novo_orgao_solicitante
+        or demanda_atual[
+            "municipio"
+        ] != novo_municipio
+        or demanda_atual[
+            "bairro"
+        ] != novo_bairro
+        or demanda_atual[
+            "tipo_ocorrencia"
+        ] != novo_tipo_ocorrencia
+        or demanda_atual[
+            "prazo_resposta"
+        ] != novo_prazo_resposta
+        or demanda_atual[
+            "descricao"
+        ] != nova_descricao
+    )
 
     data_finalizacao = (
         demanda_atual[
@@ -538,6 +610,12 @@ def atualizar_demanda(demanda_id):
     cursor.execute("""
         UPDATE demandas
         SET
+            orgao_solicitante = ?,
+            municipio = ?,
+            bairro = ?,
+            tipo_ocorrencia = ?,
+            prazo_resposta = ?,
+            descricao = ?,
             responsavel = ?,
             status = ?,
             prioridade_manual = ?,
@@ -548,6 +626,12 @@ def atualizar_demanda(demanda_id):
             data_arquivamento = ?
         WHERE id = ?
     """, (
+        novo_orgao_solicitante,
+        novo_municipio,
+        novo_bairro,
+        novo_tipo_ocorrencia,
+        novo_prazo_resposta,
+        nova_descricao,
         novo_responsavel,
         novo_status,
         nova_prioridade,
@@ -653,6 +737,22 @@ def atualizar_demanda(demanda_id):
             demanda_id=demanda_id,
             tipo_acao=tipo_acao,
             descricao=descricao,
+            usuario=usuario,
+            status_anterior=status_atual,
+            status_posterior=
+                novo_status,
+        )
+
+    if dados_cadastrais_alterados:
+        registrar_historico(
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=
+                "Edição da demanda",
+            descricao=(
+                "Os dados cadastrais da "
+                "demanda foram atualizados."
+            ),
             usuario=usuario,
             status_anterior=status_atual,
             status_posterior=

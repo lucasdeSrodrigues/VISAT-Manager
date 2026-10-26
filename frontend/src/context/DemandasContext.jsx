@@ -223,14 +223,15 @@ export function DemandasProvider({
       },
     )
 
-    if (!resposta.ok) {
-      throw new Error(
-        'Não foi possível cadastrar a demanda.',
-      )
-    }
-
     const resultado =
       await resposta.json()
+
+    if (!resposta.ok) {
+      throw new Error(
+        resultado.mensagem ||
+          'Não foi possível cadastrar a demanda.',
+      )
+    }
 
     const demandaCadastrada =
       formatarDemanda(resultado)
@@ -268,14 +269,20 @@ export function DemandasProvider({
       },
     )
 
-    if (!resposta.ok) {
-      throw new Error(
-        'Não foi possível atualizar a demanda.',
-      )
-    }
-
     const resultado =
       await resposta.json()
+
+    if (!resposta.ok) {
+      console.error(
+        'Erro retornado pelo backend:',
+        resultado,
+      )
+
+      throw new Error(
+        resultado.mensagem ||
+          'Não foi possível atualizar a demanda.',
+      )
+    }
 
     return substituirDemanda(
       resultado,
@@ -444,6 +451,66 @@ export function DemandasProvider({
     return true
   }
 
+  async function editarDemanda(
+    id,
+    dadosAtualizados,
+  ) {
+    const demanda =
+      buscarDemandaPorId(id)
+
+    if (!demanda) {
+      return false
+    }
+
+    const orgaoSolicitante =
+      dadosAtualizados.orgaoSolicitante.trim()
+
+    const municipio =
+      dadosAtualizados.municipio.trim()
+
+    const bairro =
+      dadosAtualizados.bairro.trim()
+
+    const tipoOcorrencia =
+      dadosAtualizados.tipoOcorrencia.trim()
+
+    const prazoResposta =
+      dadosAtualizados.prazoResposta
+
+    const descricao =
+      dadosAtualizados.descricao.trim()
+
+    if (
+      !orgaoSolicitante ||
+      !municipio ||
+      !bairro ||
+      !tipoOcorrencia ||
+      !prazoResposta ||
+      !descricao
+    ) {
+      throw new Error(
+        'Preencha todos os campos antes de salvar.',
+      )
+    }
+
+    await atualizarDemanda(id, {
+      orgao_solicitante:
+        orgaoSolicitante,
+      municipio,
+      bairro,
+      tipo_ocorrencia:
+        tipoOcorrencia,
+      prazo_resposta:
+        prazoResposta,
+      descricao,
+      usuario:
+        demanda.responsavel ||
+        'Usuário não identificado',
+    })
+
+    return true
+  }
+
   return (
     <DemandasContext.Provider
       value={{
@@ -457,6 +524,7 @@ export function DemandasProvider({
         restaurarPrioridadeAutomatica,
         atribuirResponsavel,
         alterarStatus,
+        editarDemanda,
       }}
     >
       {children}
