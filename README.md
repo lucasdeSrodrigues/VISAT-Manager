@@ -50,7 +50,8 @@ Histórias de usuário selecionadas e implementadas nesta sprint:
 
 ## Tela do board/backlog
 
-<img width="1896" height="874" alt="Captura de tela_23-9-2026_1785_trello com" src="https://github.com/user-attachments/assets/81a99cd2-afe2-4b3f-8a2a-694b90d69669" />
+<img width="1536" height="816" alt="Colagem com três capturas" src="https://github.com/user-attachments/assets/3fc93fff-ed14-4720-be4d-9e54848a577c" />
+
 
 ## 📊Diagramas das UH's
 
@@ -65,7 +66,7 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQDhKngsunz_Q6siTCEosNfHAfA8Gh6V9wxFa7QBFa8
 
 ## 👥Pair programming
 
-Como nossa equipe na matéria de FDS é restrita a apenas 3 pessoas, decidimos em vez de programar em pares, fazer parte do código em trio. Realizamos a ideação inicial, a base e a US16 em conjunto, em uma reunião presencial. Com isso, o resto do código ficou muito mais simples de ser implementado
+Como nossa equipe na matéria de FDS é restrita a apenas 3 pessoas, decidimos em vez de programar em pares, fazer parte do código em trio. Realizamos a ideação inicial, a base do frontend e a US16 em conjunto, em uma reunião presencial. Com isso, o resto das histórias ficou muito mais simples de serem implementadas.
 
 ## 👨‍💻Equipe
 
