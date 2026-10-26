@@ -52,29 +52,41 @@ function Dashboard() {
     }
   })
 
-  const totalDemandas = demandasComInformacoes.length
+  const demandasAtivas = demandasComInformacoes.filter(
+    (demanda) => demanda.status !== 'Finalizada',
+  )
 
-  const totalPrioridadeAlta = demandasComInformacoes.filter(
+  const totalDemandas = demandasAtivas.length
+
+  const totalPrioridadeAlta = demandasAtivas.filter(
     (demanda) => demanda.prioridade === 'Alta',
   ).length
 
-  const totalPrioridadeMedia = demandasComInformacoes.filter(
+  const totalPrioridadeMedia = demandasAtivas.filter(
     (demanda) => demanda.prioridade === 'Média',
   ).length
 
-  const totalPrioridadeBaixa = demandasComInformacoes.filter(
+  const totalPrioridadeBaixa = demandasAtivas.filter(
     (demanda) => demanda.prioridade === 'Baixa',
   ).length
 
-  const totalPrazosProximos = demandasComInformacoes.filter(
+  const totalPrazosProximos = demandasAtivas.filter(
     (demanda) => demanda.alertaPrazo !== null,
   ).length
 
-  const totalEmAndamento = demandasComInformacoes.filter(
+  const totalEmAndamento = demandasAtivas.filter(
     (demanda) => demanda.status === 'Em andamento',
   ).length
 
-  const demandasMaisUrgentes = [...demandasComInformacoes]
+  const totalEmRevisao = demandasComInformacoes.filter(
+    (demanda) => demanda.status === 'Em revisão',
+  ).length
+
+  const totalFinalizadas = demandasComInformacoes.filter(
+    (demanda) => demanda.status === 'Finalizada',
+  ).length
+
+  const demandasMaisUrgentes = [...demandasAtivas]
     .sort((demandaA, demandaB) => {
       const diasA =
         demandaA.diasRestantes === null
@@ -348,6 +360,36 @@ function Dashboard() {
               <span>{totalPrioridadeBaixa}</span>
             </div>
           </div>
+
+          <div className="dashboard-status-resumo">
+  <h3>Status das demandas</h3>
+
+  <div className="prioridades-resumo">
+    <div className="prioridade-resumo-item">
+      <div>
+        <strong>Em andamento</strong>
+      </div>
+
+      <span>{totalEmAndamento}</span>
+    </div>
+
+    <div className="prioridade-resumo-item">
+      <div>
+        <strong>Em revisão</strong>
+      </div>
+
+      <span>{totalEmRevisao}</span>
+    </div>
+
+    <div className="prioridade-resumo-item">
+      <div>
+        <strong>Finalizadas</strong>
+      </div>
+
+      <span>{totalFinalizadas}</span>
+    </div>
+  </div>
+</div>
 
           <div className="dashboard-atalho">
             <h3>Acesso rápido</h3>

@@ -594,3 +594,18 @@
     flex-direction: column;
   }
 }
+
+.dashboard-status-resumo {
+  margin-top: 1.5rem;
+}
+
+.dashboard-status-resumo h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.dashboard-status-resumo h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  padding-left: 1rem;
+}
