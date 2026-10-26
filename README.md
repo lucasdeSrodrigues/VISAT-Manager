@@ -66,7 +66,7 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQDhKngsunz_Q6siTCEosNfHAfA8Gh6V9wxFa7QBFa8
 
 ## 👥Pair programming
 
-Como nossa equipe na matéria de FDS é restrita a apenas 3 pessoas, decidimos em vez de programar em pares, fazer parte do código em trio. Realizamos a ideação inicial, a base e a US16 em conjunto, em uma reunião presencial. Com isso, o resto do código ficou muito mais simples de ser implementado
+Como nossa equipe na matéria de FDS é restrita a apenas 3 pessoas, decidimos em vez de programar em pares, fazer parte do código em trio. Realizamos a ideação inicial, a base do frontend e a US16 em conjunto, em uma reunião presencial. Com isso, o resto das histórias ficou muito mais simples de serem implementadas.
 
 ## 👨‍💻Equipe
 
