@@ -17,13 +17,6 @@ PRIORIDADES_VALIDAS = {
     "Alta",
 }
 
-RESPONSAVEIS_VALIDOS = {
-    "Integrante 1",
-    "Integrante 2",
-    "Integrante 3",
-    "Integrante 4",
-    "Integrante 5",
-}
 
 STATUS_VALIDOS = {
     "Em andamento",
@@ -283,19 +276,29 @@ def criar_demanda():
                 "Prioridade inválida."
         }, 400
 
-    responsavel = dados.get(
-        "responsavel"
-    )
+        responsavel = dados.get(
+            "responsavel"
+        )
 
-    if (
-        responsavel is not None and
-        responsavel not in
-        RESPONSAVEIS_VALIDOS
-    ):
-        return {
-            "mensagem":
-                "Responsável inválido."
-        }, 400
+        if responsavel is not None:
+            responsavel = str(
+                responsavel
+            ).strip()
+
+            if not responsavel:
+                responsavel = None
+
+        if (
+            responsavel is not None and
+            len(responsavel) > 100
+        ):
+            return {
+                "mensagem": (
+                    "O nome do responsável "
+                    "deve possuir no máximo "
+                    "100 caracteres."
+                )
+            }, 400
 
     data_finalizacao = None
 
@@ -438,6 +441,14 @@ def atualizar_demanda(demanda_id):
         responsavel_atual,
     )
 
+    if novo_responsavel is not None:
+        novo_responsavel = str(
+            novo_responsavel
+        ).strip()
+
+        if not novo_responsavel:
+            novo_responsavel = None
+
     novo_status = dados.get(
         "status",
         status_atual,
@@ -521,14 +532,16 @@ def atualizar_demanda(demanda_id):
 
     if (
         novo_responsavel is not None and
-        novo_responsavel not in
-        RESPONSAVEIS_VALIDOS
+        len(novo_responsavel) > 100
     ):
         conn.close()
 
         return {
-            "mensagem":
-                "Responsável inválido."
+            "mensagem": (
+                "O nome do responsável "
+                "deve possuir no máximo "
+                "100 caracteres."
+            )
         }, 400
 
     if novo_status not in STATUS_VALIDOS:

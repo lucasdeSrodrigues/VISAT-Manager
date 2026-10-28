@@ -1780,3 +1780,11 @@
 .detalhes-card-header .alterar-prioridade-button {
   margin-top: 12px;
 }
+
+.responsavel-form-ajuda {
+  display: block;
+  margin-top: 0.5rem;
+  color: #667085;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}

@@ -9,14 +9,6 @@ import { useDemandas } from '../context/DemandasContext.jsx'
 import { calcularPrioridade } from '../utils/prioridade.js'
 import './DetalhesDemanda.css'
 
-const RESPONSAVEIS = [
-  'Integrante 1',
-  'Integrante 2',
-  'Integrante 3',
-  'Integrante 4',
-  'Integrante 5',
-]
-
 const STATUS = [
   'Em andamento',
   'Em revisão',
@@ -71,6 +63,7 @@ function DetalhesDemanda() {
   const { id } = useParams()
 
   const {
+    responsaveis,
     buscarDemandaPorId,
     excluirDemanda,
     alterarPrioridade,
@@ -80,24 +73,30 @@ function DetalhesDemanda() {
     editarDemanda,
   } = useDemandas()
 
-  const [confirmacaoAberta, setConfirmacaoAberta] =
-    useState(false)
+  const [
+    confirmacaoAberta,
+    setConfirmacaoAberta,
+  ] = useState(false)
 
   const [
     modalPrioridadeAberto,
     setModalPrioridadeAberto,
   ] = useState(false)
 
-  const [novaPrioridade, setNovaPrioridade] =
-    useState('')
+  const [
+    novaPrioridade,
+    setNovaPrioridade,
+  ] = useState('')
 
   const [
     justificativaPrioridade,
     setJustificativaPrioridade,
   ] = useState('')
 
-  const [erroPrioridade, setErroPrioridade] =
-    useState('')
+  const [
+    erroPrioridade,
+    setErroPrioridade,
+  ] = useState('')
 
   const [
     responsavelSelecionado,
@@ -109,27 +108,37 @@ function DetalhesDemanda() {
     setMensagemResponsavel,
   ] = useState('')
 
-  const [statusSelecionado, setStatusSelecionado] =
-    useState('Em andamento')
+  const [
+    statusSelecionado,
+    setStatusSelecionado,
+  ] = useState('Em andamento')
 
-  const [mensagemStatus, setMensagemStatus] =
-    useState('')
+  const [
+    mensagemStatus,
+    setMensagemStatus,
+  ] = useState('')
 
-  const [modoEdicao, setModoEdicao] =
-    useState(false)
+  const [
+    modoEdicao,
+    setModoEdicao,
+  ] = useState(false)
 
-  const [dadosEdicao, setDadosEdicao] =
-    useState({
-      orgaoSolicitante: '',
-      municipio: '',
-      bairro: '',
-      tipoOcorrencia: '',
-      prazoResposta: '',
-      descricao: '',
-    })
+  const [
+    dadosEdicao,
+    setDadosEdicao,
+  ] = useState({
+    orgaoSolicitante: '',
+    municipio: '',
+    bairro: '',
+    tipoOcorrencia: '',
+    prazoResposta: '',
+    descricao: '',
+  })
 
-  const [mensagemEdicao, setMensagemEdicao] =
-    useState('')
+  const [
+    mensagemEdicao,
+    setMensagemEdicao,
+  ] = useState('')
 
   const demanda = buscarDemandaPorId(id)
 
@@ -160,7 +169,6 @@ function DetalhesDemanda() {
       descricao:
         demanda.descricao || '',
     })
-
   }, [demanda])
 
   function abrirConfirmacao() {
@@ -224,7 +232,9 @@ function DetalhesDemanda() {
     setErroPrioridade('')
   }
 
-  async function salvarPrioridadeManual(evento) {
+  async function salvarPrioridadeManual(
+    evento,
+  ) {
     evento.preventDefault()
 
     if (!novaPrioridade) {
@@ -266,7 +276,9 @@ function DetalhesDemanda() {
   async function restaurarPrioridade() {
     try {
       const prioridadeRestaurada =
-        await restaurarPrioridadeAutomatica(id)
+        await restaurarPrioridadeAutomatica(
+          id,
+        )
 
       if (!prioridadeRestaurada) {
         setErroPrioridade(
@@ -294,11 +306,21 @@ function DetalhesDemanda() {
   async function salvarResponsavel(evento) {
     evento.preventDefault()
 
+    const responsavelTratado =
+      responsavelSelecionado.trim()
+
+    if (responsavelTratado.length > 100) {
+      setMensagemResponsavel(
+        'O nome do responsável deve possuir no máximo 100 caracteres.',
+      )
+      return
+    }
+
     try {
       const responsavelAtualizado =
         await atribuirResponsavel(
           id,
-          responsavelSelecionado,
+          responsavelTratado,
         )
 
       if (!responsavelAtualizado) {
@@ -308,8 +330,12 @@ function DetalhesDemanda() {
         return
       }
 
+      setResponsavelSelecionado(
+        responsavelTratado,
+      )
+
       setMensagemResponsavel(
-        responsavelSelecionado
+        responsavelTratado
           ? 'Responsável atribuído com sucesso.'
           : 'Responsável removido da demanda.',
       )
@@ -320,7 +346,8 @@ function DetalhesDemanda() {
       )
 
       setMensagemResponsavel(
-        'Não foi possível salvar o responsável. Verifique se o backend está funcionando.',
+        erro.message ||
+          'Não foi possível salvar o responsável. Verifique se o backend está funcionando.',
       )
     }
   }
@@ -329,7 +356,8 @@ function DetalhesDemanda() {
     evento.preventDefault()
 
     if (
-      statusSelecionado === demanda.status
+      statusSelecionado ===
+      demanda.status
     ) {
       setMensagemStatus(
         'A demanda já está com este status.',
@@ -395,7 +423,8 @@ function DetalhesDemanda() {
       )
 
       setMensagemEdicao(
-        'Não foi possível salvar as alterações.',
+        erro.message ||
+          'Não foi possível salvar as alterações.',
       )
     }
   }
@@ -432,7 +461,9 @@ function DetalhesDemanda() {
 
           <button
             type="button"
-            onClick={() => navigate('/demandas')}
+            onClick={() =>
+              navigate('/demandas')
+            }
           >
             Voltar para demandas
           </button>
@@ -474,7 +505,9 @@ function DetalhesDemanda() {
       >
         <button
           type="button"
-          onClick={() => navigate('/demandas')}
+          onClick={() =>
+            navigate('/demandas')
+          }
         >
           Demandas
         </button>
@@ -505,7 +538,9 @@ function DetalhesDemanda() {
         <button
           className="voltar-button"
           type="button"
-          onClick={() => navigate('/demandas')}
+          onClick={() =>
+            navigate('/demandas')
+          }
         >
           Voltar para a lista
         </button>
@@ -514,7 +549,9 @@ function DetalhesDemanda() {
       <section className="detalhes-card responsavel-card">
         <div className="detalhes-card-header responsavel-card-header">
           <div className="responsavel-card-texto">
-            <h2>Responsável pela demanda</h2>
+            <h2>
+              Responsável pela demanda
+            </h2>
 
             <p>
               Atribua a demanda a um integrante da equipe
@@ -541,8 +578,13 @@ function DetalhesDemanda() {
               Integrante responsável
             </label>
 
-            <select
+            <input
               id="responsavelDemanda"
+              type="search"
+              list="listaResponsaveis"
+              maxLength="100"
+              autoComplete="off"
+              placeholder="Digite ou pesquise um responsável"
               value={responsavelSelecionado}
               onChange={(evento) => {
                 setResponsavelSelecionado(
@@ -551,22 +593,24 @@ function DetalhesDemanda() {
 
                 setMensagemResponsavel('')
               }}
-            >
-              <option value="">
-                Sem responsável
-              </option>
+            />
 
-              {RESPONSAVEIS.map(
+            <datalist id="listaResponsaveis">
+              {(responsaveis || []).map(
                 (responsavel) => (
                   <option
                     key={responsavel}
                     value={responsavel}
-                  >
-                    {responsavel}
-                  </option>
+                  />
                 ),
               )}
-            </select>
+            </datalist>
+
+            <small className="responsavel-form-ajuda">
+              Pesquise um responsável existente ou digite
+              um novo nome. Para remover o responsável,
+              apague o conteúdo do campo e salve.
+            </small>
           </div>
 
           <button
@@ -661,7 +705,9 @@ function DetalhesDemanda() {
       <section className="detalhes-card prioridade-card">
         <div className="detalhes-card-header prioridade-card-header">
           <div>
-            <h2>Classificação de prioridade</h2>
+            <h2>
+              Classificação de prioridade
+            </h2>
 
             <p>
               A prioridade inicial é calculada
@@ -718,7 +764,9 @@ function DetalhesDemanda() {
         {prioridadeFoiAjustada && (
           <div className="prioridade-justificativa">
             <div>
-              <span>Justificativa do ajuste</span>
+              <span>
+                Justificativa do ajuste
+              </span>
 
               <p>
                 {demanda.justificativaPrioridade ||
@@ -739,7 +787,9 @@ function DetalhesDemanda() {
       <section className="detalhes-card">
         <div className="detalhes-card-header">
           <div>
-            <h2>Informações da demanda</h2>
+            <h2>
+              Informações da demanda
+            </h2>
 
             <p>
               Dados registrados no cadastro manual.
@@ -761,7 +811,10 @@ function DetalhesDemanda() {
         </div>
 
         {mensagemEdicao && (
-          <p className="status-mensagem">
+          <p
+            className="status-mensagem"
+            role="status"
+          >
             {mensagemEdicao}
           </p>
         )}
@@ -769,7 +822,9 @@ function DetalhesDemanda() {
         {!modoEdicao ? (
           <div className="detalhes-grid">
             <div className="detalhes-campo">
-              <span>Órgão solicitante</span>
+              <span>
+                Órgão solicitante
+              </span>
 
               <strong>
                 {demanda.orgaoSolicitante}
@@ -777,7 +832,9 @@ function DetalhesDemanda() {
             </div>
 
             <div className="detalhes-campo">
-              <span>Tipo de ocorrência</span>
+              <span>
+                Tipo de ocorrência
+              </span>
 
               <strong>
                 {demanda.tipoOcorrencia}
@@ -795,7 +852,9 @@ function DetalhesDemanda() {
             </div>
 
             <div className="detalhes-campo">
-              <span>Prazo de resposta</span>
+              <span>
+                Prazo de resposta
+              </span>
 
               <strong>
                 {formatarData(
@@ -821,7 +880,9 @@ function DetalhesDemanda() {
             </div>
 
             <div className="detalhes-campo detalhes-campo-completo">
-              <span>Descrição da demanda</span>
+              <span>
+                Descrição da demanda
+              </span>
 
               <p>{demanda.descricao}</p>
             </div>
@@ -832,11 +893,15 @@ function DetalhesDemanda() {
             onSubmit={salvarEdicao}
           >
             <div className="detalhes-campo">
-              <span>Órgão solicitante</span>
+              <span>
+                Órgão solicitante
+              </span>
 
               <input
                 type="text"
-                value={dadosEdicao.orgaoSolicitante}
+                value={
+                  dadosEdicao.orgaoSolicitante
+                }
                 onChange={(evento) =>
                   setDadosEdicao({
                     ...dadosEdicao,
@@ -848,11 +913,15 @@ function DetalhesDemanda() {
             </div>
 
             <div className="detalhes-campo">
-              <span>Tipo de ocorrência</span>
+              <span>
+                Tipo de ocorrência
+              </span>
 
               <input
                 type="text"
-                value={dadosEdicao.tipoOcorrencia}
+                value={
+                  dadosEdicao.tipoOcorrencia
+                }
                 onChange={(evento) =>
                   setDadosEdicao({
                     ...dadosEdicao,
@@ -864,11 +933,15 @@ function DetalhesDemanda() {
             </div>
 
             <div className="detalhes-campo">
-              <span>Prazo de resposta</span>
+              <span>
+                Prazo de resposta
+              </span>
 
               <input
                 type="date"
-                value={dadosEdicao.prazoResposta}
+                value={
+                  dadosEdicao.prazoResposta
+                }
                 onChange={(evento) =>
                   setDadosEdicao({
                     ...dadosEdicao,
@@ -884,7 +957,9 @@ function DetalhesDemanda() {
 
               <input
                 type="text"
-                value={dadosEdicao.municipio}
+                value={
+                  dadosEdicao.municipio
+                }
                 onChange={(evento) =>
                   setDadosEdicao({
                     ...dadosEdicao,
@@ -900,7 +975,9 @@ function DetalhesDemanda() {
 
               <input
                 type="text"
-                value={dadosEdicao.bairro}
+                value={
+                  dadosEdicao.bairro
+                }
                 onChange={(evento) =>
                   setDadosEdicao({
                     ...dadosEdicao,
@@ -912,11 +989,15 @@ function DetalhesDemanda() {
             </div>
 
             <div className="detalhes-campo detalhes-campo-completo">
-              <span>Descrição da demanda</span>
+              <span>
+                Descrição da demanda
+              </span>
 
               <textarea
                 rows="5"
-                value={dadosEdicao.descricao}
+                value={
+                  dadosEdicao.descricao
+                }
                 onChange={(evento) =>
                   setDadosEdicao({
                     ...dadosEdicao,
@@ -955,7 +1036,9 @@ function DetalhesDemanda() {
       </section>
 
       <HistoricoDemanda
-        historico={demanda.historico || []}
+        historico={
+          demanda.historico || []
+        }
       />
 
       <section className="acoes-perigosas">
@@ -981,7 +1064,9 @@ function DetalhesDemanda() {
         <div
           className="prioridade-modal-overlay"
           role="presentation"
-          onMouseDown={fecharModalPrioridade}
+          onMouseDown={
+            fecharModalPrioridade
+          }
         >
           <section
             className="prioridade-modal"
@@ -1013,7 +1098,9 @@ function DetalhesDemanda() {
                 className="prioridade-modal-fechar"
                 type="button"
                 aria-label="Fechar janela de alteração de prioridade"
-                onClick={fecharModalPrioridade}
+                onClick={
+                  fecharModalPrioridade
+                }
               >
                 ×
               </button>
@@ -1021,7 +1108,9 @@ function DetalhesDemanda() {
 
             <form
               className="prioridade-modal-form"
-              onSubmit={salvarPrioridadeManual}
+              onSubmit={
+                salvarPrioridadeManual
+              }
             >
               <div className="prioridade-sugestao">
                 <span>
@@ -1048,7 +1137,8 @@ function DetalhesDemanda() {
 
               <div className="prioridade-form-field">
                 <label htmlFor="novaPrioridade">
-                  Nova prioridade <span>*</span>
+                  Nova prioridade{' '}
+                  <span>*</span>
                 </label>
 
                 <select
@@ -1081,14 +1171,18 @@ function DetalhesDemanda() {
               <div className="prioridade-form-field">
                 <label htmlFor="justificativaPrioridade">
                   Justificativa{' '}
-                  <small>(opcional)</small>
+                  <small>
+                    (opcional)
+                  </small>
                 </label>
 
                 <textarea
                   id="justificativaPrioridade"
                   rows="5"
                   placeholder="Explique por que a prioridade precisa ser ajustada"
-                  value={justificativaPrioridade}
+                  value={
+                    justificativaPrioridade
+                  }
                   onChange={(evento) =>
                     setJustificativaPrioridade(
                       evento.target.value,
@@ -1102,7 +1196,9 @@ function DetalhesDemanda() {
                   <button
                     className="restaurar-prioridade-button"
                     type="button"
-                    onClick={restaurarPrioridade}
+                    onClick={
+                      restaurarPrioridade
+                    }
                   >
                     Restaurar automática
                   </button>
@@ -1112,7 +1208,9 @@ function DetalhesDemanda() {
                   <button
                     className="cancelar-prioridade-button"
                     type="button"
-                    onClick={fecharModalPrioridade}
+                    onClick={
+                      fecharModalPrioridade
+                    }
                   >
                     Cancelar
                   </button>
@@ -1134,7 +1232,9 @@ function DetalhesDemanda() {
         <div
           className="confirmacao-overlay"
           role="presentation"
-          onMouseDown={fecharConfirmacao}
+          onMouseDown={
+            fecharConfirmacao
+          }
         >
           <section
             className="confirmacao-modal"
@@ -1167,7 +1267,9 @@ function DetalhesDemanda() {
 
             <div className="confirmacao-detalhes">
               <div>
-                <span>Tipo de ocorrência</span>
+                <span>
+                  Tipo de ocorrência
+                </span>
 
                 <strong>
                   {demanda.tipoOcorrencia}
@@ -1175,7 +1277,9 @@ function DetalhesDemanda() {
               </div>
 
               <div>
-                <span>Prazo de resposta</span>
+                <span>
+                  Prazo de resposta
+                </span>
 
                 <strong>
                   {formatarData(
@@ -1189,7 +1293,9 @@ function DetalhesDemanda() {
               <button
                 className="cancelar-exclusao-button"
                 type="button"
-                onClick={fecharConfirmacao}
+                onClick={
+                  fecharConfirmacao
+                }
               >
                 Cancelar
               </button>
@@ -1197,7 +1303,9 @@ function DetalhesDemanda() {
               <button
                 className="confirmar-exclusao-button"
                 type="button"
-                onClick={confirmarExclusao}
+                onClick={
+                  confirmarExclusao
+                }
               >
                 Excluir demanda
               </button>

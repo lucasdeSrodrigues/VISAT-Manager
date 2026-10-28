@@ -16,14 +16,6 @@ const PRIORIDADES_VALIDAS = [
   'Alta',
 ]
 
-const RESPONSAVEIS_VALIDOS = [
-  'Integrante 1',
-  'Integrante 2',
-  'Integrante 3',
-  'Integrante 4',
-  'Integrante 5',
-]
-
 const STATUS_VALIDOS = [
   'Em andamento',
   'Em revisão',
@@ -145,6 +137,22 @@ export function DemandasProvider({
     carregarDemandas()
   }, [])
 
+  const responsaveis = [
+    ...new Set(
+      demandas
+        .map(
+          (demanda) =>
+            demanda.responsavel?.trim(),
+        )
+        .filter(Boolean),
+    ),
+  ].sort((responsavelA, responsavelB) =>
+    responsavelA.localeCompare(
+      responsavelB,
+      'pt-BR',
+    ),
+  )
+
   function substituirDemanda(
     demandaAtualizada,
   ) {
@@ -170,6 +178,10 @@ export function DemandasProvider({
   ) {
     const dataCadastro =
       new Date().toISOString()
+
+    const responsavelTratado =
+      novaDemanda.responsavel?.trim() ||
+      null
 
     const dadosParaApi = {
       numero_processo:
@@ -200,8 +212,7 @@ export function DemandasProvider({
           .dataAlteracaoPrioridade ||
         null,
       responsavel:
-        novaDemanda.responsavel ||
-        null,
+        responsavelTratado,
       status:
         novaDemanda.status ||
         'Em andamento',
@@ -392,15 +403,15 @@ export function DemandasProvider({
     novoResponsavel,
   ) {
     const responsavelTratado =
-      novoResponsavel || null
+      novoResponsavel?.trim() || null
 
     if (
-      responsavelTratado !== null &&
-      !RESPONSAVEIS_VALIDOS.includes(
-        responsavelTratado,
-      )
+      responsavelTratado &&
+      responsavelTratado.length > 100
     ) {
-      return false
+      throw new Error(
+        'O nome do responsável deve possuir no máximo 100 caracteres.',
+      )
     }
 
     const demanda =
@@ -515,6 +526,7 @@ export function DemandasProvider({
     <DemandasContext.Provider
       value={{
         demandas,
+        responsaveis,
         carregandoDemandas,
         erroAoCarregar,
         cadastrarDemanda,
