@@ -138,6 +138,22 @@ function Demandas() {
   const buscaAreaNormalizada =
     normalizarTexto(buscaArea)
 
+  const responsaveis = [
+    ...new Set(
+      demandas
+        .map(
+          (demanda) =>
+            demanda.responsavel,
+        )
+        .filter(Boolean),
+    ),
+  ].sort((responsavelA, responsavelB) =>
+    responsavelA.localeCompare(
+      responsavelB,
+      'pt-BR',
+    ),
+  )
+
   const demandasDaAba = demandas.filter(
     (demanda) =>
       demanda.status === abaStatus,
@@ -378,25 +394,16 @@ function Demandas() {
                     Sem responsável
                   </option>
 
-                  <option value="Integrante 1">
-                    Integrante 1
-                  </option>
-
-                  <option value="Integrante 2">
-                    Integrante 2
-                  </option>
-
-                  <option value="Integrante 3">
-                    Integrante 3
-                  </option>
-
-                  <option value="Integrante 4">
-                    Integrante 4
-                  </option>
-
-                  <option value="Integrante 5">
-                    Integrante 5
-                  </option>
+                  {responsaveis.map(
+                    (responsavel) => (
+                      <option
+                        key={responsavel}
+                        value={responsavel}
+                      >
+                        {responsavel}
+                      </option>
+                    ),
+                  )}
                 </select>
               </div>
             </div>
