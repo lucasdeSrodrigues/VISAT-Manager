@@ -16,23 +16,57 @@ O frontend do VISAT Manager está publicado e pode ser acessado diretamente pelo
 > Nesta versão, os dados são armazenados localmente no navegador. Por isso, cada navegador e dispositivo mantém seus próprios registros.
 
 ## 🔎 Status Atual
-O VISAT Manager encontra-se atualmente em fase de desenvolvimento incremental da Sprint 02, após a conclusão e validação das funcionalidades previstas para a Sprint 01.
 
-Durante a primeira sprint, foram implementadas as histórias de usuário relacionadas ao cadastro manual de demandas, listagem centralizada, classificação automática e manual de prioridades, visualização detalhada das demandas, Dashboard gerencial e Central de Alertas para acompanhamento de prazos. Essas funcionalidades já se encontram operacionais e acessíveis por meio da interface da aplicação.
+O VISAT Manager encontra-se atualmente em um estágio funcional avançado, com as funcionalidades planejadas para as Sprints 01 e 02 implementadas e integradas à arquitetura da aplicação.
 
-O frontend foi desenvolvido com React, Vite e JavaScript e está publicado na Vercel, permitindo o acesso ao sistema diretamente pelo navegador, sem necessidade de execução local. Atualmente, os dados continuam sendo armazenados no localStorage, o que possibilita a persistência das informações apenas no navegador e dispositivo em que foram registradas.
+Durante a Sprint 01 foram desenvolvidas as funcionalidades centrais do sistema, incluindo:
 
-Com o início da Sprint 02, a equipe definiu a implementação das seguintes histórias de usuário:
+- Cadastro manual de demandas;
+- Listagem centralizada de demandas;
+- Classificação automática e manual de prioridades;
+- Visualização detalhada das demandas;
+- Dashboard gerencial;
+- Central de Alertas para acompanhamento de prazos.
 
-UH04: Buscar e filtrar demandas por áreas/bairros;\
-UH05: Filtrar demandas por responsável;\
-UH06: Atualizar o status da demanda;\
-UH07: Visualizar a linha do tempo da demanda;\
-UH15: Consultar o histórico completo da demanda.\
+Com a Sprint 02, o sistema recebeu recursos voltados ao acompanhamento completo do ciclo de vida das demandas, incluindo:
 
-Além dessas funcionalidades, a Sprint 02 contemplará a criação da infraestrutura de backend e banco de dados da aplicação. O objetivo é substituir gradualmente o armazenamento local por uma solução centralizada, permitindo compartilhamento de informações entre dispositivos, persistência permanente dos dados e suporte às futuras evoluções do sistema.
+- *UH04:* Buscar e filtrar demandas por áreas e bairros;
+- *UH05:* Filtrar demandas por responsável;
+- *UH06:* Atualizar o status da demanda;
+- *UH07:* Visualizar a linha do tempo da demanda;
+- *UH15:* Consultar o histórico completo da demanda.
 
-A arquitetura definida para essa etapa será composta por React/Vite no frontend, Python com Flask no backend e SQLite como banco de dados. Essa estrutura servirá como base para as funcionalidades de controle de status, responsáveis, histórico e rastreabilidade das demandas, além de preparar o sistema para futuras integrações e funcionalidades previstas no backlog.
+Além das histórias de usuário previstas, também foram implementadas melhorias evolutivas que aumentaram a rastreabilidade e a usabilidade da plataforma, tais como:
+
+- Edição da descrição e dos detalhes das demandas;
+- Controle visual de status com identificação por cores;
+- Linha do tempo otimizada para acompanhamento de alterações;
+- Histórico completo de modificações realizadas nas demandas;
+- Indicadores adicionais no Dashboard para demandas concluídas e em revisão;
+- Exclusão segura de demandas com confirmação;
+- Sistema de responsáveis vinculado às demandas;
+- Melhorias na experiência de navegação e visualização das informações.
+
+A infraestrutura da aplicação também evoluiu significativamente. O armazenamento temporário em localStorage foi substituído por uma arquitetura baseada em backend, permitindo persistência permanente dos dados e compartilhamento de informações entre diferentes dispositivos e usuários.
+
+Atualmente, a aplicação utiliza a seguinte arquitetura:
+
+### Frontend
+- React
+- Vite
+- JavaScript
+- React Router DOM
+
+### Backend
+- Python
+- Flask
+- SQLite
+
+O frontend encontra-se publicado na Vercel, possibilitando acesso ao sistema diretamente pelo navegador. O backend realiza o gerenciamento das operações de cadastro, consulta, atualização e exclusão das demandas, enquanto o banco SQLite garante o armazenamento persistente das informações.
+
+Essa estrutura serve como base para futuras evoluções do sistema, incluindo controle de perfis de usuário, permissões diferenciadas entre Gestores e Inspetores, configurações administrativas e demais funcionalidades previstas no backlog do projeto.
+
+✅ *Situação Atual do Projeto:* Sistema funcional com frontend e backend integrados, persistência em banco de dados, Dashboard gerencial, Central de Alertas, filtros avançados, gestão de status, histórico completo e rastreabilidade das demandas.
 
 ## 🏃 Sprints
 
@@ -47,6 +81,35 @@ Histórias de usuário selecionadas e implementadas nesta sprint:
 - **UH16 — Cadastrar demanda manualmente**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBxXrr8RVtjRKONxFK1i5wqAcIlP26ChfSZNzqTz-1BWQ8?e=gCHoR6
 
 **Status:** ✅ Concluída
+
+Sprint 02
+Objetivo: Aprimorar o acompanhamento do ciclo de vida das demandas e estruturar a arquitetura definitiva da aplicação com backend e banco de dados.
+Histórias de Usuário Implementadas:
+
+- UH04 — Buscar e filtrar demandas por áreas/bairros
+- UH05 — Filtrar demandas por responsável
+- UH06 — Atualizar o status da demanda
+- UH07 — Visualizar a linha do tempo da demanda
+- UH15 — Consultar o histórico completo da demanda
+Principais entregas da Sprint:
+
+- Sistema de atualização de status das demandas;
+- Controle e atribuição de responsáveis;
+- Linha do tempo para acompanhamento das alterações;
+- Histórico completo e rastreabilidade das demandas;
+- Filtros por área, bairro e responsável;
+- Edição de descrição e detalhes das demandas;
+- Indicadores adicionais no Dashboard para demandas concluídas e em revisão;
+- Integração completa entre frontend e backend;
+- Implementação da API utilizando Flask;
+- Migração do armazenamento local para banco de dados SQLite;
+- Operações de cadastro, consulta, edição e exclusão persistentes.
+Tecnologias incorporadas nesta Sprint:
+
+- Python
+- Flask
+- SQLite
+Status: ✅ Concluída
 
 ## Tela do board/backlog
 
