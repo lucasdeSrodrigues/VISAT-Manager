@@ -82,15 +82,17 @@ Histórias de usuário selecionadas e implementadas nesta sprint:
 
 **Status:** ✅ Concluída
 
-Sprint 02
+### Sprint 02
+
 Objetivo: Aprimorar o acompanhamento do ciclo de vida das demandas e estruturar a arquitetura definitiva da aplicação com backend e banco de dados.
 Histórias de Usuário Implementadas:
 
-- UH04 — Buscar e filtrar demandas por áreas/bairros
-- UH05 — Filtrar demandas por responsável
-- UH06 — Atualizar o status da demanda
-- UH07 — Visualizar a linha do tempo da demanda
-- UH15 — Consultar o histórico completo da demanda
+- **UH04 — Buscar e filtrar demandas por áreas/bairros**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQC3wTCGJEXzSLMvo5hMKIzRAWUgkddVF-BLcrggd4uwEts?e=rKt6hS
+- **UH05 — Filtrar demandas por responsável**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQAeU8IabAxSRKIADOSpN_8tAejMslQH3Disva0qqYa6OM4?e=fyklQJ
+- **UH06 — Atualizar o status da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQDzcq_s0i7gTYHZ-aZ_2VkRAa577Esn_1wE9zQupD9lvwE?e=c37pG7
+- **UH07 — Visualizar a linha do tempo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBxcM2OFIVoQ45Mli3ZNJFfAVFf4YBteCAXubJhPXco8_Q?e=PzGSZo
+- **UH15 — Consultar o histórico completo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBxcM2OFIVoQ45Mli3ZNJFfAVFf4YBteCAXubJhPXco8_Q?e=PzGSZo
+  
 Principais entregas da Sprint:
 
 - Sistema de atualização de status das demandas;
@@ -109,7 +111,8 @@ Tecnologias incorporadas nesta Sprint:
 - Python
 - Flask
 - SQLite
-Status: ✅ Concluída
+Status:
+**Status:** ✅ Concluída
 
 ## Tela do board/backlog
 
@@ -123,9 +126,13 @@ https://www.figma.com/board/CBjudZTIcd7CaVuHgd4o5d/Sem-t%C3%ADtulo?node-id=0-1&t
 ## ​💻​Prototipação
 https://www.figma.com/proto/LaXeDczTlSIBvWNcISJIjI/Sem-t%C3%ADtulo?node-id=0-1&t=gUWcxJAEMVxyasU8-1
 
-## 🎙️​Screencast
+## 🎙️​Screencasts
 
+**Protótipo:**
 https://1drv.ms/v/c/1c1c8fc2654f999f/IQDhKngsunz_Q6siTCEosNfHAfA8Gh6V9wxFa7QBFa8Dngw?e=NwtuHh
+
+**VISAT-Manager em produção:**
+https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutLuqhI?e=kYHQT9
 
 ## 👥Pair programming
 
