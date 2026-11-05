@@ -82,15 +82,17 @@ Histórias de usuário selecionadas e implementadas nesta sprint:
 
 **Status:** ✅ Concluída
 
-Sprint 02
+### Sprint 02
+
 Objetivo: Aprimorar o acompanhamento do ciclo de vida das demandas e estruturar a arquitetura definitiva da aplicação com backend e banco de dados.
 Histórias de Usuário Implementadas:
 
-- UH04 — Buscar e filtrar demandas por áreas/bairros
-- UH05 — Filtrar demandas por responsável
-- UH06 — Atualizar o status da demanda
-- UH07 — Visualizar a linha do tempo da demanda
-- UH15 — Consultar o histórico completo da demanda
+- **UH04 — Buscar e filtrar demandas por áreas/bairros**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQC3wTCGJEXzSLMvo5hMKIzRAWUgkddVF-BLcrggd4uwEts?e=rKt6hS
+- **UH05 — Filtrar demandas por responsável**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQAeU8IabAxSRKIADOSpN_8tAejMslQH3Disva0qqYa6OM4?e=fyklQJ
+- **UH06 — Atualizar o status da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQDzcq_s0i7gTYHZ-aZ_2VkRAa577Esn_1wE9zQupD9lvwE?e=c37pG7
+- **UH07 — Visualizar a linha do tempo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBxcM2OFIVoQ45Mli3ZNJFfAVFf4YBteCAXubJhPXco8_Q?e=PzGSZo
+- **UH15 — Consultar o histórico completo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBxcM2OFIVoQ45Mli3ZNJFfAVFf4YBteCAXubJhPXco8_Q?e=PzGSZo
+  
 Principais entregas da Sprint:
 
 - Sistema de atualização de status das demandas;
@@ -109,7 +111,8 @@ Tecnologias incorporadas nesta Sprint:
 - Python
 - Flask
 - SQLite
-Status: ✅ Concluída
+Status:
+**Status:** ✅ Concluída
 
 ## Tela do board/backlog
 
@@ -123,13 +126,40 @@ https://www.figma.com/board/CBjudZTIcd7CaVuHgd4o5d/Sem-t%C3%ADtulo?node-id=0-1&t
 ## ​💻​Prototipação
 https://www.figma.com/proto/LaXeDczTlSIBvWNcISJIjI/Sem-t%C3%ADtulo?node-id=0-1&t=gUWcxJAEMVxyasU8-1
 
-## 🎙️​Screencast
+## 🎙️​Screencasts
 
+**Protótipo:**
 https://1drv.ms/v/c/1c1c8fc2654f999f/IQDhKngsunz_Q6siTCEosNfHAfA8Gh6V9wxFa7QBFa8Dngw?e=NwtuHh
+
+**VISAT-Manager em produção:**
+https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutLuqhI?e=kYHQT9
+
+## Issue/bug tracker
+
+### Sprint 1
+
+- Erro de sintaxe no CSS impede o build de produção
+- Atualização de rotar retorna o erro na versão publicada
+- Dashboard não considera prioridade manual das demandas
+
+### Sprint 2
+
+- Backend Flask não inicia com Python 3.15 Alpha
+- Demandas vindas da API aparecem com campos incompletos no frontend
+- Página de detalhes não encontra demanda carregada do SQLite
+- Demanda excluída reaparece ao atualizar a página
+- Demandas finalizadas permanecem nos indicadores do dashboard
+- Banco de dados local aparece como modificado após os testes
 
 ## 👥Pair programming
 
-Como nossa equipe na matéria de FDS é restrita a apenas 3 pessoas, decidimos em vez de programar em pares, fazer parte do código em trio. Realizamos a ideação inicial, a base do frontend e a US16 em conjunto, em uma reunião presencial. Com isso, o resto das histórias ficou muito mais simples de serem implementadas.
+Devido à composição reduzida da equipe, formada por apenas três integrantes, optamos por adaptar a prática tradicional de Pair Programming para um modelo colaborativo em trio durante momentos estratégicos do desenvolvimento. A concepção inicial do projeto, a definição da arquitetura do frontend e a implementação da US16 (Cadastro Manual de Demandas) foram realizadas presencialmente por toda a equipe, permitindo discussões em tempo real, validação conjunta de decisões técnicas e alinhamento dos requisitos da aplicação.
+
+Essa etapa colaborativa estabeleceu uma base sólida para o desenvolvimento das demais histórias de usuário, facilitando a divisão das atividades, reduzindo retrabalho e garantindo maior consistência entre as funcionalidades implementadas. Além das sessões presenciais, os integrantes mantiveram comunicação constante para revisão de soluções, esclarecimento de dúvidas e acompanhamento da evolução das entregas.
+
+Na segunda sprint, também houve uma reunião inicial para definir como seria a estrutura do backend, já dando início, nessa mesma reunião, ao desenvolvimento da base do mesmo. Mais à frente, também nos reunimos para revisar e refinar as US04, US05 e US06 e desenvolver as US07 e US15, obtendo um excelente resultando e contribuindo muito para o desenvolvimento do VISAT Manager.
+
+Em resumo, mesmo com os commits concentrados em uma ou duas pessoas, toda a equipe está contribuindo para o desenvolvimento do projeto, com cada um fazendo a parte designada.
 
 ## 👨‍💻Equipe
 
