@@ -134,9 +134,29 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQDhKngsunz_Q6siTCEosNfHAfA8Gh6V9wxFa7QBFa8
 **VISAT-Manager em produção:**
 https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutLuqhI?e=kYHQT9
 
+## Issue/bug tracker
+
+### Sprint 1
+
+- Erro de sintaxe no CSS impede o build de produção
+- Atualização de rotar retorna o erro na versão publicada
+- Dashboard não considera prioridade manual das demandas
+
+### Sprint 2
+
+- Backend Flask não inicia com Python 3.15 Alpha
+- Demandas vindas da API aparecem com campos incompletos no frontend
+- Página de detalhes não encontra demanda carregada do SQLite
+- Demanda excluída reaparece ao atualizar a página
+- Demandas finalizadas permanecem nos indicadores do dashboard
+- Banco de dados local aparece como modificado após os testes
+
 ## 👥Pair programming
 
-Como nossa equipe na matéria de FDS é restrita a apenas 3 pessoas, decidimos em vez de programar em pares, fazer parte do código em trio. Realizamos a ideação inicial, a base do frontend e a US16 em conjunto, em uma reunião presencial. Com isso, o resto das histórias ficou muito mais simples de serem implementadas.
+Devido à composição reduzida da equipe, formada por apenas três integrantes, optamos por adaptar a prática tradicional de Pair Programming para um modelo colaborativo em trio durante momentos estratégicos do desenvolvimento. A concepção inicial do projeto, a definição da arquitetura do frontend e a implementação da US16 (Cadastro Manual de Demandas) foram realizadas presencialmente por toda a equipe, permitindo discussões em tempo real, validação conjunta de decisões técnicas e alinhamento dos requisitos da aplicação.
+
+Essa etapa colaborativa estabeleceu uma base sólida para o desenvolvimento das demais histórias de usuário, facilitando a divisão das atividades, reduzindo retrabalho e garantindo maior consistência entre as funcionalidades implementadas. Além das sessões presenciais, os integrantes mantiveram comunicação constante para revisão de soluções, esclarecimento de dúvidas e acompanhamento da evolução das entregas.
+
 
 ## 👨‍💻Equipe
 
