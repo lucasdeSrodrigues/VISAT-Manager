@@ -157,6 +157,9 @@ Devido à composição reduzida da equipe, formada por apenas três integrantes,
 
 Essa etapa colaborativa estabeleceu uma base sólida para o desenvolvimento das demais histórias de usuário, facilitando a divisão das atividades, reduzindo retrabalho e garantindo maior consistência entre as funcionalidades implementadas. Além das sessões presenciais, os integrantes mantiveram comunicação constante para revisão de soluções, esclarecimento de dúvidas e acompanhamento da evolução das entregas.
 
+Na segunda sprint, também houve uma reunião inicial para definir como seria a estrutura do backend, já dando início, nessa mesma reunião, ao desenvolvimento da base do mesmo. Mais à frente, também nos reunimos para revisar e refinar as US04, US05 e US06 e desenvolver as US07 e US15, obtendo um excelente resultando e contribuindo muito para o desenvolvimento do VISAT Manager.
+
+Em resumo, mesmo com os commits concentrados em uma ou duas pessoas, toda a equipe está contribuindo para o desenvolvimento do projeto, com cada um fazendo a parte designada.
 
 ## 👨‍💻Equipe
 
