@@ -276,29 +276,32 @@ def criar_demanda():
                 "Prioridade inválida."
         }, 400
 
-        responsavel = dados.get(
-            "responsavel"
-        )
+    responsavel = dados.get(
+        "responsavel",
+        None,
+    )
 
-        if responsavel is not None:
-            responsavel = str(
-                responsavel
-            ).strip()
+    if responsavel is not None:
+        responsavel = str(
+            responsavel
+        ).strip()
 
-            if not responsavel:
-                responsavel = None
+        if not responsavel:
+            responsavel = None
+    else:
+        responsavel = None
 
-        if (
-            responsavel is not None and
-            len(responsavel) > 100
-        ):
-            return {
-                "mensagem": (
-                    "O nome do responsável "
-                    "deve possuir no máximo "
-                    "100 caracteres."
-                )
-            }, 400
+    if (
+        responsavel is not None and
+        len(responsavel) > 100
+    ):
+        return {
+            "mensagem": (
+                "O nome do responsável "
+                "deve possuir no máximo "
+                "100 caracteres."
+            )
+        }, 400
 
     data_finalizacao = None
 
@@ -393,7 +396,6 @@ def criar_demanda():
     conn.close()
 
     return jsonify(resultado), 201
-
 
 @app.route(
     "/api/demandas/<int:demanda_id>",
