@@ -7,8 +7,11 @@ import {
 
 const DemandasContext = createContext()
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL
+
 const API_URL =
-  'https://visat-manager-backend.onrender.com/api/demandas'
+  `${API_BASE_URL}/api/demandas`
 
 const PRIORIDADES_VALIDAS = [
   'Baixa',
