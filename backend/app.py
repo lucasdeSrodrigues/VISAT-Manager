@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 import sqlite3
 
 from flask import Flask, jsonify, request
@@ -8,7 +9,9 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-DATABASE = "database.db"
+BASE_DIR = Path(__file__).resolve().parent
+DATABASE = BASE_DIR / "database.db"
+
 DIAS_PARA_ARQUIVAR = 30
 
 PRIORIDADES_VALIDAS = {
@@ -34,6 +37,57 @@ def obter_conexao():
     )
 
     return conn
+
+
+def inicializar_banco():
+    conn = obter_conexao()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS demandas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            numero_processo TEXT,
+            orgao_solicitante TEXT NOT NULL,
+            municipio TEXT NOT NULL,
+            bairro TEXT NOT NULL,
+            tipo_ocorrencia TEXT NOT NULL,
+            data_entrada TEXT NOT NULL,
+            prazo_resposta TEXT NOT NULL,
+            descricao TEXT NOT NULL,
+            prioridade_manual TEXT,
+            justificativa_prioridade TEXT,
+            data_alteracao_prioridade TEXT,
+            responsavel TEXT,
+            status TEXT NOT NULL,
+            origem TEXT NOT NULL,
+            data_cadastro TEXT NOT NULL,
+            data_finalizacao TEXT,
+            arquivada INTEGER NOT NULL DEFAULT 0,
+            data_arquivamento TEXT
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS historico (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            demanda_id INTEGER NOT NULL,
+            data_hora TEXT NOT NULL,
+            tipo_acao TEXT NOT NULL,
+            descricao TEXT NOT NULL,
+            usuario TEXT NOT NULL,
+            status_anterior TEXT,
+            status_posterior TEXT,
+            FOREIGN KEY (demanda_id)
+                REFERENCES demandas (id)
+                ON DELETE CASCADE
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+inicializar_banco()
 
 
 def data_hora_atual():
@@ -396,6 +450,7 @@ def criar_demanda():
     conn.close()
 
     return jsonify(resultado), 201
+
 
 @app.route(
     "/api/demandas/<int:demanda_id>",
