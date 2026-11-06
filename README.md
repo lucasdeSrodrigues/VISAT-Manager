@@ -118,7 +118,7 @@ Status:
 
 https://trello.com/invite/b/6a958f5ae0e46b0d0e91853f/ATTI7515ce6337281d37eeb479b51089f280304B3628/projeto-visat
 
-<img width="1536" height="816" alt="Colagem com três capturas" src="https://github.com/user-attachments/assets/3fc93fff-ed14-4720-be4d-9e54848a577c" />
+<img width="1517" height="826" alt="Captura de tela 2026-11-06 165836" src="https://github.com/user-attachments/assets/f4cead91-5239-47a9-a4d6-6ffd8b5efc55" />
 
 
 ## 📊Diagramas das UH's
