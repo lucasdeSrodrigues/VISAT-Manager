@@ -162,6 +162,7 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutL
 - Demanda excluída reaparece ao atualizar a página
 - Demandas finalizadas permanecem nos indicadores do dashboard
 - Banco de dados local aparece como modificado após os testes
+- Erro ao acessar demandas após remoção do banco de dados do repositório
 
 ## 👥Pair programming
 
