@@ -52,7 +52,12 @@ Além das histórias de usuário previstas, também foram implementadas melhoria
 - Sistema de responsáveis vinculado às demandas;
 - Melhorias na experiência de navegação e visualização das informações.
 
-A infraestrutura da aplicação também evoluiu significativamente. O armazenamento temporário em localStorage foi substituído por uma arquitetura baseada em backend, permitindo persistência permanente dos dados e compartilhamento de informações entre diferentes dispositivos e usuários.
+A infraestrutura da aplicação também evoluiu significativamente. O armazenamento temporário no localStorage foi substituído por uma arquitetura baseada em frontend, API Flask e banco de dados SQLite.
+
+O frontend publicado na Vercel realiza as requisições ao backend hospedado no Render por meio da variável de ambiente VITE\_API\_URL. O backend gerencia as operações de cadastro, consulta, atualização e exclusão das demandas.
+
+O banco SQLite armazena as informações utilizadas pela aplicação. O backend também possui uma rotina de inicialização automática, responsável por criar as tabelas necessárias quando o arquivo do banco ainda não estiver disponível no ambiente de execução.
+
 
 Atualmente, a aplicação utiliza a seguinte arquitetura:
 
