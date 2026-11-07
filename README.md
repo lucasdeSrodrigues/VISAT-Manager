@@ -164,6 +164,8 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutL
 - Banco de dados local aparece como modificado após os testes
 - Erro ao acessar demandas após remoção do banco de dados do repositório
 
+<img width="1246" height="785" alt="Captura de tela 2026-11-07 203145" src="https://github.com/user-attachments/assets/1116fffe-199c-4cab-a28c-314f59793272" />
+
 ## 👥Pair programming
 
 Devido à composição reduzida da equipe, formada por apenas três integrantes, optamos por adaptar a prática tradicional de Pair Programming para um modelo colaborativo em trio durante momentos estratégicos do desenvolvimento. A concepção inicial do projeto, a definição da arquitetura do frontend e a implementação da US16 (Cadastro Manual de Demandas) foram realizadas presencialmente por toda a equipe, permitindo discussões em tempo real, validação conjunta de decisões técnicas e alinhamento dos requisitos da aplicação.
