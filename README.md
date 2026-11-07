@@ -7,13 +7,18 @@ Nosso projeto está alinhado principalmente com o **ODS 8 – Trabalho Decente e
 ## ❌Problema 
 Como podemos transformar o processo de recebimento, acompanhamento e resposta às demandas de vigilância em saúde do trabalhador do Recife em um fluxo digital rastreável, integrado e orientado por dados, reduzindo atrasos, retrabalho e vulnerabilidade institucional? 
 
-## 🌐Acesso ao sistema
+## 🌐 Acesso ao sistema
 
-O frontend do VISAT Manager está publicado e pode ser acessado diretamente pelo navegador:
+O frontend do VISAT Manager está publicado na Vercel e pode ser acessado diretamente pelo navegador:
 
-🔗 **[Acessar o VISAT Manager](https://visat-manager.vercel.app)**
+🔗 [Acessar o VISAT Manager](https://visat-manager.vercel.app/)
 
-> Nesta versão, os dados são armazenados localmente no navegador. Por isso, cada navegador e dispositivo mantém seus próprios registros.
+O backend da aplicação está publicado no Render:
+
+🔗 [Acessar o backend do VISAT Manager](https://visat-manager-backend.onrender.com/)
+
+O frontend utiliza a variável de ambiente VITE\_API\_URL para se comunicar com o backend publicado. As operações de cadastro, consulta, atualização e exclusão são realizadas pela API Flask e armazenadas no banco SQLite do backend.
+
 
 ## 🔎 Status Atual
 
