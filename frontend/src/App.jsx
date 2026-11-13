@@ -1,7 +1,8 @@
 import {
   BrowserRouter,
-  Routes,
+  Navigate,
   Route,
+  Routes,
 } from 'react-router-dom'
 
 import Login from './pages/Login'
@@ -13,7 +14,114 @@ import HistoricoCompleto from './pages/HistoricoCompleto'
 
 import Layout from './components/Layout'
 
+import { useAuth } from './context/AuthContext.jsx'
+
 import './App.css'
+
+function RotaProtegida({ children }) {
+  const {
+    autenticado,
+    verificandoAutenticacao,
+  } = useAuth()
+
+  if (verificandoAutenticacao) {
+    return (
+      <div
+        className="carregamento-inicial"
+        role="status"
+        aria-live="polite"
+      >
+        Verificando autenticação...
+      </div>
+    )
+  }
+
+  if (!autenticado) {
+    return (
+      <Navigate
+        to="/"
+        replace
+      />
+    )
+  }
+
+  return children
+}
+
+function RotaLogin() {
+  const {
+    autenticado,
+    verificandoAutenticacao,
+  } = useAuth()
+
+  if (verificandoAutenticacao) {
+    return (
+      <div
+        className="carregamento-inicial"
+        role="status"
+        aria-live="polite"
+      >
+        Verificando autenticação...
+      </div>
+    )
+  }
+
+  if (autenticado) {
+    return (
+      <Navigate
+        to="/dashboard"
+        replace
+      />
+    )
+  }
+
+  return <Login />
+}
+
+function PaginaComLayout({ children }) {
+  return (
+    <RotaProtegida>
+      <Layout>
+        {children}
+      </Layout>
+    </RotaProtegida>
+  )
+}
+
+function RotaNaoEncontrada() {
+  const {
+    autenticado,
+    verificandoAutenticacao,
+  } = useAuth()
+
+  if (verificandoAutenticacao) {
+    return (
+      <div
+        className="carregamento-inicial"
+        role="status"
+        aria-live="polite"
+      >
+        Verificando autenticação...
+      </div>
+    )
+  }
+
+  if (autenticado) {
+    return (
+      <Navigate
+        to="/dashboard"
+        replace
+      />
+    )
+  }
+
+  return (
+    <Navigate
+      to="/"
+      replace
+    />
+  )
+}
 
 function App() {
   return (
@@ -21,52 +129,57 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={<Login />}
+          element={<RotaLogin />}
         />
 
         <Route
           path="/dashboard"
           element={
-            <Layout>
+            <PaginaComLayout>
               <Dashboard />
-            </Layout>
+            </PaginaComLayout>
           }
         />
 
         <Route
           path="/demandas"
           element={
-            <Layout>
+            <PaginaComLayout>
               <Demandas />
-            </Layout>
+            </PaginaComLayout>
           }
         />
 
         <Route
           path="/demandas/:id"
           element={
-            <Layout>
+            <PaginaComLayout>
               <DetalhesDemanda />
-            </Layout>
+            </PaginaComLayout>
           }
         />
 
         <Route
           path="/demandas/:id/historico"
           element={
-            <Layout>
+            <PaginaComLayout>
               <HistoricoCompleto />
-            </Layout>
+            </PaginaComLayout>
           }
         />
 
         <Route
           path="/cadastro"
           element={
-            <Layout>
+            <PaginaComLayout>
               <CadastroDemanda />
-            </Layout>
+            </PaginaComLayout>
           }
+        />
+
+        <Route
+          path="*"
+          element={<RotaNaoEncontrada />}
         />
       </Routes>
     </BrowserRouter>

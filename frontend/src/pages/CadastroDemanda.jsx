@@ -2,13 +2,20 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useDemandas } from '../context/DemandasContext.jsx'
+
 import './CadastroDemanda.css'
 
 function CadastroDemanda() {
   const navigate = useNavigate()
-  const { cadastrarDemanda } = useDemandas()
 
-  const [formulario, setFormulario] = useState({
+  const {
+    cadastrarDemanda,
+  } = useDemandas()
+
+  const [
+    formulario,
+    setFormulario,
+  ] = useState({
     orgaoSolicitante: '',
     dataEntrada: '',
     municipio: '',
@@ -18,80 +25,158 @@ function CadastroDemanda() {
     descricao: '',
   })
 
-  const [mensagemErro, setMensagemErro] = useState('')
+  const [
+    mensagemErro,
+    setMensagemErro,
+  ] = useState('')
+
+  const [
+    cadastrando,
+    setCadastrando,
+  ] = useState(false)
 
   function atualizarCampo(evento) {
-    const { name, value } = evento.target
+    const {
+      name,
+      value,
+    } = evento.target
 
-    setFormulario((formularioAnterior) => ({
-      ...formularioAnterior,
-      [name]: value,
-    }))
+    setFormulario(
+      (formularioAnterior) => ({
+        ...formularioAnterior,
+        [name]: value,
+      }),
+    )
+
+    if (mensagemErro) {
+      setMensagemErro('')
+    }
   }
 
   async function enviarFormulario(evento) {
     evento.preventDefault()
 
+    if (cadastrando) {
+      return
+    }
+
+    const formularioTratado = {
+      orgaoSolicitante:
+        formulario.orgaoSolicitante.trim(),
+      dataEntrada:
+        formulario.dataEntrada,
+      municipio:
+        formulario.municipio.trim(),
+      bairro:
+        formulario.bairro.trim(),
+      tipoOcorrencia:
+        formulario.tipoOcorrencia.trim(),
+      prazoResposta:
+        formulario.prazoResposta,
+      descricao:
+        formulario.descricao.trim(),
+    }
+
     const camposObrigatorios = [
-      formulario.orgaoSolicitante,
-      formulario.dataEntrada,
-      formulario.municipio,
-      formulario.bairro,
-      formulario.tipoOcorrencia,
-      formulario.prazoResposta,
-      formulario.descricao,
+      formularioTratado.orgaoSolicitante,
+      formularioTratado.dataEntrada,
+      formularioTratado.municipio,
+      formularioTratado.bairro,
+      formularioTratado.tipoOcorrencia,
+      formularioTratado.prazoResposta,
+      formularioTratado.descricao,
     ]
 
-    const possuiCampoVazio = camposObrigatorios.some(
-      (campo) => campo.trim() === '',
-    )
+    const possuiCampoVazio =
+      camposObrigatorios.some(
+        (campo) => !campo,
+      )
 
     if (possuiCampoVazio) {
-      setMensagemErro('Preencha todos os campos obrigatórios.')
+      setMensagemErro(
+        'Preencha todos os campos obrigatórios.',
+      )
+
       return
     }
 
     try {
+      setCadastrando(true)
+      setMensagemErro('')
+
       await cadastrarDemanda({
-        ...formulario,
+        ...formularioTratado,
         status: 'Em andamento',
       })
 
-      setMensagemErro('')
-      navigate('/demandas')
+      navigate(
+        '/demandas',
+        {
+          replace: true,
+        },
+      )
     } catch (erro) {
-      console.error('Erro ao cadastrar demanda:', erro)
+      console.error(
+        'Erro ao cadastrar demanda:',
+        erro,
+      )
 
       setMensagemErro(
-        'Não foi possível cadastrar a demanda. Verifique se o backend está funcionando.',
+        erro.message ||
+          'Não foi possível cadastrar a demanda. Verifique se o backend está funcionando.',
       )
+    } finally {
+      setCadastrando(false)
     }
+  }
+
+  function cancelarCadastro() {
+    if (cadastrando) {
+      return
+    }
+
+    navigate('/demandas')
   }
 
   return (
     <div className="cadastro-page">
       <div className="cadastro-page-header">
         <div>
-          <h1>Cadastrar demanda</h1>
+          <h1>
+            r demanda
+          </h1>
 
           <p>
-            Registre manualmente uma demanda recebida por um meio diferente do
-            SEI.
+            Registre manualmente uma demanda recebida por um
+            meio diferente do SEI.
           </p>
         </div>
 
-        <span className="origem-badge">Origem: Manual</span>
+        <span className="origem-badge">
+          Origem: Manual
+        </span>
       </div>
 
-      <form className="cadastro-form" onSubmit={enviarFormulario}>
+      <form
+        className="cadastro-form"
+        onSubmit={enviarFormulario}
+      >
         <div className="form-section-header">
-          <h2>Informações da demanda</h2>
+          <h2>
+            Informações da demanda
+          </h2>
 
-          <p>Os campos marcados com * são obrigatórios.</p>
+          <p>
+            Os campos marcados com * são obrigatórios.
+          </p>
         </div>
 
         {mensagemErro && (
-          <p className="form-error" role="alert">
+          <p
+            className="form-error"
+            role="alert"
+            aria-live="assertive"
+          >
             {mensagemErro}
           </p>
         )}
@@ -107,8 +192,12 @@ function CadastroDemanda() {
               name="orgaoSolicitante"
               type="text"
               placeholder="Informe o órgão solicitante"
-              value={formulario.orgaoSolicitante}
+              value={
+                formulario.orgaoSolicitante
+              }
               onChange={atualizarCampo}
+              disabled={cadastrando}
+              required
             />
           </div>
 
@@ -122,8 +211,12 @@ function CadastroDemanda() {
               name="tipoOcorrencia"
               type="text"
               placeholder="Informe o tipo de ocorrência"
-              value={formulario.tipoOcorrencia}
+              value={
+                formulario.tipoOcorrencia
+              }
               onChange={atualizarCampo}
+              disabled={cadastrando}
+              required
             />
           </div>
 
@@ -136,8 +229,12 @@ function CadastroDemanda() {
               id="dataEntrada"
               name="dataEntrada"
               type="date"
-              value={formulario.dataEntrada}
+              value={
+                formulario.dataEntrada
+              }
               onChange={atualizarCampo}
+              disabled={cadastrando}
+              required
             />
           </div>
 
@@ -150,8 +247,12 @@ function CadastroDemanda() {
               id="prazoResposta"
               name="prazoResposta"
               type="date"
-              value={formulario.prazoResposta}
+              value={
+                formulario.prazoResposta
+              }
               onChange={atualizarCampo}
+              disabled={cadastrando}
+              required
             />
           </div>
 
@@ -165,8 +266,12 @@ function CadastroDemanda() {
               name="municipio"
               type="text"
               placeholder="Informe o município"
-              value={formulario.municipio}
+              value={
+                formulario.municipio
+              }
               onChange={atualizarCampo}
+              disabled={cadastrando}
+              required
             />
           </div>
 
@@ -180,8 +285,12 @@ function CadastroDemanda() {
               name="bairro"
               type="text"
               placeholder="Informe o bairro ou área"
-              value={formulario.bairro}
+              value={
+                formulario.bairro
+              }
               onChange={atualizarCampo}
+              disabled={cadastrando}
+              required
             />
           </div>
 
@@ -195,8 +304,12 @@ function CadastroDemanda() {
               name="descricao"
               rows="5"
               placeholder="Descreva as principais informações da demanda"
-              value={formulario.descricao}
+              value={
+                formulario.descricao
+              }
               onChange={atualizarCampo}
+              disabled={cadastrando}
+              required
             />
           </div>
         </div>
@@ -205,13 +318,20 @@ function CadastroDemanda() {
           <button
             className="secondary-button"
             type="button"
-            onClick={() => navigate('/demandas')}
+            onClick={cancelarCadastro}
+            disabled={cadastrando}
           >
             Cancelar
           </button>
 
-          <button className="primary-button" type="submit">
-            Cadastrar demanda
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={cadastrando}
+          >
+            {cadastrando
+              ? 'Cadastrando...'
+              : 'Cadastrar demanda'}
           </button>
         </div>
       </form>

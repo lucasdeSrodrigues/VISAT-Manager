@@ -1,13 +1,58 @@
 from datetime import datetime, timedelta, timezone
+from functools import wraps
 from pathlib import Path
+import os
 import sqlite3
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, session
 from flask_cors import CORS
+from werkzeug.security import (
+    check_password_hash,
+    generate_password_hash,
+)
 
 
 app = Flask(__name__)
-CORS(app)
+
+app.config["SECRET_KEY"] = os.getenv(
+    "SECRET_KEY",
+    "visat-manager-chave-local-de-desenvolvimento",
+)
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+
+app.config["SESSION_COOKIE_SAMESITE"] = os.getenv(
+    "SESSION_COOKIE_SAMESITE",
+    "Lax",
+)
+
+app.config["SESSION_COOKIE_SECURE"] = (
+    os.getenv(
+        "SESSION_COOKIE_SECURE",
+        "false",
+    ).lower() == "true"
+)
+
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(
+    hours=8
+)
+
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173",
+)
+
+CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": [
+                FRONTEND_URL,
+            ],
+        },
+    },
+    supports_credentials=True,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE = BASE_DIR / "database.db"
@@ -28,6 +73,12 @@ STATUS_VALIDOS = {
 }
 
 
+PERFIS_VALIDOS = {
+    "gestor",
+    "inspetor",
+}
+
+
 def obter_conexao():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
@@ -39,9 +90,69 @@ def obter_conexao():
     return conn
 
 
+def criar_usuario_inicial(
+    cursor,
+    nome,
+    email,
+    senha,
+    perfil,
+):
+    cursor.execute("""
+        SELECT id
+        FROM usuarios
+        WHERE email = ?
+    """, (
+        email.lower(),
+    ))
+
+    usuario_existente = cursor.fetchone()
+
+    if usuario_existente:
+        return
+
+    cursor.execute("""
+        INSERT INTO usuarios (
+            nome,
+            email,
+            senha_hash,
+            perfil,
+            ativo,
+            data_cadastro
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        nome,
+        email.lower(),
+        generate_password_hash(senha),
+        perfil,
+        1,
+        datetime.now(
+            timezone.utc
+        ).isoformat(),
+    ))
+
+
 def inicializar_banco():
     conn = obter_conexao()
     cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            senha_hash TEXT NOT NULL,
+            perfil TEXT NOT NULL,
+            ativo INTEGER NOT NULL DEFAULT 1,
+            data_cadastro TEXT NOT NULL,
+            CHECK (
+                perfil IN (
+                    'gestor',
+                    'inspetor'
+                )
+            )
+        )
+    """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS demandas (
@@ -83,6 +194,52 @@ def inicializar_banco():
         )
     """)
 
+    gestor_nome = os.getenv(
+        "GESTOR_INICIAL_NOME",
+        "Gestor VISAT",
+    )
+
+    gestor_email = os.getenv(
+        "GESTOR_INICIAL_EMAIL",
+        "gestor@visat.com",
+    )
+
+    gestor_senha = os.getenv(
+        "GESTOR_INICIAL_SENHA",
+        "Gestor@123",
+    )
+
+    inspetor_nome = os.getenv(
+        "INSPETOR_INICIAL_NOME",
+        "Inspetor VISAT",
+    )
+
+    inspetor_email = os.getenv(
+        "INSPETOR_INICIAL_EMAIL",
+        "inspetor@visat.com",
+    )
+
+    inspetor_senha = os.getenv(
+        "INSPETOR_INICIAL_SENHA",
+        "Inspetor@123",
+    )
+
+    criar_usuario_inicial(
+        cursor=cursor,
+        nome=gestor_nome,
+        email=gestor_email,
+        senha=gestor_senha,
+        perfil="gestor",
+    )
+
+    criar_usuario_inicial(
+        cursor=cursor,
+        nome=inspetor_nome,
+        email=inspetor_email,
+        senha=inspetor_senha,
+        perfil="inspetor",
+    )
+
     conn.commit()
     conn.close()
 
@@ -94,6 +251,141 @@ def data_hora_atual():
     return datetime.now(
         timezone.utc
     ).isoformat()
+
+
+def converter_usuario_para_dict(usuario):
+    return {
+        "id": usuario["id"],
+        "nome": usuario["nome"],
+        "email": usuario["email"],
+        "perfil": usuario["perfil"],
+    }
+
+
+def buscar_usuario_por_id(usuario_id):
+    conn = obter_conexao()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            id,
+            nome,
+            email,
+            perfil,
+            ativo,
+            data_cadastro
+        FROM usuarios
+        WHERE id = ?
+    """, (
+        usuario_id,
+    ))
+
+    usuario = cursor.fetchone()
+
+    conn.close()
+
+    return usuario
+
+
+def obter_usuario_autenticado():
+    usuario_id = session.get(
+        "usuario_id"
+    )
+
+    if not usuario_id:
+        return None
+
+    usuario = buscar_usuario_por_id(
+        usuario_id
+    )
+
+    if not usuario:
+        session.clear()
+        return None
+
+    if not usuario["ativo"]:
+        session.clear()
+        return None
+
+    if (
+        usuario["perfil"] not in
+        PERFIS_VALIDOS
+    ):
+        session.clear()
+        return None
+
+    return usuario
+
+
+def login_obrigatorio(funcao):
+    @wraps(funcao)
+    def funcao_protegida(
+        *args,
+        **kwargs,
+    ):
+        usuario = (
+            obter_usuario_autenticado()
+        )
+
+        if not usuario:
+            return {
+                "mensagem":
+                    "Autenticação necessária."
+            }, 401
+
+        kwargs["usuario_logado"] = (
+            usuario
+        )
+
+        return funcao(
+            *args,
+            **kwargs,
+        )
+
+    return funcao_protegida
+
+
+def perfil_obrigatorio(*perfis):
+    def decorador(funcao):
+        @wraps(funcao)
+        def funcao_protegida(
+            *args,
+            **kwargs,
+        ):
+            usuario = (
+                obter_usuario_autenticado()
+            )
+
+            if not usuario:
+                return {
+                    "mensagem":
+                        "Autenticação necessária."
+                }, 401
+
+            if (
+                usuario["perfil"] not in
+                perfis
+            ):
+                return {
+                    "mensagem": (
+                        "Você não possui "
+                        "permissão para "
+                        "realizar esta ação."
+                    )
+                }, 403
+
+            kwargs["usuario_logado"] = (
+                usuario
+            )
+
+            return funcao(
+                *args,
+                **kwargs,
+            )
+
+        return funcao_protegida
+
+    return decorador
 
 
 def registrar_historico(
@@ -201,10 +493,143 @@ def health():
 
 
 @app.route(
+    "/api/auth/login",
+    methods=["POST"],
+)
+def login():
+    dados = request.get_json(
+        silent=True
+    ) or {}
+
+    email = str(
+        dados.get(
+            "email",
+            "",
+        )
+    ).strip().lower()
+
+    senha = str(
+        dados.get(
+            "senha",
+            "",
+        )
+    )
+
+    if not email or not senha:
+        return {
+            "mensagem":
+                "Informe o e-mail e a senha."
+        }, 400
+
+    conn = obter_conexao()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            id,
+            nome,
+            email,
+            senha_hash,
+            perfil,
+            ativo,
+            data_cadastro
+        FROM usuarios
+        WHERE email = ?
+    """, (
+        email,
+    ))
+
+    usuario = cursor.fetchone()
+
+    conn.close()
+
+    if not usuario:
+        return {
+            "mensagem":
+                "E-mail ou senha inválidos."
+        }, 401
+
+    if not usuario["ativo"]:
+        return {
+            "mensagem":
+                "Este usuário está desativado."
+        }, 403
+
+    senha_valida = check_password_hash(
+        usuario["senha_hash"],
+        senha,
+    )
+
+    if not senha_valida:
+        return {
+            "mensagem":
+                "E-mail ou senha inválidos."
+        }, 401
+
+    if (
+        usuario["perfil"] not in
+        PERFIS_VALIDOS
+    ):
+        return {
+            "mensagem":
+                "O perfil deste usuário é inválido."
+        }, 403
+
+    session.clear()
+
+    session.permanent = True
+
+    session["usuario_id"] = (
+        usuario["id"]
+    )
+
+    return {
+        "mensagem":
+            "Login realizado com sucesso.",
+        "usuario":
+            converter_usuario_para_dict(
+                usuario
+            ),
+    }
+
+
+@app.route(
+    "/api/auth/me",
+    methods=["GET"],
+)
+@login_obrigatorio
+def consultar_usuario_autenticado(
+    usuario_logado,
+):
+    return {
+        "usuario":
+            converter_usuario_para_dict(
+                usuario_logado
+            )
+    }
+
+
+@app.route(
+    "/api/auth/logout",
+    methods=["POST"],
+)
+def logout():
+    session.clear()
+
+    return {
+        "mensagem":
+            "Sessão encerrada com sucesso."
+    }
+
+
+@app.route(
     "/api/demandas",
     methods=["GET"],
 )
-def listar_demandas():
+@login_obrigatorio
+def listar_demandas(
+    usuario_logado,
+):
     conn = obter_conexao()
     cursor = conn.cursor()
 
@@ -241,7 +666,11 @@ def listar_demandas():
     "/api/demandas/<int:demanda_id>",
     methods=["GET"],
 )
-def detalhar_demanda(demanda_id):
+@login_obrigatorio
+def detalhar_demanda(
+    demanda_id,
+    usuario_logado,
+):
     conn = obter_conexao()
     cursor = conn.cursor()
 
@@ -276,7 +705,10 @@ def detalhar_demanda(demanda_id):
     "/api/demandas",
     methods=["POST"],
 )
-def criar_demanda():
+@login_obrigatorio
+def criar_demanda(
+    usuario_logado,
+):
     dados = request.get_json(
         silent=True
     ) or {}
@@ -344,6 +776,19 @@ def criar_demanda():
             responsavel = None
     else:
         responsavel = None
+
+    if (
+        responsavel is not None and
+        usuario_logado["perfil"] !=
+        "gestor"
+    ):
+        return {
+            "mensagem": (
+                "Somente usuários com "
+                "perfil Gestor podem "
+                "atribuir um responsável."
+            )
+        }, 403
 
     if (
         responsavel is not None and
@@ -426,7 +871,7 @@ def criar_demanda():
             "Demanda cadastrada "
             "manualmente no VISAT Manager."
         ),
-        usuario="Sistema",
+        usuario=usuario_logado["nome"],
         status_anterior=None,
         status_posterior=status,
     )
@@ -456,7 +901,11 @@ def criar_demanda():
     "/api/demandas/<int:demanda_id>",
     methods=["PUT"],
 )
-def atualizar_demanda(demanda_id):
+@login_obrigatorio
+def atualizar_demanda(
+    demanda_id,
+    usuario_logado,
+):
     dados = request.get_json(
         silent=True
     ) or {}
@@ -505,6 +954,27 @@ def atualizar_demanda(demanda_id):
 
         if not novo_responsavel:
             novo_responsavel = None
+
+    responsavel_foi_alterado = (
+        responsavel_atual !=
+        novo_responsavel
+    )
+
+    if (
+        responsavel_foi_alterado and
+        usuario_logado["perfil"] !=
+        "gestor"
+    ):
+        conn.close()
+
+        return {
+            "mensagem": (
+                "Somente usuários com "
+                "perfil Gestor podem "
+                "atribuir ou remover "
+                "o responsável."
+            )
+        }, 403
 
     novo_status = dados.get(
         "status",
@@ -713,12 +1183,7 @@ def atualizar_demanda(demanda_id):
         demanda_id,
     ))
 
-    usuario = (
-        dados.get("usuario") or
-        novo_responsavel or
-        responsavel_atual or
-        "Usuário não identificado"
-    )
+    usuario = usuario_logado["nome"]
 
     if (
         responsavel_atual !=
@@ -856,7 +1321,11 @@ def atualizar_demanda(demanda_id):
     "/api/demandas/<int:demanda_id>",
     methods=["DELETE"],
 )
-def excluir_demanda(demanda_id):
+@perfil_obrigatorio("gestor")
+def excluir_demanda(
+    demanda_id,
+    usuario_logado,
+):
     conn = obter_conexao()
     cursor = conn.cursor()
 
@@ -896,7 +1365,11 @@ def excluir_demanda(demanda_id):
     "/api/demandas/<int:demanda_id>/historico",
     methods=["GET"],
 )
-def listar_historico(demanda_id):
+@login_obrigatorio
+def listar_historico(
+    demanda_id,
+    usuario_logado,
+):
     conn = obter_conexao()
     cursor = conn.cursor()
 

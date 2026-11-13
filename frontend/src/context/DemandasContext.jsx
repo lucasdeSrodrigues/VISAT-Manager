@@ -86,6 +86,51 @@ function formatarDemanda(demanda) {
   }
 }
 
+async function obterResultadoResposta(
+  resposta,
+) {
+  const tipoConteudo =
+    resposta.headers.get(
+      'content-type',
+    ) || ''
+
+  if (
+    tipoConteudo.includes(
+      'application/json',
+    )
+  ) {
+    return resposta.json()
+  }
+
+  return {}
+}
+
+function obterMensagemErro(
+  resposta,
+  resultado,
+  mensagemPadrao,
+) {
+  if (resultado?.mensagem) {
+    return resultado.mensagem
+  }
+
+  if (resposta.status === 401) {
+    return (
+      'Sua sessão expirou ou não foi iniciada. ' +
+      'Entre novamente no sistema.'
+    )
+  }
+
+  if (resposta.status === 403) {
+    return (
+      'Você não possui permissão ' +
+      'para realizar esta ação.'
+    )
+  }
+
+  return mensagemPadrao
+}
+
 export function DemandasProvider({
   children,
 }) {
@@ -108,20 +153,39 @@ export function DemandasProvider({
         setCarregandoDemandas(true)
         setErroAoCarregar('')
 
-        const resposta =
-          await fetch(API_URL)
+        const resposta = await fetch(
+          API_URL,
+          {
+            method: 'GET',
+            credentials: 'include',
+          },
+        )
+
+        const resultado =
+          await obterResultadoResposta(
+            resposta,
+          )
 
         if (!resposta.ok) {
           throw new Error(
-            'Não foi possível carregar as demandas.',
+            obterMensagemErro(
+              resposta,
+              resultado,
+              'Não foi possível carregar as demandas.',
+            ),
           )
         }
 
-        const dados =
-          await resposta.json()
+        if (!Array.isArray(resultado)) {
+          throw new Error(
+            'A resposta recebida ao carregar as demandas é inválida.',
+          )
+        }
 
         setDemandas(
-          dados.map(formatarDemanda),
+          resultado.map(
+            formatarDemanda,
+          ),
         )
       } catch (erro) {
         console.error(
@@ -129,8 +193,11 @@ export function DemandasProvider({
           erro,
         )
 
+        setDemandas([])
+
         setErroAoCarregar(
-          'Não foi possível carregar as demandas. Verifique se o backend está funcionando.',
+          erro.message ||
+            'Não foi possível carregar as demandas. Verifique se o backend está funcionando.',
         )
       } finally {
         setCarregandoDemandas(false)
@@ -227,6 +294,7 @@ export function DemandasProvider({
       API_URL,
       {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type':
             'application/json',
@@ -238,12 +306,17 @@ export function DemandasProvider({
     )
 
     const resultado =
-      await resposta.json()
+      await obterResultadoResposta(
+        resposta,
+      )
 
     if (!resposta.ok) {
       throw new Error(
-        resultado.mensagem ||
+        obterMensagemErro(
+          resposta,
+          resultado,
           'Não foi possível cadastrar a demanda.',
+        ),
       )
     }
 
@@ -275,6 +348,7 @@ export function DemandasProvider({
       `${API_URL}/${idTratado}`,
       {
         method: 'PUT',
+        credentials: 'include',
         headers: {
           'Content-Type':
             'application/json',
@@ -284,7 +358,9 @@ export function DemandasProvider({
     )
 
     const resultado =
-      await resposta.json()
+      await obterResultadoResposta(
+        resposta,
+      )
 
     if (!resposta.ok) {
       console.error(
@@ -293,8 +369,11 @@ export function DemandasProvider({
       )
 
       throw new Error(
-        resultado.mensagem ||
+        obterMensagemErro(
+          resposta,
+          resultado,
           'Não foi possível atualizar a demanda.',
+        ),
       )
     }
 
@@ -320,12 +399,22 @@ export function DemandasProvider({
       `${API_URL}/${idTratado}`,
       {
         method: 'DELETE',
+        credentials: 'include',
       },
     )
 
+    const resultado =
+      await obterResultadoResposta(
+        resposta,
+      )
+
     if (!resposta.ok) {
       throw new Error(
-        'Não foi possível excluir a demanda.',
+        obterMensagemErro(
+          resposta,
+          resultado,
+          'Não foi possível excluir a demanda.',
+        ),
       )
     }
 
@@ -370,9 +459,6 @@ export function DemandasProvider({
         null,
       data_alteracao_prioridade:
         new Date().toISOString(),
-      usuario:
-        demanda.responsavel ||
-        'Usuário não identificado',
     })
 
     return true
@@ -393,9 +479,6 @@ export function DemandasProvider({
       justificativa_prioridade: null,
       data_alteracao_prioridade:
         null,
-      usuario:
-        demanda.responsavel ||
-        'Usuário não identificado',
     })
 
     return true
@@ -427,10 +510,6 @@ export function DemandasProvider({
     await atualizarDemanda(id, {
       responsavel:
         responsavelTratado,
-      usuario:
-        responsavelTratado ||
-        demanda.responsavel ||
-        'Usuário não identificado',
     })
 
     return true
@@ -457,9 +536,6 @@ export function DemandasProvider({
 
     await atualizarDemanda(id, {
       status: novoStatus,
-      usuario:
-        demanda.responsavel ||
-        'Usuário não identificado',
     })
 
     return true
@@ -517,9 +593,6 @@ export function DemandasProvider({
       prazo_resposta:
         prazoResposta,
       descricao,
-      usuario:
-        demanda.responsavel ||
-        'Usuário não identificado',
     })
 
     return true

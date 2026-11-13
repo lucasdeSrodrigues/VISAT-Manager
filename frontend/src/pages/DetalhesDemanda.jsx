@@ -6,6 +6,7 @@ import {
 
 import HistoricoDemanda from '../components/HistoricoDemanda.jsx'
 import { useDemandas } from '../context/DemandasContext.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 import { calcularPrioridade } from '../utils/prioridade.js'
 import './DetalhesDemanda.css'
 
@@ -72,6 +73,10 @@ function DetalhesDemanda() {
     alterarStatus,
     editarDemanda,
   } = useDemandas()
+
+  const {
+    usuarioEhGestor,
+  } = useAuth()
 
   const [
     confirmacaoAberta,
@@ -172,6 +177,10 @@ function DetalhesDemanda() {
   }, [demanda])
 
   function abrirConfirmacao() {
+    if (!usuarioEhGestor) {
+      return
+    }
+
     setConfirmacaoAberta(true)
   }
 
@@ -180,6 +189,16 @@ function DetalhesDemanda() {
   }
 
   async function confirmarExclusao() {
+    if (!usuarioEhGestor) {
+      setConfirmacaoAberta(false)
+
+      window.alert(
+        'Somente usuários com perfil Gestor podem excluir demandas.',
+      )
+
+      return
+    }
+
     try {
       const demandaExcluida =
         await excluirDemanda(id)
@@ -188,6 +207,7 @@ function DetalhesDemanda() {
         window.alert(
           'Não foi possível encontrar a demanda para exclusão.',
         )
+
         return
       }
 
@@ -199,7 +219,8 @@ function DetalhesDemanda() {
       )
 
       window.alert(
-        'Não foi possível excluir a demanda. Verifique se o backend está funcionando.',
+        erro.message ||
+          'Não foi possível excluir a demanda.',
       )
     }
   }
@@ -241,6 +262,7 @@ function DetalhesDemanda() {
       setErroPrioridade(
         'Selecione a nova prioridade da demanda.',
       )
+
       return
     }
 
@@ -256,6 +278,7 @@ function DetalhesDemanda() {
         setErroPrioridade(
           'Não foi possível alterar a prioridade. Tente novamente.',
         )
+
         return
       }
 
@@ -268,7 +291,8 @@ function DetalhesDemanda() {
       )
 
       setErroPrioridade(
-        'Não foi possível salvar a prioridade. Verifique se o backend está funcionando.',
+        erro.message ||
+          'Não foi possível salvar a prioridade.',
       )
     }
   }
@@ -284,6 +308,7 @@ function DetalhesDemanda() {
         setErroPrioridade(
           'Não foi possível restaurar a prioridade automática.',
         )
+
         return
       }
 
@@ -298,13 +323,22 @@ function DetalhesDemanda() {
       )
 
       setErroPrioridade(
-        'Não foi possível restaurar a prioridade. Verifique se o backend está funcionando.',
+        erro.message ||
+          'Não foi possível restaurar a prioridade.',
       )
     }
   }
 
   async function salvarResponsavel(evento) {
     evento.preventDefault()
+
+    if (!usuarioEhGestor) {
+      setMensagemResponsavel(
+        'Somente usuários com perfil Gestor podem atribuir ou remover o responsável.',
+      )
+
+      return
+    }
 
     const responsavelTratado =
       responsavelSelecionado.trim()
@@ -313,6 +347,7 @@ function DetalhesDemanda() {
       setMensagemResponsavel(
         'O nome do responsável deve possuir no máximo 100 caracteres.',
       )
+
       return
     }
 
@@ -327,6 +362,7 @@ function DetalhesDemanda() {
         setMensagemResponsavel(
           'Não foi possível atualizar o responsável.',
         )
+
         return
       }
 
@@ -347,7 +383,7 @@ function DetalhesDemanda() {
 
       setMensagemResponsavel(
         erro.message ||
-          'Não foi possível salvar o responsável. Verifique se o backend está funcionando.',
+          'Não foi possível salvar o responsável.',
       )
     }
   }
@@ -362,6 +398,7 @@ function DetalhesDemanda() {
       setMensagemStatus(
         'A demanda já está com este status.',
       )
+
       return
     }
 
@@ -376,6 +413,7 @@ function DetalhesDemanda() {
         setMensagemStatus(
           'Não foi possível atualizar o status.',
         )
+
         return
       }
 
@@ -389,7 +427,8 @@ function DetalhesDemanda() {
       )
 
       setMensagemStatus(
-        'Não foi possível salvar o status. Verifique se o backend está funcionando.',
+        erro.message ||
+          'Não foi possível salvar o status.',
       )
     }
   }
@@ -408,6 +447,7 @@ function DetalhesDemanda() {
         setMensagemEdicao(
           'Não foi possível atualizar a demanda.',
         )
+
         return
       }
 
@@ -554,13 +594,22 @@ function DetalhesDemanda() {
             </h2>
 
             <p>
-              Atribua a demanda a um integrante da equipe
-              para acompanhar a distribuição do trabalho.
+              {usuarioEhGestor
+                ? (
+                  'Atribua a demanda a um integrante da equipe ' +
+                  'para acompanhar a distribuição do trabalho.'
+                )
+                : (
+                  'Consulte o integrante responsável pelo ' +
+                  'acompanhamento desta demanda.'
+                )}
             </p>
           </div>
 
           <div className="responsavel-atual-resumo">
-            <span>Responsável atual</span>
+            <span>
+              Responsável atual
+            </span>
 
             <strong>
               {demanda.responsavel ||
@@ -569,64 +618,73 @@ function DetalhesDemanda() {
           </div>
         </div>
 
-        <form
-          className="responsavel-form"
-          onSubmit={salvarResponsavel}
-        >
-          <div className="responsavel-form-field">
-            <label htmlFor="responsavelDemanda">
-              Integrante responsável
-            </label>
+        {usuarioEhGestor ? (
+          <>
+            <form
+              className="responsavel-form"
+              onSubmit={salvarResponsavel}
+            >
+              <div className="responsavel-form-field">
+                <label htmlFor="responsavelDemanda">
+                  Integrante responsável
+                </label>
 
-            <input
-              id="responsavelDemanda"
-              type="search"
-              list="listaResponsaveis"
-              maxLength="100"
-              autoComplete="off"
-              placeholder="Digite ou pesquise um responsável"
-              value={responsavelSelecionado}
-              onChange={(evento) => {
-                setResponsavelSelecionado(
-                  evento.target.value,
-                )
+                <input
+                  id="responsavelDemanda"
+                  type="search"
+                  list="listaResponsaveis"
+                  maxLength="100"
+                  autoComplete="off"
+                  placeholder="Digite ou pesquise um responsável"
+                  value={responsavelSelecionado}
+                  onChange={(evento) => {
+                    setResponsavelSelecionado(
+                      evento.target.value,
+                    )
 
-                setMensagemResponsavel('')
-              }}
-            />
+                    setMensagemResponsavel('')
+                  }}
+                />
 
-            <datalist id="listaResponsaveis">
-              {(responsaveis || []).map(
-                (responsavel) => (
-                  <option
-                    key={responsavel}
-                    value={responsavel}
-                  />
-                ),
-              )}
-            </datalist>
+                <datalist id="listaResponsaveis">
+                  {(responsaveis || []).map(
+                    (responsavel) => (
+                      <option
+                        key={responsavel}
+                        value={responsavel}
+                      />
+                    ),
+                  )}
+                </datalist>
 
-            <small className="responsavel-form-ajuda">
-              Pesquise um responsável existente ou digite
-              um novo nome. Para remover o responsável,
-              apague o conteúdo do campo e salve.
-            </small>
-          </div>
+                <small className="responsavel-form-ajuda">
+                  Pesquise um responsável existente ou digite
+                  um novo nome. Para remover o responsável,
+                  apague o conteúdo do campo e salve.
+                </small>
+              </div>
 
-          <button
-            className="salvar-responsavel-button"
-            type="submit"
-          >
-            Salvar responsável
-          </button>
-        </form>
+              <button
+                className="salvar-responsavel-button"
+                type="submit"
+              >
+                Salvar responsável
+              </button>
+            </form>
 
-        {mensagemResponsavel && (
-          <p
-            className="responsavel-mensagem"
-            role="status"
-          >
-            {mensagemResponsavel}
+            {mensagemResponsavel && (
+              <p
+                className="responsavel-mensagem"
+                role="status"
+              >
+                {mensagemResponsavel}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="responsavel-mensagem">
+            A atribuição ou remoção do responsável é
+            exclusiva do perfil Gestor.
           </p>
         )}
       </section>
@@ -1041,24 +1099,26 @@ function DetalhesDemanda() {
         }
       />
 
-      <section className="acoes-perigosas">
-        <div className="acoes-perigosas-texto">
-          <h2>Excluir demanda</h2>
+      {usuarioEhGestor && (
+        <section className="acoes-perigosas">
+          <div className="acoes-perigosas-texto">
+            <h2>Excluir demanda</h2>
 
-          <p>
-            Esta ação removerá a demanda da lista e não
-            poderá ser desfeita.
-          </p>
-        </div>
+            <p>
+              Esta ação removerá a demanda da lista e não
+              poderá ser desfeita.
+            </p>
+          </div>
 
-        <button
-          className="excluir-demanda-button"
-          type="button"
-          onClick={abrirConfirmacao}
-        >
-          Excluir demanda
-        </button>
-      </section>
+          <button
+            className="excluir-demanda-button"
+            type="button"
+            onClick={abrirConfirmacao}
+          >
+            Excluir demanda
+          </button>
+        </section>
+      )}
 
       {modalPrioridadeAberto && (
         <div
@@ -1228,7 +1288,7 @@ function DetalhesDemanda() {
         </div>
       )}
 
-      {confirmacaoAberta && (
+      {usuarioEhGestor && confirmacaoAberta && (
         <div
           className="confirmacao-overlay"
           role="presentation"
