@@ -53,8 +53,8 @@ function obterMensagemErro(
 
   if (resposta.status === 403) {
     return (
-      'Você não possui permissão ' +
-      'para acessar esta funcionalidade.'
+      'O perfil selecionado não corresponde ' +
+      'ao perfil cadastrado para este usuário.'
     )
   }
 
@@ -169,6 +169,7 @@ export function AuthProvider({
     async (
       email,
       senha,
+      perfilSelecionado,
     ) => {
       setErroAutenticacao('')
 
@@ -181,6 +182,23 @@ export function AuthProvider({
       ) {
         const mensagem =
           'Informe o e-mail e a senha.'
+
+        setErroAutenticacao(
+          mensagem,
+        )
+
+        throw new Error(
+          mensagem,
+        )
+      }
+
+      if (
+        !PERFIS_VALIDOS.includes(
+          perfilSelecionado,
+        )
+      ) {
+        const mensagem =
+          'Selecione um perfil válido.'
 
         setErroAutenticacao(
           mensagem,
@@ -204,6 +222,8 @@ export function AuthProvider({
             body: JSON.stringify({
               email: emailTratado,
               senha,
+              perfil:
+                perfilSelecionado,
             }),
           },
         )
@@ -230,6 +250,15 @@ export function AuthProvider({
         ) {
           throw new Error(
             'O backend não retornou dados válidos do usuário.',
+          )
+        }
+
+        if (
+          resultado.usuario.perfil !==
+          perfilSelecionado
+        ) {
+          throw new Error(
+            'O perfil retornado pelo backend não corresponde ao perfil selecionado.',
           )
         }
 

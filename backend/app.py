@@ -515,10 +515,26 @@ def login():
         )
     )
 
+    perfil_selecionado = str(
+        dados.get(
+            "perfil",
+            "",
+        )
+    ).strip().lower()
+
     if not email or not senha:
         return {
             "mensagem":
                 "Informe o e-mail e a senha."
+        }, 400
+
+    if (
+        perfil_selecionado not in
+        PERFIS_VALIDOS
+    ):
+        return {
+            "mensagem":
+                "Selecione um perfil válido."
         }, 400
 
     conn = obter_conexao()
@@ -573,6 +589,18 @@ def login():
         return {
             "mensagem":
                 "O perfil deste usuário é inválido."
+        }, 403
+
+    if (
+        usuario["perfil"] !=
+        perfil_selecionado
+    ):
+        return {
+            "mensagem": (
+                "O perfil selecionado não "
+                "corresponde ao perfil "
+                "cadastrado para este usuário."
+            )
         }, 403
 
     session.clear()

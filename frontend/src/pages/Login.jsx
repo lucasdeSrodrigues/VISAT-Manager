@@ -14,11 +14,30 @@ function Login() {
     limparErroAutenticacao,
   } = useAuth()
 
-  const [email, setEmail] = useState('')
-  const [senha, setSenha] = useState('')
-  const [erro, setErro] = useState('')
-  const [entrando, setEntrando] =
-    useState(false)
+  const [
+    email,
+    setEmail,
+  ] = useState('')
+
+  const [
+    senha,
+    setSenha,
+  ] = useState('')
+
+  const [
+    perfilSelecionado,
+    setPerfilSelecionado,
+  ] = useState('inspetor')
+
+  const [
+    erro,
+    setErro,
+  ] = useState('')
+
+  const [
+    entrando,
+    setEntrando,
+  ] = useState(false)
 
   useEffect(() => {
     limparErroAutenticacao()
@@ -38,8 +57,8 @@ function Login() {
     navigate,
   ])
 
-  async function realizarLogin(event) {
-    event.preventDefault()
+  async function realizarLogin(evento) {
+    evento.preventDefault()
 
     if (entrando) {
       return
@@ -48,9 +67,23 @@ function Login() {
     const emailTratado =
       email.trim().toLowerCase()
 
-    if (!emailTratado || !senha) {
+    if (
+      !emailTratado ||
+      !senha
+    ) {
       setErro(
         'Preencha o e-mail e a senha.',
+      )
+
+      return
+    }
+
+    if (
+      perfilSelecionado !== 'gestor' &&
+      perfilSelecionado !== 'inspetor'
+    ) {
+      setErro(
+        'Selecione um perfil válido.',
       )
 
       return
@@ -63,6 +96,7 @@ function Login() {
       await entrar(
         emailTratado,
         senha,
+        perfilSelecionado,
       )
 
       navigate(
@@ -81,9 +115,9 @@ function Login() {
     }
   }
 
-  function alterarEmail(event) {
+  function alterarEmail(evento) {
     setEmail(
-      event.target.value,
+      evento.target.value,
     )
 
     if (erro) {
@@ -91,9 +125,23 @@ function Login() {
     }
   }
 
-  function alterarSenha(event) {
+  function alterarSenha(evento) {
     setSenha(
-      event.target.value,
+      evento.target.value,
+    )
+
+    if (erro) {
+      setErro('')
+    }
+  }
+
+  function selecionarPerfil(perfil) {
+    if (entrando) {
+      return
+    }
+
+    setPerfilSelecionado(
+      perfil,
     )
 
     if (erro) {
@@ -104,7 +152,9 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1>VISAT Manager</h1>
+        <h1>
+          VISAT Manager
+        </h1>
 
         <p>
           Gerenciamento de demandas da
@@ -112,6 +162,91 @@ function Login() {
         </p>
 
         <form onSubmit={realizarLogin}>
+          <fieldset
+            className="perfil-fieldset"
+            disabled={entrando}
+          >
+            <legend>
+              Selecione o perfil de acesso
+            </legend>
+
+            <div className="perfil-opcoes">
+              <label
+                className={
+                  perfilSelecionado ===
+                  'gestor'
+                    ? (
+                      'perfil-opcao ' +
+                      'perfil-selecionado'
+                    )
+                    : 'perfil-opcao'
+                }
+              >
+                <input
+                  type="radio"
+                  name="perfil"
+                  value="gestor"
+                  checked={
+                    perfilSelecionado ===
+                    'gestor'
+                  }
+                  onChange={() =>
+                    selecionarPerfil(
+                      'gestor',
+                    )
+                  }
+                />
+
+                <span className="perfil-opcao-conteudo">
+                  <strong>
+                    Gestor
+                  </strong>
+
+                  <small>
+                    Acesso administrativo
+                  </small>
+                </span>
+              </label>
+
+              <label
+                className={
+                  perfilSelecionado ===
+                  'inspetor'
+                    ? (
+                      'perfil-opcao ' +
+                      'perfil-selecionado'
+                    )
+                    : 'perfil-opcao'
+                }
+              >
+                <input
+                  type="radio"
+                  name="perfil"
+                  value="inspetor"
+                  checked={
+                    perfilSelecionado ===
+                    'inspetor'
+                  }
+                  onChange={() =>
+                    selecionarPerfil(
+                      'inspetor',
+                    )
+                  }
+                />
+
+                <span className="perfil-opcao-conteudo">
+                  <strong>
+                    Inspetor
+                  </strong>
+
+                  <small>
+                    Acesso operacional
+                  </small>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+
           <label htmlFor="email">
             E-mail
           </label>
@@ -158,7 +293,12 @@ function Login() {
           >
             {entrando
               ? 'Entrando...'
-              : 'Entrar'}
+              : (
+                perfilSelecionado ===
+                'gestor'
+                  ? 'Entrar como Gestor'
+                  : 'Entrar como Inspetor'
+              )}
           </button>
         </form>
       </div>
