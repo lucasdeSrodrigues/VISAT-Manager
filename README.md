@@ -19,6 +19,19 @@ O backend da aplicação está publicado no Render:
 
 O frontend utiliza a variável de ambiente VITE\_API\_URL para se comunicar com o backend publicado. As operações de cadastro, consulta, atualização e exclusão são realizadas pela API Flask e armazenadas no banco SQLite do backend.
 
+## Credenciais para acesso
+
+Para testar as funcionalidades do VISAT Manager, selecione o perfil desejado na tela de login e utilize as credenciais correspondentes:
+
+### Gestor
+- **E-mail:** `gestor@visat.com`
+- **Senha:** `Gestor@123`
+
+### Inspetor
+- **E-mail:** `inspetor@visat.com`
+- **Senha:** `Inspetor@123`
+
+> As credenciais são destinadas exclusivamente ao ambiente acadêmico de demonstração. O perfil selecionado deve corresponder ao usuário informado.
 
 ## 🔎 Status Atual
 
