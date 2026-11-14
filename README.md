@@ -164,6 +164,13 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutL
 - Banco de dados local aparece como modificado após os testes
 - Erro ao acessar demandas após remoção do banco de dados do repositório
 
+### Sprint 3
+
+- Login apresenta erro "Failed to fetch" no ambiente publicado
+- Atualização incorreta dos campos do formulário da demanda
+- Formulário de cadastro com tag de abertura inválida
+- Título incorreto no cadastro da demanda
+
 <img width="1246" height="785" alt="Captura de tela 2026-11-07 203145" src="https://github.com/user-attachments/assets/1116fffe-199c-4cab-a28c-314f59793272" />
 
 ## 👥Pair programming
