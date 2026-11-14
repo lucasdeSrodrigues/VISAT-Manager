@@ -19,64 +19,73 @@ O backend da aplicação está publicado no Render:
 
 O frontend utiliza a variável de ambiente VITE\_API\_URL para se comunicar com o backend publicado. As operações de cadastro, consulta, atualização e exclusão são realizadas pela API Flask e armazenadas no banco SQLite do backend.
 
+## Credenciais para acesso
+
+Para testar as funcionalidades do VISAT Manager, selecione o perfil desejado na tela de login e utilize as credenciais correspondentes:
+
+### Gestor
+- **E-mail:** `gestor@visat.com`
+- **Senha:** `Gestor@123`
+
+### Inspetor
+- **E-mail:** `inspetor@visat.com`
+- **Senha:** `Inspetor@123`
+
+> As credenciais são destinadas exclusivamente ao ambiente acadêmico de demonstração. O perfil selecionado deve corresponder ao usuário informado.
 
 ## 🔎 Status Atual
 
-O VISAT Manager encontra-se atualmente em um estágio funcional avançado, com as funcionalidades planejadas para as Sprints 01 e 02 implementadas e integradas à arquitetura da aplicação.
+O VISAT Manager encontra-se em estágio funcional avançado, com as funcionalidades das Sprints 01 e 02 concluídas e a implementação da Sprint 03 em andamento.
 
-Durante a Sprint 01 foram desenvolvidas as funcionalidades centrais do sistema, incluindo:
+Nas duas primeiras Sprints, foram desenvolvidos e integrados os principais recursos de gerenciamento de demandas:
 
-- Cadastro manual de demandas;
-- Listagem centralizada de demandas;
-- Classificação automática e manual de prioridades;
-- Visualização detalhada das demandas;
-- Dashboard gerencial;
-- Central de Alertas para acompanhamento de prazos.
+- Cadastro manual e listagem centralizada de demandas;
+- Classificação automática e ajuste manual de prioridades;
+- Dashboard gerencial e Central de Alertas de prazos;
+- Busca e filtros por área, bairro e responsável;
+- Atualização do status das demandas;
+- Visualização detalhada, linha do tempo e histórico completo;
+- Edição dos dados cadastrados;
+- Atribuição de responsáveis;
+- Exclusão de demandas com confirmação.
 
-Com a Sprint 02, o sistema recebeu recursos voltados ao acompanhamento completo do ciclo de vida das demandas, incluindo:
+Na Sprint 03, foi implementado o controle de acesso com os perfis **Gestor** e **Inspetor**. O sistema agora possui autenticação por e-mail e senha, com validação realizada pelo backend e sessões protegidas por cookie.
 
-- *UH04:* Buscar e filtrar demandas por áreas e bairros;
-- *UH05:* Filtrar demandas por responsável;
-- *UH06:* Atualizar o status da demanda;
-- *UH07:* Visualizar a linha do tempo da demanda;
-- *UH15:* Consultar o histórico completo da demanda.
+As permissões são diferenciadas conforme o perfil:
 
-Além das histórias de usuário previstas, também foram implementadas melhorias evolutivas que aumentaram a rastreabilidade e a usabilidade da plataforma, tais como:
+- **Gestor:** possui acesso às funções administrativas, incluindo atribuir ou remover responsáveis e excluir demandas;
+- **Inspetor:** possui acesso às funções operacionais, como cadastrar, consultar e atualizar demandas, sem permissão para atribuir responsáveis ou realizar exclusões.
 
-- Edição da descrição e dos detalhes das demandas;
-- Controle visual de status com identificação por cores;
-- Linha do tempo otimizada para acompanhamento de alterações;
-- Histórico completo de modificações realizadas nas demandas;
-- Indicadores adicionais no Dashboard para demandas concluídas e em revisão;
-- Exclusão segura de demandas com confirmação;
-- Sistema de responsáveis vinculado às demandas;
-- Melhorias na experiência de navegação e visualização das informações.
+As restrições são aplicadas tanto na interface quanto no backend, evitando que operações não autorizadas sejam executadas diretamente pela API. O histórico também registra automaticamente o usuário autenticado responsável por cada movimentação.
 
-A infraestrutura da aplicação também evoluiu significativamente. O armazenamento temporário no localStorage foi substituído por uma arquitetura baseada em frontend, API Flask e banco de dados SQLite.
-
-O frontend publicado na Vercel realiza as requisições ao backend hospedado no Render por meio da variável de ambiente VITE\_API\_URL. O backend gerencia as operações de cadastro, consulta, atualização e exclusão das demandas.
-
-O banco SQLite armazena as informações utilizadas pela aplicação. O backend também possui uma rotina de inicialização automática, responsável por criar as tabelas necessárias quando o arquivo do banco ainda não estiver disponível no ambiente de execução.
-
-
-Atualmente, a aplicação utiliza a seguinte arquitetura:
+A aplicação utiliza a seguinte arquitetura:
 
 ### Frontend
-- React
-- Vite
-- JavaScript
-- React Router DOM
+
+- React;
+- Vite;
+- JavaScript;
+- React Router DOM;
+- Publicação na Vercel.
 
 ### Backend
-- Python
-- Flask
-- SQLite
 
-O frontend encontra-se publicado na Vercel, possibilitando acesso ao sistema diretamente pelo navegador. O backend realiza o gerenciamento das operações de cadastro, consulta, atualização e exclusão das demandas, enquanto o banco SQLite garante o armazenamento persistente das informações.
+- Python;
+- Flask;
+- API REST;
+- Autenticação por sessão;
+- Publicação no Render.
 
-Essa estrutura serve como base para futuras evoluções do sistema, incluindo controle de perfis de usuário, permissões diferenciadas entre Gestores e Inspetores, configurações administrativas e demais funcionalidades previstas no backlog do projeto.
+### Banco de dados
 
-✅ *Situação Atual do Projeto:* Sistema funcional com frontend e backend integrados, persistência em banco de dados, Dashboard gerencial, Central de Alertas, filtros avançados, gestão de status, histórico completo e rastreabilidade das demandas.
+- SQLite;
+- Armazenamento de demandas, históricos e usuários;
+- Inicialização automática das tabelas necessárias;
+- Senhas armazenadas de forma protegida por hash.
+
+O frontend se comunica com o backend pela variável de ambiente `VITE_API_URL`. O backend gerencia autenticação, permissões, cadastro, consulta, atualização e exclusão das demandas.
+
+✅ **Situação atual do projeto:** sistema publicado e integrado, com autenticação, perfis de acesso, permissões diferenciadas, persistência em banco de dados, Dashboard, Central de Alertas, filtros avançados, gestão de status, responsáveis e histórico completo das demandas.
 
 ## 🏃 Sprints
 
@@ -163,6 +172,13 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutL
 - Demandas finalizadas permanecem nos indicadores do dashboard
 - Banco de dados local aparece como modificado após os testes
 - Erro ao acessar demandas após remoção do banco de dados do repositório
+
+### Sprint 3
+
+- Login apresenta erro "Failed to fetch" no ambiente publicado
+- Atualização incorreta dos campos do formulário da demanda
+- Formulário de cadastro com tag de abertura inválida
+- Título incorreto no cadastro da demanda
 
 <img width="1246" height="785" alt="Captura de tela 2026-11-07 203145" src="https://github.com/user-attachments/assets/1116fffe-199c-4cab-a28c-314f59793272" />
 
