@@ -180,6 +180,11 @@ function DetalhesDemanda() {
     setGargaloEmProcessamento,
   ] = useState(null)
 
+  const [
+    exibirTodosGargalos,
+    setExibirTodosGargalos,
+  ] = useState(false)
+
   const demanda = buscarDemandaPorId(id)
 
   useEffect(() => {
@@ -851,6 +856,14 @@ function DetalhesDemanda() {
         gargalo.status === 'Aberto',
     ).length
 
+  const possuiGargalosOcultos =
+    gargalos.length > 3
+
+  const gargalosVisiveis =
+    exibirTodosGargalos
+      ? gargalos
+      : gargalos.slice(0, 3)
+
   return (
     <div className="detalhes-page">
       <nav
@@ -1492,7 +1505,7 @@ function DetalhesDemanda() {
               </p>
             </div>
           ) : (
-            gargalos.map((gargalo) => {
+            gargalosVisiveis.map((gargalo) => {
               const estaEmEdicao =
                 gargaloEmEdicao ===
                 gargalo.id
@@ -1687,6 +1700,45 @@ function DetalhesDemanda() {
                 </article>
               )
             })
+        )}
+
+          {possuiGargalosOcultos && (
+            <div className="gargalos-expansao">
+              <span>
+                {exibirTodosGargalos
+                  ? (
+                    `${gargalos.length} gargalos exibidos`
+                  )
+                  : (
+                    `${gargalos.length - 3} ` +
+                    (
+                      gargalos.length - 3 === 1
+                        ? 'gargalo oculto'
+                        : 'gargalos ocultos'
+                    )
+                  )}
+              </span>
+
+              <button
+                className="gargalos-expansao-button"
+                type="button"
+                aria-expanded={
+                  exibirTodosGargalos
+                }
+                onClick={() =>
+                  setExibirTodosGargalos(
+                    (valorAtual) =>
+                      !valorAtual,
+                  )
+                }
+              >
+                {exibirTodosGargalos
+                  ? 'Mostrar menos'
+                  : (
+                    `Ver todos os ${gargalos.length} gargalos`
+                  )}
+              </button>
+            </div>
           )}
         </div>
       </section>
