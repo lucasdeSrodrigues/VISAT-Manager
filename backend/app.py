@@ -37,10 +37,12 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(
     hours=8
 )
 
-FRONTEND_URL = os.getenv(
-    "FRONTEND_URL",
-    "http://localhost:5173",
-)
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+
+if not FRONTEND_URL:
+    raise RuntimeError(
+        "A variável de ambiente FRONTEND_URL não foi configurada."
+    )
 
 CORS(
     app,
@@ -72,6 +74,10 @@ STATUS_VALIDOS = {
     "Finalizada",
 }
 
+STATUS_GARGALO_VALIDOS = {
+    "Aberto",
+    "Resolvido",
+}
 
 PERFIS_VALIDOS = {
     "gestor",
@@ -191,6 +197,36 @@ def inicializar_banco():
             FOREIGN KEY (demanda_id)
                 REFERENCES demandas (id)
                 ON DELETE CASCADE
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS gargalos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            demanda_id INTEGER NOT NULL,
+            descricao TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'Aberto',
+            usuario_registro TEXT NOT NULL,
+            perfil_registro TEXT NOT NULL,
+            data_registro TEXT NOT NULL,
+            data_atualizacao TEXT NOT NULL,
+            usuario_resolucao TEXT,
+            data_resolucao TEXT,
+            FOREIGN KEY (demanda_id)
+                REFERENCES demandas (id)
+                ON DELETE CASCADE,
+            CHECK (
+                status IN (
+                    'Aberto',
+                    'Resolvido'
+                )
+            ),
+            CHECK (
+                perfil_registro IN (
+                    'gestor',
+                    'inspetor'
+                )
+            )
         )
     """)
 
@@ -451,6 +487,69 @@ def buscar_historico(cursor, demanda_id):
         for registro in cursor.fetchall()
     ]
 
+def buscar_gargalos(
+    cursor,
+    demanda_id,
+):
+    cursor.execute("""
+        SELECT
+            id,
+            demanda_id,
+            descricao,
+            status,
+            usuario_registro,
+            perfil_registro,
+            data_registro,
+            data_atualizacao,
+            usuario_resolucao,
+            data_resolucao
+        FROM gargalos
+        WHERE demanda_id = ?
+        ORDER BY
+            CASE
+                WHEN status = 'Aberto'
+                THEN 0
+                ELSE 1
+            END,
+            data_registro DESC,
+            id DESC
+    """, (
+        demanda_id,
+    ))
+
+    return [
+        dict(registro)
+        for registro in cursor.fetchall()
+    ]
+
+
+def buscar_gargalo(
+    cursor,
+    demanda_id,
+    gargalo_id,
+):
+    cursor.execute("""
+        SELECT
+            id,
+            demanda_id,
+            descricao,
+            status,
+            usuario_registro,
+            perfil_registro,
+            data_registro,
+            data_atualizacao,
+            usuario_resolucao,
+            data_resolucao
+        FROM gargalos
+        WHERE demanda_id = ?
+          AND id = ?
+    """, (
+        demanda_id,
+        gargalo_id,
+    ))
+
+    return cursor.fetchone()
+
 
 def arquivar_demandas_vencidas(cursor):
     limite = (
@@ -683,6 +782,13 @@ def listar_demandas(
             )
         )
 
+        demanda["gargalos"] = (
+            buscar_gargalos(
+                cursor,
+                demanda["id"],
+            )
+        )
+
         demandas.append(demanda)
 
     conn.close()
@@ -719,6 +825,13 @@ def detalhar_demanda(
 
     demanda["historico"] = (
         buscar_historico(
+            cursor,
+            demanda_id,
+        )
+    )
+
+    demanda["gargalos"] = (
+        buscar_gargalos(
             cursor,
             demanda_id,
         )
@@ -915,6 +1028,13 @@ def criar_demanda(
 
     resultado["historico"] = (
         buscar_historico(
+            cursor,
+            demanda_id,
+        )
+    )
+
+    resultado["gargalos"] = (
+        buscar_gargalos(
             cursor,
             demanda_id,
         )
@@ -1338,6 +1458,13 @@ def atualizar_demanda(
         )
     )
 
+    demanda_atualizada["gargalos"] = (
+        buscar_gargalos(
+            cursor,
+            demanda_id,
+        )
+    )
+
     conn.close()
 
     return jsonify(
@@ -1370,16 +1497,27 @@ def excluir_demanda(
                 "Demanda não encontrada."
         }, 404
 
+        cursor.execute("""
+        DELETE FROM gargalos
+        WHERE demanda_id = ?
+    """, (
+        demanda_id,
+    ))
+
     cursor.execute("""
         DELETE FROM historico
         WHERE demanda_id = ?
-    """, (demanda_id,))
+    """, (
+        demanda_id,
+    ))
 
     cursor.execute("""
         DELETE FROM demandas
         WHERE id = ?
-    """, (demanda_id,))
-
+    """, (
+        demanda_id,
+    ))
+    
     conn.commit()
     conn.close()
 
@@ -1423,6 +1561,452 @@ def listar_historico(
 
     return jsonify(historico)
 
+@app.route(
+    "/api/demandas/<int:demanda_id>/gargalos",
+    methods=["POST"],
+)
+@login_obrigatorio
+def registrar_gargalo(
+    demanda_id,
+    usuario_logado,
+):
+    dados = request.get_json(
+        silent=True
+    ) or {}
+
+    descricao = str(
+        dados.get(
+            "descricao",
+            "",
+        )
+    ).strip()
+
+    if not descricao:
+        return {
+            "mensagem":
+                "Informe a descrição do gargalo."
+        }, 400
+
+    if len(descricao) > 500:
+        return {
+            "mensagem": (
+                "A descrição do gargalo "
+                "deve possuir no máximo "
+                "500 caracteres."
+            )
+        }, 400
+
+    conn = obter_conexao()
+    cursor = conn.cursor()
+
+    demanda = buscar_demanda(
+        cursor,
+        demanda_id,
+    )
+
+    if not demanda:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Demanda não encontrada."
+        }, 404
+
+    agora = data_hora_atual()
+
+    cursor.execute("""
+        INSERT INTO gargalos (
+            demanda_id,
+            descricao,
+            status,
+            usuario_registro,
+            perfil_registro,
+            data_registro,
+            data_atualizacao,
+            usuario_resolucao,
+            data_resolucao
+        )
+        VALUES (
+            ?, ?, 'Aberto', ?, ?, ?,
+            ?, NULL, NULL
+        )
+    """, (
+        demanda_id,
+        descricao,
+        usuario_logado["nome"],
+        usuario_logado["perfil"],
+        agora,
+        agora,
+    ))
+
+    gargalo_id = cursor.lastrowid
+
+    registrar_historico(
+        cursor=cursor,
+        demanda_id=demanda_id,
+        tipo_acao=
+            "Registro de gargalo",
+        descricao=(
+            "Gargalo registrado: "
+            f"{descricao}"
+        ),
+        usuario=usuario_logado["nome"],
+        status_anterior=
+            demanda["status"],
+        status_posterior=
+            demanda["status"],
+    )
+
+    conn.commit()
+
+    gargalo = buscar_gargalo(
+        cursor,
+        demanda_id,
+        gargalo_id,
+    )
+
+    resultado = dict(gargalo)
+
+    resultado["historico"] = (
+        buscar_historico(
+            cursor,
+            demanda_id,
+        )
+    )
+
+    conn.close()
+
+    return jsonify(resultado), 201
+
+
+@app.route(
+    (
+        "/api/demandas/"
+        "<int:demanda_id>/gargalos/"
+        "<int:gargalo_id>"
+    ),
+    methods=["PUT"],
+)
+@perfil_obrigatorio("gestor")
+def atualizar_gargalo(
+    demanda_id,
+    gargalo_id,
+    usuario_logado,
+):
+    dados = request.get_json(
+        silent=True
+    ) or {}
+
+    conn = obter_conexao()
+    cursor = conn.cursor()
+
+    demanda = buscar_demanda(
+        cursor,
+        demanda_id,
+    )
+
+    if not demanda:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Demanda não encontrada."
+        }, 404
+
+    gargalo = buscar_gargalo(
+        cursor,
+        demanda_id,
+        gargalo_id,
+    )
+
+    if not gargalo:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Gargalo não encontrado."
+        }, 404
+
+    gargalo_atual = dict(gargalo)
+
+    nova_descricao = str(
+        dados.get(
+            "descricao",
+            gargalo_atual["descricao"],
+        )
+    ).strip()
+
+    novo_status = dados.get(
+        "status",
+        gargalo_atual["status"],
+    )
+
+    if not nova_descricao:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Informe a descrição do gargalo."
+        }, 400
+
+    if len(nova_descricao) > 500:
+        conn.close()
+
+        return {
+            "mensagem": (
+                "A descrição do gargalo "
+                "deve possuir no máximo "
+                "500 caracteres."
+            )
+        }, 400
+
+    if (
+        novo_status not in
+        STATUS_GARGALO_VALIDOS
+    ):
+        conn.close()
+
+        return {
+            "mensagem":
+                "Status do gargalo inválido."
+        }, 400
+
+    descricao_foi_alterada = (
+        nova_descricao !=
+        gargalo_atual["descricao"]
+    )
+
+    status_foi_alterado = (
+        novo_status !=
+        gargalo_atual["status"]
+    )
+
+    if (
+        not descricao_foi_alterada and
+        not status_foi_alterado
+    ):
+        conn.close()
+
+        return jsonify(
+            gargalo_atual
+        )
+
+    agora = data_hora_atual()
+
+    usuario_resolucao = (
+        gargalo_atual[
+            "usuario_resolucao"
+        ]
+    )
+
+    data_resolucao = (
+        gargalo_atual[
+            "data_resolucao"
+        ]
+    )
+
+    if (
+        novo_status == "Resolvido" and
+        gargalo_atual["status"] !=
+        "Resolvido"
+    ):
+        usuario_resolucao = (
+            usuario_logado["nome"]
+        )
+
+        data_resolucao = agora
+
+    if (
+        novo_status == "Aberto" and
+        gargalo_atual["status"] ==
+        "Resolvido"
+    ):
+        usuario_resolucao = None
+        data_resolucao = None
+
+    cursor.execute("""
+        UPDATE gargalos
+        SET
+            descricao = ?,
+            status = ?,
+            data_atualizacao = ?,
+            usuario_resolucao = ?,
+            data_resolucao = ?
+        WHERE demanda_id = ?
+          AND id = ?
+    """, (
+        nova_descricao,
+        novo_status,
+        agora,
+        usuario_resolucao,
+        data_resolucao,
+        demanda_id,
+        gargalo_id,
+    ))
+
+    if descricao_foi_alterada:
+        registrar_historico(
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=
+                "Edição de gargalo",
+            descricao=(
+                "A descrição de um gargalo "
+                "foi atualizada."
+            ),
+            usuario=usuario_logado["nome"],
+            status_anterior=
+                demanda["status"],
+            status_posterior=
+                demanda["status"],
+        )
+
+    if status_foi_alterado:
+        if novo_status == "Resolvido":
+            tipo_acao = (
+                "Resolução de gargalo"
+            )
+
+            descricao_historico = (
+                "Gargalo marcado como "
+                "resolvido."
+            )
+        else:
+            tipo_acao = (
+                "Reabertura de gargalo"
+            )
+
+            descricao_historico = (
+                "Gargalo reaberto."
+            )
+
+        registrar_historico(
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=tipo_acao,
+            descricao=
+                descricao_historico,
+            usuario=usuario_logado["nome"],
+            status_anterior=
+                demanda["status"],
+            status_posterior=
+                demanda["status"],
+        )
+
+    conn.commit()
+
+    gargalo_atualizado = (
+        buscar_gargalo(
+            cursor,
+            demanda_id,
+            gargalo_id,
+        )
+    )
+
+    resultado = dict(
+        gargalo_atualizado
+    )
+
+    resultado["historico"] = (
+        buscar_historico(
+            cursor,
+            demanda_id,
+        )
+    )
+
+    conn.close()
+
+    return jsonify(resultado)
+
+
+@app.route(
+    (
+        "/api/demandas/"
+        "<int:demanda_id>/gargalos/"
+        "<int:gargalo_id>"
+    ),
+    methods=["DELETE"],
+)
+@perfil_obrigatorio("gestor")
+def excluir_gargalo(
+    demanda_id,
+    gargalo_id,
+    usuario_logado,
+):
+    conn = obter_conexao()
+    cursor = conn.cursor()
+
+    demanda = buscar_demanda(
+        cursor,
+        demanda_id,
+    )
+
+    if not demanda:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Demanda não encontrada."
+        }, 404
+
+    gargalo = buscar_gargalo(
+        cursor,
+        demanda_id,
+        gargalo_id,
+    )
+
+    if not gargalo:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Gargalo não encontrado."
+        }, 404
+
+    descricao_gargalo = (
+        gargalo["descricao"]
+    )
+
+    cursor.execute("""
+        DELETE FROM gargalos
+        WHERE demanda_id = ?
+          AND id = ?
+    """, (
+        demanda_id,
+        gargalo_id,
+    ))
+
+    registrar_historico(
+        cursor=cursor,
+        demanda_id=demanda_id,
+        tipo_acao=
+            "Exclusão de gargalo",
+        descricao=(
+            "Gargalo excluído: "
+            f"{descricao_gargalo}"
+        ),
+        usuario=usuario_logado["nome"],
+        status_anterior=
+            demanda["status"],
+        status_posterior=
+            demanda["status"],
+    )
+
+    conn.commit()
+
+    historico = buscar_historico(
+        cursor,
+        demanda_id,
+    )
+
+    conn.close()
+
+    return {
+        "mensagem":
+            "Gargalo excluído com sucesso.",
+        "historico":
+            historico,
+    }
 
 if __name__ == "__main__":
     app.run(debug=True)

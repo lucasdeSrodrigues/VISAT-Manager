@@ -72,6 +72,11 @@ function DetalhesDemanda() {
     atribuirResponsavel,
     alterarStatus,
     editarDemanda,
+    registrarGargalo,
+    editarGargalo,
+    resolverGargalo,
+    reabrirGargalo,
+    excluirGargalo,
   } = useDemandas()
 
   const {
@@ -144,6 +149,36 @@ function DetalhesDemanda() {
     mensagemEdicao,
     setMensagemEdicao,
   ] = useState('')
+
+  const [
+    descricaoGargalo,
+    setDescricaoGargalo,
+  ] = useState('')
+
+  const [
+    mensagemGargalo,
+    setMensagemGargalo,
+  ] = useState('')
+
+  const [
+    salvandoGargalo,
+    setSalvandoGargalo,
+  ] = useState(false)
+
+  const [
+    gargaloEmEdicao,
+    setGargaloEmEdicao,
+  ] = useState(null)
+
+  const [
+    descricaoGargaloEdicao,
+    setDescricaoGargaloEdicao,
+  ] = useState('')
+
+  const [
+    gargaloEmProcessamento,
+    setGargaloEmProcessamento,
+  ] = useState(null)
 
   const demanda = buscarDemandaPorId(id)
 
@@ -488,6 +523,276 @@ function DetalhesDemanda() {
     })
   }
 
+  async function salvarNovoGargalo(
+    evento,
+  ) {
+    evento.preventDefault()
+
+    const descricaoTratada =
+      descricaoGargalo.trim()
+
+    if (!descricaoTratada) {
+      setMensagemGargalo(
+        'Informe a descrição do gargalo.',
+      )
+
+      return
+    }
+
+    if (descricaoTratada.length > 500) {
+      setMensagemGargalo(
+        'A descrição do gargalo deve possuir no máximo 500 caracteres.',
+      )
+
+      return
+    }
+
+    try {
+      setSalvandoGargalo(true)
+      setMensagemGargalo('')
+
+      const gargaloRegistrado =
+        await registrarGargalo(
+          id,
+          descricaoTratada,
+        )
+
+      if (!gargaloRegistrado) {
+        setMensagemGargalo(
+          'Não foi possível registrar o gargalo.',
+        )
+
+        return
+      }
+
+      setDescricaoGargalo('')
+
+      setMensagemGargalo(
+        'Gargalo registrado com sucesso.',
+      )
+    } catch (erro) {
+      console.error(
+        'Erro ao registrar gargalo:',
+        erro,
+      )
+
+      setMensagemGargalo(
+        erro.message ||
+          'Não foi possível registrar o gargalo.',
+      )
+    } finally {
+      setSalvandoGargalo(false)
+    }
+  }
+
+  function iniciarEdicaoGargalo(
+    gargalo,
+  ) {
+    if (!usuarioEhGestor) {
+      return
+    }
+
+    setGargaloEmEdicao(
+      gargalo.id,
+    )
+
+    setDescricaoGargaloEdicao(
+      gargalo.descricao,
+    )
+
+    setMensagemGargalo('')
+  }
+
+  function cancelarEdicaoGargalo() {
+    setGargaloEmEdicao(null)
+    setDescricaoGargaloEdicao('')
+  }
+
+  async function salvarEdicaoGargalo(
+    gargaloId,
+  ) {
+    if (!usuarioEhGestor) {
+      return
+    }
+
+    const descricaoTratada =
+      descricaoGargaloEdicao.trim()
+
+    if (!descricaoTratada) {
+      setMensagemGargalo(
+        'Informe a descrição do gargalo.',
+      )
+
+      return
+    }
+
+    if (descricaoTratada.length > 500) {
+      setMensagemGargalo(
+        'A descrição do gargalo deve possuir no máximo 500 caracteres.',
+      )
+
+      return
+    }
+
+    try {
+      setGargaloEmProcessamento(
+        gargaloId,
+      )
+
+      setMensagemGargalo('')
+
+      const gargaloAtualizado =
+        await editarGargalo(
+          id,
+          gargaloId,
+          descricaoTratada,
+        )
+
+      if (!gargaloAtualizado) {
+        setMensagemGargalo(
+          'Não foi possível editar o gargalo.',
+        )
+
+        return
+      }
+
+      setGargaloEmEdicao(null)
+      setDescricaoGargaloEdicao('')
+
+      setMensagemGargalo(
+        'Gargalo atualizado com sucesso.',
+      )
+    } catch (erro) {
+      console.error(
+        'Erro ao editar gargalo:',
+        erro,
+      )
+
+      setMensagemGargalo(
+        erro.message ||
+          'Não foi possível editar o gargalo.',
+      )
+    } finally {
+      setGargaloEmProcessamento(null)
+    }
+  }
+
+  async function alternarStatusGargalo(
+    gargalo,
+  ) {
+    if (!usuarioEhGestor) {
+      return
+    }
+
+    try {
+      setGargaloEmProcessamento(
+        gargalo.id,
+      )
+
+      setMensagemGargalo('')
+
+      const resultado =
+        gargalo.status === 'Resolvido'
+          ? await reabrirGargalo(
+              id,
+              gargalo.id,
+            )
+          : await resolverGargalo(
+              id,
+              gargalo.id,
+            )
+
+      if (!resultado) {
+        setMensagemGargalo(
+          'Não foi possível atualizar o gargalo.',
+        )
+
+        return
+      }
+
+      setMensagemGargalo(
+        gargalo.status === 'Resolvido'
+          ? 'Gargalo reaberto com sucesso.'
+          : 'Gargalo marcado como resolvido.',
+      )
+    } catch (erro) {
+      console.error(
+        'Erro ao alterar status do gargalo:',
+        erro,
+      )
+
+      setMensagemGargalo(
+        erro.message ||
+          'Não foi possível atualizar o gargalo.',
+      )
+    } finally {
+      setGargaloEmProcessamento(null)
+    }
+  }
+
+  async function confirmarExclusaoGargalo(
+    gargalo,
+  ) {
+    if (!usuarioEhGestor) {
+      return
+    }
+
+    const exclusaoConfirmada =
+      window.confirm(
+        'Deseja realmente excluir este gargalo? Esta ação não poderá ser desfeita.',
+      )
+
+    if (!exclusaoConfirmada) {
+      return
+    }
+
+    try {
+      setGargaloEmProcessamento(
+        gargalo.id,
+      )
+
+      setMensagemGargalo('')
+
+      const resultado =
+        await excluirGargalo(
+          id,
+          gargalo.id,
+        )
+
+      if (!resultado) {
+        setMensagemGargalo(
+          'Não foi possível excluir o gargalo.',
+        )
+
+        return
+      }
+
+      if (
+        gargaloEmEdicao ===
+        gargalo.id
+      ) {
+        setGargaloEmEdicao(null)
+        setDescricaoGargaloEdicao('')
+      }
+
+      setMensagemGargalo(
+        'Gargalo excluído com sucesso.',
+      )
+    } catch (erro) {
+      console.error(
+        'Erro ao excluir gargalo:',
+        erro,
+      )
+
+      setMensagemGargalo(
+        erro.message ||
+          'Não foi possível excluir o gargalo.',
+      )
+    } finally {
+      setGargaloEmProcessamento(null)
+    }
+  }
+
   if (!demanda) {
     return (
       <div className="detalhes-page">
@@ -536,6 +841,15 @@ function DetalhesDemanda() {
 
   const classeStatus =
     criarClasseStatus(demanda.status)
+
+  const gargalos =
+    demanda.gargalos || []
+
+  const quantidadeGargalosAbertos =
+    gargalos.filter(
+      (gargalo) =>
+        gargalo.status === 'Aberto',
+    ).length
 
   return (
     <div className="detalhes-page">
@@ -1091,6 +1405,290 @@ function DetalhesDemanda() {
             </div>
           </form>
         )}
+      </section>
+
+      <section className="detalhes-card gargalos-card">
+        <div className="detalhes-card-header gargalos-card-header">
+          <div className="gargalos-card-texto">
+            <h2>
+              Gargalos identificados
+            </h2>
+
+            <p>
+              Registre dificuldades que estejam impedindo ou
+              atrasando o andamento da demanda.
+            </p>
+          </div>
+
+          <div className="gargalos-resumo">
+            <span>Gargalos abertos</span>
+
+            <strong>
+              {quantidadeGargalosAbertos}
+            </strong>
+          </div>
+        </div>
+
+        <form
+          className="gargalo-form"
+          onSubmit={salvarNovoGargalo}
+        >
+          <div className="gargalo-form-field">
+            <label htmlFor="descricaoGargalo">
+              Descrição do gargalo
+            </label>
+
+            <textarea
+              id="descricaoGargalo"
+              rows="3"
+              maxLength="500"
+              placeholder="Descreva de forma objetiva onde a demanda está travando"
+              value={descricaoGargalo}
+              onChange={(evento) => {
+                setDescricaoGargalo(
+                  evento.target.value,
+                )
+
+                setMensagemGargalo('')
+              }}
+            />
+
+            <small>
+              {descricaoGargalo.length}/500 caracteres
+            </small>
+          </div>
+
+          <button
+            className="registrar-gargalo-button"
+            type="submit"
+            disabled={salvandoGargalo}
+          >
+            {salvandoGargalo
+              ? 'Registrando...'
+              : 'Registrar gargalo'}
+          </button>
+        </form>
+
+        {mensagemGargalo && (
+          <p
+            className="gargalo-mensagem"
+            role="status"
+          >
+            {mensagemGargalo}
+          </p>
+        )}
+
+        <div className="gargalos-lista">
+          {gargalos.length === 0 ? (
+            <div className="gargalos-vazio">
+              <strong>
+                Nenhum gargalo registrado
+              </strong>
+
+              <p>
+                Quando uma dificuldade for identificada,
+                registre-a acima para facilitar o
+                acompanhamento.
+              </p>
+            </div>
+          ) : (
+            gargalos.map((gargalo) => {
+              const estaEmEdicao =
+                gargaloEmEdicao ===
+                gargalo.id
+
+              const estaProcessando =
+                gargaloEmProcessamento ===
+                gargalo.id
+
+              const estaResolvido =
+                gargalo.status ===
+                'Resolvido'
+
+              return (
+                <article
+                  className={
+                    estaResolvido
+                      ? (
+                        'gargalo-item ' +
+                        'gargalo-item-resolvido'
+                      )
+                      : 'gargalo-item'
+                  }
+                  key={gargalo.id}
+                >
+                  <div className="gargalo-item-cabecalho">
+                    <span
+                      className={
+                        estaResolvido
+                          ? (
+                            'gargalo-status ' +
+                            'gargalo-status-resolvido'
+                          )
+                          : (
+                            'gargalo-status ' +
+                            'gargalo-status-aberto'
+                          )
+                      }
+                    >
+                      {gargalo.status}
+                    </span>
+
+                    <span className="gargalo-data">
+                      Registrado em{' '}
+                      {formatarDataHora(
+                        gargalo.dataRegistro,
+                      )}
+                    </span>
+                  </div>
+
+                  {estaEmEdicao ? (
+                    <div className="gargalo-edicao">
+                      <label
+                        htmlFor={`gargalo-${gargalo.id}`}
+                      >
+                        Editar descrição
+                      </label>
+
+                      <textarea
+                        id={`gargalo-${gargalo.id}`}
+                        rows="3"
+                        maxLength="500"
+                        value={
+                          descricaoGargaloEdicao
+                        }
+                        onChange={(evento) =>
+                          setDescricaoGargaloEdicao(
+                            evento.target.value,
+                          )
+                        }
+                      />
+
+                      <small>
+                        {descricaoGargaloEdicao.length}/500
+                        {' '}caracteres
+                      </small>
+
+                      <div className="gargalo-edicao-acoes">
+                        <button
+                          className="gargalo-cancelar-button"
+                          type="button"
+                          disabled={estaProcessando}
+                          onClick={
+                            cancelarEdicaoGargalo
+                          }
+                        >
+                          Cancelar
+                        </button>
+
+                        <button
+                          className="gargalo-salvar-button"
+                          type="button"
+                          disabled={estaProcessando}
+                          onClick={() =>
+                            salvarEdicaoGargalo(
+                              gargalo.id,
+                            )
+                          }
+                        >
+                          {estaProcessando
+                            ? 'Salvando...'
+                            : 'Salvar edição'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="gargalo-descricao">
+                      {gargalo.descricao}
+                    </p>
+                  )}
+
+                  <div className="gargalo-metadados">
+                    <span>
+                      Registrado por{' '}
+                      <strong>
+                        {gargalo.usuarioRegistro ||
+                          'Usuário não identificado'}
+                      </strong>
+                    </span>
+
+                    {estaResolvido &&
+                      gargalo.usuarioResolucao && (
+                        <span>
+                          Resolvido por{' '}
+                          <strong>
+                            {gargalo.usuarioResolucao}
+                          </strong>
+                          {' '}em{' '}
+                          {formatarDataHora(
+                            gargalo.dataResolucao,
+                          )}
+                        </span>
+                      )}
+                  </div>
+
+                  {usuarioEhGestor &&
+                    !estaEmEdicao && (
+                      <div className="gargalo-acoes">
+                        <button
+                          className="gargalo-editar-button"
+                          type="button"
+                          disabled={estaProcessando}
+                          onClick={() =>
+                            iniciarEdicaoGargalo(
+                              gargalo,
+                            )
+                          }
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          className={
+                            estaResolvido
+                              ? (
+                                'gargalo-reabrir-button'
+                              )
+                              : (
+                                'gargalo-resolver-button'
+                              )
+                          }
+                          type="button"
+                          disabled={estaProcessando}
+                          onClick={() =>
+                            alternarStatusGargalo(
+                              gargalo,
+                            )
+                          }
+                        >
+                          {estaProcessando
+                            ? 'Aguarde...'
+                            : (
+                              estaResolvido
+                                ? 'Reabrir'
+                                : 'Marcar como resolvido'
+                            )}
+                        </button>
+
+                        <button
+                          className="gargalo-excluir-button"
+                          type="button"
+                          disabled={estaProcessando}
+                          onClick={() =>
+                            confirmarExclusaoGargalo(
+                              gargalo,
+                            )
+                          }
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    )}
+                </article>
+              )
+            })
+          )}
+        </div>
       </section>
 
       <HistoricoDemanda

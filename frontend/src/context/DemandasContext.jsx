@@ -10,6 +10,12 @@ const DemandasContext = createContext()
 const API_BASE_URL =
   import.meta.env.VITE_API_URL
 
+if (!API_BASE_URL) {
+  throw new Error(
+    'A variável VITE_API_URL não foi configurada.',
+  )
+}
+
 const API_URL =
   `${API_BASE_URL}/api/demandas`
 
@@ -23,6 +29,11 @@ const STATUS_VALIDOS = [
   'Em andamento',
   'Em revisão',
   'Finalizada',
+]
+
+const STATUS_GARGALO_VALIDOS = [
+  'Aberto',
+  'Resolvido',
 ]
 
 function formatarEventoHistorico(
@@ -41,6 +52,33 @@ function formatarEventoHistorico(
       evento.status_anterior,
     statusPosterior:
       evento.status_posterior,
+  }
+}
+
+function formatarGargalo(
+  gargalo,
+) {
+  return {
+    id: String(gargalo.id),
+    demandaId: String(
+      gargalo.demanda_id,
+    ),
+    descricao:
+      gargalo.descricao,
+    status:
+      gargalo.status || 'Aberto',
+    usuarioRegistro:
+      gargalo.usuario_registro,
+    perfilRegistro:
+      gargalo.perfil_registro,
+    dataRegistro:
+      gargalo.data_registro,
+    dataAtualizacao:
+      gargalo.data_atualizacao,
+    usuarioResolucao:
+      gargalo.usuario_resolucao,
+    dataResolucao:
+      gargalo.data_resolucao,
   }
 }
 
@@ -83,6 +121,9 @@ function formatarDemanda(demanda) {
     historico: (
       demanda.historico || []
     ).map(formatarEventoHistorico),
+    gargalos: (
+      demanda.gargalos || []
+    ).map(formatarGargalo),
   }
 }
 
@@ -241,6 +282,43 @@ export function DemandasProvider({
     )
 
     return demandaFormatada
+  }
+
+  function atualizarGargalosDaDemanda(
+    demandaId,
+    atualizarGargalos,
+    historicoAtualizado = null,
+  ) {
+    const idTratado =
+      String(demandaId)
+
+    setDemandas((demandasAtuais) =>
+      demandasAtuais.map((demanda) => {
+        if (
+          demanda.id !== idTratado
+        ) {
+          return demanda
+        }
+
+        const novosGargalos =
+          atualizarGargalos(
+            demanda.gargalos || [],
+          )
+
+        return {
+          ...demanda,
+          gargalos: novosGargalos,
+          historico:
+            Array.isArray(
+              historicoAtualizado,
+            )
+              ? historicoAtualizado.map(
+                  formatarEventoHistorico,
+                )
+              : demanda.historico,
+        }
+      }),
+    )
   }
 
   async function cadastrarDemanda(
@@ -598,6 +676,348 @@ export function DemandasProvider({
     return true
   }
 
+  async function registrarGargalo(
+    demandaId,
+    descricao,
+  ) {
+    const idTratado =
+      String(demandaId)
+
+    const demanda =
+      buscarDemandaPorId(idTratado)
+
+    if (!demanda) {
+      return false
+    }
+
+    const descricaoTratada =
+      descricao?.trim()
+
+    if (!descricaoTratada) {
+      throw new Error(
+        'Informe a descrição do gargalo.',
+      )
+    }
+
+    if (
+      descricaoTratada.length > 500
+    ) {
+      throw new Error(
+        'A descrição do gargalo deve possuir no máximo 500 caracteres.',
+      )
+    }
+
+    const resposta = await fetch(
+      `${API_URL}/${idTratado}/gargalos`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify({
+          descricao:
+            descricaoTratada,
+        }),
+      },
+    )
+
+    const resultado =
+      await obterResultadoResposta(
+        resposta,
+      )
+
+    if (!resposta.ok) {
+      throw new Error(
+        obterMensagemErro(
+          resposta,
+          resultado,
+          'Não foi possível registrar o gargalo.',
+        ),
+      )
+    }
+
+    const gargaloFormatado =
+      formatarGargalo(resultado)
+
+    atualizarGargalosDaDemanda(
+      idTratado,
+      (gargalosAtuais) => [
+        gargaloFormatado,
+        ...gargalosAtuais,
+      ],
+      resultado.historico,
+    )
+
+    return gargaloFormatado
+  }
+
+  async function atualizarGargalo(
+    demandaId,
+    gargaloId,
+    dadosAtualizados,
+  ) {
+    const demandaIdTratado =
+      String(demandaId)
+
+    const gargaloIdTratado =
+      String(gargaloId)
+
+    const demanda =
+      buscarDemandaPorId(
+        demandaIdTratado,
+      )
+
+    if (!demanda) {
+      return false
+    }
+
+    const gargaloAtual =
+      (demanda.gargalos || []).find(
+        (gargalo) =>
+          gargalo.id ===
+          gargaloIdTratado,
+      )
+
+    if (!gargaloAtual) {
+      return false
+    }
+
+    const dadosParaApi = {}
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        dadosAtualizados,
+        'descricao',
+      )
+    ) {
+      const descricaoTratada =
+        dadosAtualizados
+          .descricao
+          ?.trim()
+
+      if (!descricaoTratada) {
+        throw new Error(
+          'Informe a descrição do gargalo.',
+        )
+      }
+
+      if (
+        descricaoTratada.length > 500
+      ) {
+        throw new Error(
+          'A descrição do gargalo deve possuir no máximo 500 caracteres.',
+        )
+      }
+
+      dadosParaApi.descricao =
+        descricaoTratada
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        dadosAtualizados,
+        'status',
+      )
+    ) {
+      if (
+        !STATUS_GARGALO_VALIDOS.includes(
+          dadosAtualizados.status,
+        )
+      ) {
+        throw new Error(
+          'Status do gargalo inválido.',
+        )
+      }
+
+      dadosParaApi.status =
+        dadosAtualizados.status
+    }
+
+    const resposta = await fetch(
+      (
+        `${API_URL}/${demandaIdTratado}` +
+        `/gargalos/${gargaloIdTratado}`
+      ),
+      {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify(
+          dadosParaApi,
+        ),
+      },
+    )
+
+    const resultado =
+      await obterResultadoResposta(
+        resposta,
+      )
+
+    if (!resposta.ok) {
+      throw new Error(
+        obterMensagemErro(
+          resposta,
+          resultado,
+          'Não foi possível atualizar o gargalo.',
+        ),
+      )
+    }
+
+    const gargaloFormatado =
+      formatarGargalo(resultado)
+
+    atualizarGargalosDaDemanda(
+      demandaIdTratado,
+      (gargalosAtuais) =>
+        gargalosAtuais.map(
+          (gargalo) =>
+            gargalo.id ===
+            gargaloIdTratado
+              ? gargaloFormatado
+              : gargalo,
+        ),
+      resultado.historico,
+    )
+
+    return gargaloFormatado
+  }
+
+  async function editarGargalo(
+    demandaId,
+    gargaloId,
+    novaDescricao,
+  ) {
+    return atualizarGargalo(
+      demandaId,
+      gargaloId,
+      {
+        descricao:
+          novaDescricao,
+      },
+    )
+  }
+
+  async function alterarStatusGargalo(
+    demandaId,
+    gargaloId,
+    novoStatus,
+  ) {
+    if (
+      !STATUS_GARGALO_VALIDOS.includes(
+        novoStatus,
+      )
+    ) {
+      throw new Error(
+        'Status do gargalo inválido.',
+      )
+    }
+
+    return atualizarGargalo(
+      demandaId,
+      gargaloId,
+      {
+        status: novoStatus,
+      },
+    )
+  }
+
+  async function resolverGargalo(
+    demandaId,
+    gargaloId,
+  ) {
+    return alterarStatusGargalo(
+      demandaId,
+      gargaloId,
+      'Resolvido',
+    )
+  }
+
+  async function reabrirGargalo(
+    demandaId,
+    gargaloId,
+  ) {
+    return alterarStatusGargalo(
+      demandaId,
+      gargaloId,
+      'Aberto',
+    )
+  }
+
+  async function excluirGargalo(
+    demandaId,
+    gargaloId,
+  ) {
+    const demandaIdTratado =
+      String(demandaId)
+
+    const gargaloIdTratado =
+      String(gargaloId)
+
+    const demanda =
+      buscarDemandaPorId(
+        demandaIdTratado,
+      )
+
+    if (!demanda) {
+      return false
+    }
+
+    const gargaloExiste =
+      (demanda.gargalos || []).some(
+        (gargalo) =>
+          gargalo.id ===
+          gargaloIdTratado,
+      )
+
+    if (!gargaloExiste) {
+      return false
+    }
+
+    const resposta = await fetch(
+      (
+        `${API_URL}/${demandaIdTratado}` +
+        `/gargalos/${gargaloIdTratado}`
+      ),
+      {
+        method: 'DELETE',
+        credentials: 'include',
+      },
+    )
+
+    const resultado =
+      await obterResultadoResposta(
+        resposta,
+      )
+
+    if (!resposta.ok) {
+      throw new Error(
+        obterMensagemErro(
+          resposta,
+          resultado,
+          'Não foi possível excluir o gargalo.',
+        ),
+      )
+    }
+
+    atualizarGargalosDaDemanda(
+      demandaIdTratado,
+      (gargalosAtuais) =>
+        gargalosAtuais.filter(
+          (gargalo) =>
+            gargalo.id !==
+            gargaloIdTratado,
+        ),
+      resultado.historico,
+    )
+
+    return true
+  }
+
   return (
     <DemandasContext.Provider
       value={{
@@ -613,6 +1033,12 @@ export function DemandasProvider({
         atribuirResponsavel,
         alterarStatus,
         editarDemanda,
+        registrarGargalo,
+        editarGargalo,
+        alterarStatusGargalo,
+        resolverGargalo,
+        reabrirGargalo,
+        excluirGargalo,
       }}
     >
       {children}

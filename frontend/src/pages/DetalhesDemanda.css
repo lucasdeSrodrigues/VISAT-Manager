@@ -2086,3 +2086,578 @@
     margin-left: 20px;
   }
 }
+
+/* =========================================================
+   IDENTIFICACAO E GERENCIAMENTO DE GARGALOS - US13
+   ========================================================= */
+
+.gargalos-card {
+  display: flex;
+  padding: 0;
+  flex-direction: column;
+  gap: 0;
+  border-color: #e0d5f5;
+  background-color: #ffffff;
+  box-shadow:
+    0 4px 16px
+    rgba(82, 56, 130, 0.08);
+}
+
+.gargalos-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 24px 30px;
+  border-bottom: 1px solid #e8e2f0;
+  background:
+    linear-gradient(
+      135deg,
+      #fdfcff 0%,
+      #f8f5fd 100%
+    );
+}
+
+.gargalos-card-texto {
+  min-width: 0;
+  flex: 1;
+}
+
+.gargalos-card-texto h2 {
+  margin: 0 0 6px;
+  color: #233244;
+  font-size: 19px;
+  line-height: 1.3;
+}
+
+.gargalos-card-texto p {
+  max-width: 680px;
+  margin: 0;
+  color: #7a8694;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.gargalos-resumo {
+  display: flex;
+  min-width: 180px;
+  padding: 14px 18px;
+  border: 1px solid #dfd2f2;
+  border-radius: 10px;
+  background-color: #ffffff;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow:
+    0 2px 8px
+    rgba(82, 56, 130, 0.06);
+}
+
+.gargalos-resumo span {
+  color: #667085;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.gargalos-resumo strong {
+  color: #6941c6;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.gargalo-form {
+  display: grid;
+  padding: 24px 30px 28px;
+  align-items: end;
+  grid-template-columns:
+    minmax(280px, 1fr)
+    200px;
+  gap: 16px;
+  border-bottom: 1px solid #e8e2f0;
+  background-color: #ffffff;
+}
+
+.gargalo-form-field {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gargalo-form-field label {
+  color: #344054;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.gargalo-form-field textarea {
+  width: 100%;
+  min-height: 92px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  border: 1px solid #cfd7df;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #263442;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.gargalo-form-field textarea::placeholder {
+  color: #98a2af;
+}
+
+.gargalo-form-field textarea:hover {
+  border-color: #aebbc7;
+}
+
+.gargalo-form-field textarea:focus {
+  border-color: #6941c6;
+  box-shadow:
+    0 0 0 3px
+    rgba(105, 65, 198, 0.13);
+}
+
+.gargalo-form-field small {
+  align-self: flex-end;
+  color: #7a8694;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.registrar-gargalo-button {
+  display: inline-flex;
+  width: 200px;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border: 1px solid #6941c6;
+  border-radius: 8px;
+  background-color: #6941c6;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow:
+    0 3px 8px
+    rgba(105, 65, 198, 0.16);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.registrar-gargalo-button:hover:not(:disabled) {
+  border-color: #5334a3;
+  background-color: #5334a3;
+  box-shadow:
+    0 5px 12px
+    rgba(105, 65, 198, 0.22);
+  transform: translateY(-1px);
+}
+
+.registrar-gargalo-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.registrar-gargalo-button:focus-visible {
+  outline: 3px solid
+    rgba(105, 65, 198, 0.22);
+  outline-offset: 2px;
+}
+
+.registrar-gargalo-button:disabled {
+  border-color: #b9a6e3;
+  background-color: #b9a6e3;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.75;
+}
+
+.gargalo-mensagem {
+  margin: 20px 30px 0;
+  padding: 11px 14px;
+  border: 1px solid #c9b8f4;
+  border-radius: 8px;
+  background-color: #f4f0ff;
+  color: #6941c6;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.gargalos-lista {
+  display: flex;
+  padding: 24px 30px 30px;
+  flex-direction: column;
+  gap: 16px;
+  background-color: #fcfbfe;
+}
+
+.gargalos-vazio {
+  padding: 30px 24px;
+  border: 1px dashed #d7cbe9;
+  border-radius: 10px;
+  background-color: #ffffff;
+  text-align: center;
+}
+
+.gargalos-vazio strong {
+  display: block;
+  margin-bottom: 7px;
+  color: #475467;
+  font-size: 15px;
+}
+
+.gargalos-vazio p {
+  max-width: 560px;
+  margin: 0 auto;
+  color: #7a8694;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.gargalo-item {
+  padding: 20px;
+  border: 1px solid #e0d5f5;
+  border-left: 4px solid #f0b429;
+  border-radius: 10px;
+  background-color: #ffffff;
+  box-shadow:
+    0 2px 8px
+    rgba(31, 41, 55, 0.05);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.gargalo-item:hover {
+  border-color: #cfc0e8;
+  border-left-color: #f0b429;
+  box-shadow:
+    0 4px 12px
+    rgba(31, 41, 55, 0.08);
+}
+
+.gargalo-item-resolvido {
+  border-color: #cce8d8;
+  border-left-color: #2f9e5b;
+  background-color: #fbfefc;
+}
+
+.gargalo-item-resolvido:hover {
+  border-color: #b8ddc8;
+  border-left-color: #2f9e5b;
+}
+
+.gargalo-item-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.gargalo-status {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.gargalo-status-aberto {
+  border-color: #f0d38a;
+  background-color: #fff7df;
+  color: #8a6112;
+}
+
+.gargalo-status-resolvido {
+  border-color: #a9dfc1;
+  background-color: #eaf8f0;
+  color: #217a49;
+}
+
+.gargalo-data {
+  color: #7a8694;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.gargalo-descricao {
+  margin: 0;
+  color: #344054;
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.gargalo-metadados {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #edf0f3;
+  color: #7a8694;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.gargalo-metadados span {
+  min-width: 0;
+}
+
+.gargalo-metadados strong {
+  color: #526579;
+  font-weight: 700;
+}
+
+.gargalo-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 17px;
+}
+
+.gargalo-acoes button,
+.gargalo-edicao-acoes button {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.gargalo-acoes button:focus-visible,
+.gargalo-edicao-acoes button:focus-visible {
+  outline: 3px solid
+    rgba(47, 117, 181, 0.2);
+  outline-offset: 2px;
+}
+
+.gargalo-acoes button:disabled,
+.gargalo-edicao-acoes button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.gargalo-editar-button {
+  border: 1px solid #cbd5df;
+  background-color: #ffffff;
+  color: #435466;
+}
+
+.gargalo-editar-button:hover:not(:disabled) {
+  border-color: #9eabb8;
+  background-color: #f6f8fa;
+  color: #263442;
+}
+
+.gargalo-resolver-button {
+  border: 1px solid #2f855a;
+  background-color: #ffffff;
+  color: #217a49;
+}
+
+.gargalo-resolver-button:hover:not(:disabled) {
+  border-color: #217a49;
+  background-color: #217a49;
+  color: #ffffff;
+}
+
+.gargalo-reabrir-button {
+  border: 1px solid #d8b24a;
+  background-color: #ffffff;
+  color: #8a6112;
+}
+
+.gargalo-reabrir-button:hover:not(:disabled) {
+  border-color: #8a6112;
+  background-color: #8a6112;
+  color: #ffffff;
+}
+
+.gargalo-excluir-button {
+  border: 1px solid #efb4b4;
+  background-color: #ffffff;
+  color: #b42318;
+}
+
+.gargalo-excluir-button:hover:not(:disabled) {
+  border-color: #b42318;
+  background-color: #b42318;
+  color: #ffffff;
+}
+
+.gargalo-edicao {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gargalo-edicao label {
+  color: #344054;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.gargalo-edicao textarea {
+  width: 100%;
+  min-height: 92px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  border: 1px solid #c9b8f4;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #263442;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+  box-shadow:
+    0 0 0 3px
+    rgba(105, 65, 198, 0.08);
+}
+
+.gargalo-edicao textarea:focus {
+  border-color: #6941c6;
+  box-shadow:
+    0 0 0 3px
+    rgba(105, 65, 198, 0.14);
+}
+
+.gargalo-edicao small {
+  align-self: flex-end;
+  color: #7a8694;
+  font-size: 11px;
+}
+
+.gargalo-edicao-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 5px;
+}
+
+.gargalo-cancelar-button {
+  border: 1px solid #cbd5df;
+  background-color: #ffffff;
+  color: #435466;
+}
+
+.gargalo-cancelar-button:hover:not(:disabled) {
+  border-color: #9eabb8;
+  background-color: #f6f8fa;
+}
+
+.gargalo-salvar-button {
+  border: 1px solid #6941c6;
+  background-color: #6941c6;
+  color: #ffffff;
+}
+
+.gargalo-salvar-button:hover:not(:disabled) {
+  border-color: #5334a3;
+  background-color: #5334a3;
+}
+
+/* =========================================================
+   RESPONSIVIDADE DOS GARGALOS
+   ========================================================= */
+
+@media (max-width: 760px) {
+  .gargalos-card-header {
+    align-items: stretch;
+    padding: 22px 20px;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .gargalos-resumo {
+    min-width: 0;
+  }
+
+  .gargalo-form {
+    padding: 20px;
+    grid-template-columns: 1fr;
+  }
+
+  .registrar-gargalo-button {
+    width: 100%;
+  }
+
+  .gargalo-mensagem {
+    margin-right: 20px;
+    margin-left: 20px;
+  }
+
+  .gargalos-lista {
+    padding: 20px;
+  }
+
+  .gargalo-item-cabecalho {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .gargalo-metadados {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .gargalo-acoes {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .gargalo-acoes button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .gargalo-item {
+    padding: 17px;
+  }
+
+  .gargalo-edicao-acoes {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .gargalo-edicao-acoes button {
+    width: 100%;
+  }
+}
