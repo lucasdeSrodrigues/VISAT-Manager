@@ -609,3 +609,131 @@
   font-size: 1rem;
   padding-left: 1rem;
 }
+
+/* =========================================================
+   DEMANDAS ATRASADAS NO DASHBOARD - US10
+   ========================================================= */
+
+/* O Dashboard agora possui cinco indicadores. */
+.dashboard-cards {
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+}
+
+.dashboard-card-atrasadas {
+  border-top: 4px solid #b42318;
+  background:
+    linear-gradient(
+      180deg,
+      #fffafa 0%,
+      #ffffff 55%
+    );
+}
+
+.dashboard-card-atrasadas
+  .dashboard-card-icon {
+  border: 1px solid #efb4b4;
+  background-color: #fff1f1;
+  color: #b42318;
+}
+
+.dashboard-card-atrasadas
+  > strong {
+  color: #b42318;
+}
+
+/* Destaque na lista de demandas mais urgentes. */
+
+.dashboard-demanda-item-atrasada {
+  margin-bottom: 5px;
+  border: 1px solid #f2c1bd;
+  border-left: 4px solid #d92d20;
+  background-color: #fffafa;
+}
+
+.dashboard-demanda-item-atrasada:last-child {
+  border-bottom: 1px solid #f2c1bd;
+}
+
+.dashboard-demanda-item-atrasada:hover {
+  border-color: #e5a29d;
+  border-left-color: #b42318;
+  background-color: #fff3f2;
+  box-shadow:
+    0 3px 10px
+    rgba(180, 35, 24, 0.08);
+}
+
+.dashboard-demanda-item-atrasada:focus {
+  border-color: #d92d20;
+  background-color: #fff3f2;
+  outline:
+    3px solid
+    rgba(217, 45, 32, 0.18);
+  outline-offset: -3px;
+}
+
+.dashboard-demanda-item-atrasada
+  .dashboard-demanda-main
+  strong {
+  color: #912018;
+}
+
+.dashboard-demanda-atrasada-label {
+  display: inline-flex !important;
+  width: fit-content;
+  margin-top: 7px;
+  padding: 4px 8px;
+  border: 1px solid #efb4b4;
+  border-radius: 20px;
+  background-color: #fff1f1;
+  color: #b42318 !important;
+  font-size: 10px !important;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1 !important;
+  text-transform: uppercase;
+  white-space: nowrap !important;
+}
+
+.dashboard-demanda-prazo
+  .dashboard-prazo-atrasado {
+  border-color: #efb4b4;
+  background-color: #fff1f1;
+  color: #b42318;
+}
+
+.dashboard-demanda-item-atrasada
+  .dashboard-demanda-seta {
+  color: #b42318;
+}
+
+/* =========================================================
+   RESPONSIVIDADE DOS CINCO INDICADORES
+   ========================================================= */
+
+@media (max-width: 1250px) {
+  .dashboard-cards {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-cards {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-demanda-item-atrasada {
+    border-left-width: 3px;
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+}

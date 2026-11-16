@@ -17,6 +17,95 @@ function formatarData(data) {
   return `${dia}/${mes}/${ano}`
 }
 
+function converterDataLocal(data) {
+  if (!data) {
+    return null
+  }
+
+  const partes = data
+    .split('-')
+    .map(Number)
+
+  if (
+    partes.length !== 3 ||
+    partes.some(Number.isNaN)
+  ) {
+    return null
+  }
+
+  const [ano, mes, dia] = partes
+
+  const dataConvertida = new Date(
+    ano,
+    mes - 1,
+    dia,
+  )
+
+  if (
+    dataConvertida.getFullYear() !== ano ||
+    dataConvertida.getMonth() !== mes - 1 ||
+    dataConvertida.getDate() !== dia
+  ) {
+    return null
+  }
+
+  dataConvertida.setHours(
+    0,
+    0,
+    0,
+    0,
+  )
+
+  return dataConvertida
+}
+
+function calcularDiasAtraso(
+  prazoResposta,
+) {
+  const prazo =
+    converterDataLocal(
+      prazoResposta,
+    )
+
+  if (!prazo) {
+    return 0
+  }
+
+  const hoje = new Date()
+
+  hoje.setHours(
+    0,
+    0,
+    0,
+    0,
+  )
+
+  if (prazo >= hoje) {
+    return 0
+  }
+
+  const diferenca =
+    hoje.getTime() -
+    prazo.getTime()
+
+  return Math.floor(
+    diferenca /
+      (1000 * 60 * 60 * 24),
+  )
+}
+
+function criarMensagemAtraso(
+  diasAtraso,
+) {
+  if (diasAtraso === 1) {
+    return 'Atrasada há 1 dia'
+  }
+
+  return (
+    `Atrasada há ${diasAtraso} dias`
+  )
+}
+
 function CentralAlertas({
   aberta,
   onFechar,
@@ -25,27 +114,117 @@ function CentralAlertas({
   const navigate = useNavigate()
   const { demandas } = useDemandas()
 
-  const demandasComPrazoProximo = demandas
+  const demandasComAlerta = demandas
     .map((demanda) => {
-      const alerta = obterAlertaPrazo(
-        demanda.prazoResposta,
-      )
+      if (
+        demanda.status ===
+          'Finalizada' ||
+        demanda.arquivada
+      ) {
+        return null
+      }
 
-      if (!alerta) {
+      const diasAtraso =
+        calcularDiasAtraso(
+          demanda.prazoResposta,
+        )
+
+      if (diasAtraso > 0) {
+        return {
+          ...demanda,
+          alerta: {
+            tipo: 'atrasada',
+            diasAtraso,
+            diasRestantes:
+              -diasAtraso,
+            mensagem:
+              criarMensagemAtraso(
+                diasAtraso,
+              ),
+          },
+        }
+      }
+
+      const alertaPrazo =
+        obterAlertaPrazo(
+          demanda.prazoResposta,
+        )
+
+      if (!alertaPrazo) {
         return null
       }
 
       return {
         ...demanda,
-        alerta,
+        alerta: {
+          ...alertaPrazo,
+          tipo: 'prazo-proximo',
+          diasAtraso: 0,
+        },
       }
     })
     .filter(Boolean)
     .sort(
-      (demandaA, demandaB) =>
-        demandaA.alerta.diasRestantes -
-        demandaB.alerta.diasRestantes,
+      (demandaA, demandaB) => {
+        const alertaA =
+          demandaA.alerta
+
+        const alertaB =
+          demandaB.alerta
+
+        if (
+          alertaA.tipo ===
+            'atrasada' &&
+          alertaB.tipo !==
+            'atrasada'
+        ) {
+          return -1
+        }
+
+        if (
+          alertaA.tipo !==
+            'atrasada' &&
+          alertaB.tipo ===
+            'atrasada'
+        ) {
+          return 1
+        }
+
+        if (
+          alertaA.tipo ===
+            'atrasada' &&
+          alertaB.tipo ===
+            'atrasada'
+        ) {
+          return (
+            alertaB.diasAtraso -
+            alertaA.diasAtraso
+          )
+        }
+
+        return (
+          alertaA.diasRestantes -
+          alertaB.diasRestantes
+        )
+      },
     )
+
+  const quantidadeAtrasadas =
+    demandasComAlerta.filter(
+      (demanda) =>
+        demanda.alerta.tipo ===
+        'atrasada',
+    ).length
+
+  const quantidadePrazoProximo =
+    demandasComAlerta.filter(
+      (demanda) =>
+        demanda.alerta.tipo ===
+        'prazo-proximo',
+    ).length
+
+  const quantidadeAlertas =
+    demandasComAlerta.length
 
   if (!aberta) {
     return null
@@ -62,12 +241,18 @@ function CentralAlertas({
   }
 
   function tratarCliqueFora(evento) {
-    if (evento.target === evento.currentTarget) {
+    if (
+      evento.target ===
+      evento.currentTarget
+    ) {
       onFechar()
     }
   }
 
-  function tratarTeclaDemanda(evento, id) {
+  function tratarTeclaDemanda(
+    evento,
+    id,
+  ) {
     if (
       evento.key === 'Enter' ||
       evento.key === ' '
@@ -77,8 +262,64 @@ function CentralAlertas({
     }
   }
 
-  const quantidadeAlertas =
-    demandasComPrazoProximo.length
+  function criarResumoAlertas() {
+    if (quantidadeAlertas === 0) {
+      return (
+        'Não há demandas atrasadas ' +
+        'ou próximas do vencimento.'
+      )
+    }
+
+    if (
+      quantidadeAtrasadas > 0 &&
+      quantidadePrazoProximo > 0
+    ) {
+      const textoAtrasadas =
+        quantidadeAtrasadas === 1
+          ? '1 demanda atrasada'
+          : (
+            `${quantidadeAtrasadas} ` +
+            'demandas atrasadas'
+          )
+
+      const textoPrazoProximo =
+        quantidadePrazoProximo === 1
+          ? (
+            '1 demanda próxima ' +
+            'do vencimento'
+          )
+          : (
+            `${quantidadePrazoProximo} ` +
+            'demandas próximas ' +
+            'do vencimento'
+          )
+
+      return (
+        `${textoAtrasadas} e ` +
+        `${textoPrazoProximo}.`
+      )
+    }
+
+    if (quantidadeAtrasadas > 0) {
+      return quantidadeAtrasadas === 1
+        ? '1 demanda está atrasada.'
+        : (
+          `${quantidadeAtrasadas} ` +
+          'demandas estão atrasadas.'
+        )
+    }
+
+    return quantidadePrazoProximo === 1
+      ? (
+        '1 demanda está próxima ' +
+        'do vencimento.'
+      )
+      : (
+        `${quantidadePrazoProximo} ` +
+        'demandas estão próximas ' +
+        'do vencimento.'
+      )
+  }
 
   return (
     <div
@@ -104,11 +345,7 @@ function CentralAlertas({
             </h2>
 
             <p id="central-alertas-descricao">
-              {quantidadeAlertas === 0
-                ? 'Não há demandas próximas do vencimento.'
-                : quantidadeAlertas === 1
-                  ? '1 demanda está próxima do vencimento.'
-                  : `${quantidadeAlertas} demandas estão próximas do vencimento.`}
+              {criarResumoAlertas()}
             </p>
           </div>
 
@@ -131,11 +368,13 @@ function CentralAlertas({
               ✓
             </div>
 
-            <h3>Nenhum prazo próximo</h3>
+            <h3>
+              Nenhum alerta de prazo
+            </h3>
 
             <p>
-              No momento, nenhuma demanda vence hoje ou
-              nos próximos três dias.
+              No momento, nenhuma demanda está atrasada,
+              vence hoje ou vence nos próximos três dias.
             </p>
           </div>
         ) : (
@@ -146,73 +385,135 @@ function CentralAlertas({
               </strong>
 
               <p>
-                A lista está ordenada do prazo mais
-                urgente para o menos urgente.
+                As demandas atrasadas aparecem primeiro,
+                seguidas pelos prazos mais próximos.
               </p>
+
+              <div className="central-alertas-contadores">
+                <span className="central-alertas-contador central-alertas-contador-atrasadas">
+                  <strong>
+                    {quantidadeAtrasadas}
+                  </strong>
+
+                  {quantidadeAtrasadas === 1
+                    ? ' atrasada'
+                    : ' atrasadas'}
+                </span>
+
+                <span className="central-alertas-contador central-alertas-contador-proximas">
+                  <strong>
+                    {quantidadePrazoProximo}
+                  </strong>
+
+                  {quantidadePrazoProximo === 1
+                    ? ' próxima do prazo'
+                    : ' próximas do prazo'}
+                </span>
+              </div>
             </div>
 
             <div className="central-alertas-lista">
-              {demandasComPrazoProximo.map(
-                (demanda) => (
-                  <article
-                    className="central-alerta-item"
-                    key={demanda.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Abrir detalhes da demanda de ${demanda.orgaoSolicitante}`}
-                    onClick={() =>
-                      abrirDetalhes(demanda.id)
-                    }
-                    onKeyDown={(evento) =>
-                      tratarTeclaDemanda(
-                        evento,
-                        demanda.id,
+              {demandasComAlerta.map(
+                (demanda) => {
+                  const estaAtrasada =
+                    demanda.alerta.tipo ===
+                    'atrasada'
+
+                  const classeItem =
+                    estaAtrasada
+                      ? (
+                        'central-alerta-item ' +
+                        'central-alerta-item-atrasado'
                       )
-                    }
-                  >
-                    <div className="central-alerta-principal">
-                      <div className="central-alerta-titulo">
-                        <strong>
-                          {demanda.orgaoSolicitante}
-                        </strong>
+                      : 'central-alerta-item'
 
-                        <span
-                          className={`central-alerta-prazo central-alerta-dias-${demanda.alerta.diasRestantes}`}
-                        >
-                          {demanda.alerta.mensagem}
-                        </span>
-                      </div>
+                  const classePrazo =
+                    estaAtrasada
+                      ? (
+                        'central-alerta-prazo ' +
+                        'central-alerta-prazo-atrasado'
+                      )
+                      : (
+                        'central-alerta-prazo ' +
+                        `central-alerta-dias-${demanda.alerta.diasRestantes}`
+                      )
 
-                      <p>
-                        {demanda.tipoOcorrencia}
-                      </p>
-
-                      <div className="central-alerta-informacoes">
-                        <span>
-                          <strong>Local:</strong>{' '}
-                          {demanda.municipio}
-                          {demanda.bairro
-                            ? ` - ${demanda.bairro}`
-                            : ''}
-                        </span>
-
-                        <span>
-                          <strong>Prazo:</strong>{' '}
-                          {formatarData(
-                            demanda.prazoResposta,
-                          )}
-                        </span>
-                      </div>
-                    </div>
-
-                    <span
-                      className="central-alerta-seta"
-                      aria-hidden="true"
+                  return (
+                    <article
+                      className={classeItem}
+                      key={demanda.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={
+                        (
+                          'Abrir detalhes da demanda de ' +
+                          demanda.orgaoSolicitante
+                        )
+                      }
+                      onClick={() =>
+                        abrirDetalhes(
+                          demanda.id,
+                        )
+                      }
+                      onKeyDown={(evento) =>
+                        tratarTeclaDemanda(
+                          evento,
+                          demanda.id,
+                        )
+                      }
                     >
-                      ›
-                    </span>
-                  </article>
-                ),
+                      <div className="central-alerta-principal">
+                        <div className="central-alerta-titulo">
+                          <strong>
+                            {demanda.orgaoSolicitante}
+                          </strong>
+
+                          <span
+                            className={
+                              classePrazo
+                            }
+                          >
+                            {demanda.alerta.mensagem}
+                          </span>
+                        </div>
+
+                        <p>
+                          {demanda.tipoOcorrencia}
+                        </p>
+
+                        <div className="central-alerta-informacoes">
+                          <span>
+                            <strong>
+                              Local:
+                            </strong>{' '}
+                            {demanda.municipio}
+                            {demanda.bairro
+                              ? (
+                                ` - ${demanda.bairro}`
+                              )
+                              : ''}
+                          </span>
+
+                          <span>
+                            <strong>
+                              Prazo:
+                            </strong>{' '}
+                            {formatarData(
+                              demanda.prazoResposta,
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <span
+                        className="central-alerta-seta"
+                        aria-hidden="true"
+                      >
+                        ›
+                      </span>
+                    </article>
+                  )
+                },
               )}
             </div>
           </div>

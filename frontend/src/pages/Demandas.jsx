@@ -58,6 +58,95 @@ function criarClasseStatus(status) {
     .replace(/\s+/g, '-')
 }
 
+function converterDataLocal(data) {
+  if (!data) {
+    return null
+  }
+
+  const partes = data
+    .split('-')
+    .map(Number)
+
+  if (
+    partes.length !== 3 ||
+    partes.some(Number.isNaN)
+  ) {
+    return null
+  }
+
+  const [ano, mes, dia] = partes
+
+  const dataConvertida = new Date(
+    ano,
+    mes - 1,
+    dia,
+  )
+
+  if (
+    dataConvertida.getFullYear() !== ano ||
+    dataConvertida.getMonth() !== mes - 1 ||
+    dataConvertida.getDate() !== dia
+  ) {
+    return null
+  }
+
+  dataConvertida.setHours(
+    0,
+    0,
+    0,
+    0,
+  )
+
+  return dataConvertida
+}
+
+function calcularDiasAtraso(
+  prazoResposta,
+) {
+  const prazo =
+    converterDataLocal(
+      prazoResposta,
+    )
+
+  if (!prazo) {
+    return 0
+  }
+
+  const hoje = new Date()
+
+  hoje.setHours(
+    0,
+    0,
+    0,
+    0,
+  )
+
+  if (prazo >= hoje) {
+    return 0
+  }
+
+  const diferenca =
+    hoje.getTime() -
+    prazo.getTime()
+
+  return Math.floor(
+    diferenca /
+      (1000 * 60 * 60 * 24),
+  )
+}
+
+function criarMensagemAtraso(
+  diasAtraso,
+) {
+  if (diasAtraso === 1) {
+    return 'Atrasada há 1 dia'
+  }
+
+  return (
+    `Atrasada há ${diasAtraso} dias`
+  )
+}
+
 function obterValorData(data) {
   if (!data) {
     return Number.POSITIVE_INFINITY
@@ -539,23 +628,53 @@ function Demandas() {
                         demanda.status,
                       )
 
+                    const diasAtraso =
+                      demanda.status !==
+                        'Finalizada' &&
+                      !demanda.arquivada
+                        ? calcularDiasAtraso(
+                            demanda.prazoResposta,
+                          )
+                        : 0
+
+                    const estaAtrasada =
+                      diasAtraso > 0
+
                     const alertaPrazo =
-                      obterAlertaPrazo(
-                        demanda.prazoResposta,
-                      )
+                      estaAtrasada
+                        ? null
+                        : obterAlertaPrazo(
+                            demanda.prazoResposta,
+                          )
 
                     const prioridadeFoiAjustada =
                       Boolean(
                         demanda.prioridadeManual,
                       )
 
+                    const classeLinha =
+                      estaAtrasada
+                        ? (
+                          'demanda-row ' +
+                          'demanda-row-atrasada'
+                        )
+                        : 'demanda-row'
+
                     return (
                       <tr
-                        className="demanda-row"
+                        className={classeLinha}
                         key={demanda.id}
                         role="button"
                         tabIndex={0}
-                        aria-label={`Abrir detalhes da demanda de ${demanda.orgaoSolicitante}`}
+                        aria-label={
+                          estaAtrasada
+                            ? (
+                              `Abrir detalhes da demanda atrasada de ${demanda.orgaoSolicitante}`
+                            )
+                            : (
+                              `Abrir detalhes da demanda de ${demanda.orgaoSolicitante}`
+                            )
+                        }
                         onClick={() =>
                           abrirDemanda(
                             demanda.id,
@@ -569,11 +688,19 @@ function Demandas() {
                         }
                       >
                         <td>
-                          <strong>
-                            {
-                              demanda.orgaoSolicitante
-                            }
-                          </strong>
+                          <div className="orgao-cell">
+                            <strong>
+                              {
+                                demanda.orgaoSolicitante
+                              }
+                            </strong>
+
+                            {estaAtrasada && (
+                              <span className="demanda-atrasada-label">
+                                Prazo vencido
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         <td>
@@ -636,14 +763,22 @@ function Demandas() {
                               )}
                             </span>
 
-                            {alertaPrazo && (
-                              <span
-                                className={`prazo-proximo-badge prazo-proximo-dias-${alertaPrazo.diasRestantes}`}
-                              >
-                                {
-                                  alertaPrazo.mensagem
-                                }
+                            {estaAtrasada ? (
+                              <span className="prazo-atrasado-badge">
+                                {criarMensagemAtraso(
+                                  diasAtraso,
+                                )}
                               </span>
+                            ) : (
+                              alertaPrazo && (
+                                <span
+                                  className={`prazo-proximo-badge prazo-proximo-dias-${alertaPrazo.diasRestantes}`}
+                                >
+                                  {
+                                    alertaPrazo.mensagem
+                                  }
+                                </span>
+                              )
                             )}
                           </div>
                         </td>

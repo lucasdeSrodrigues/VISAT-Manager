@@ -436,3 +436,114 @@
     width: 100%;
   }
 }
+
+/* =========================================================
+   DEMANDAS ATRASADAS - US10
+   ========================================================= */
+
+.central-alertas-contadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.central-alertas-contador {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.central-alertas-contador strong {
+  display: inline;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.central-alertas-contador-atrasadas {
+  border-color: #efb4b4;
+  background-color: #fff1f1;
+  color: #b42318;
+}
+
+.central-alertas-contador-atrasadas strong {
+  color: #b42318;
+}
+
+.central-alertas-contador-proximas {
+  border-color: #f0d38a;
+  background-color: #fff7df;
+  color: #8a6112;
+}
+
+.central-alertas-contador-proximas strong {
+  color: #8a6112;
+}
+
+.central-alerta-item-atrasado {
+  margin-bottom: 6px;
+  border: 1px solid #f2c1bd;
+  border-left: 4px solid #d92d20;
+  background-color: #fffafa;
+}
+
+.central-alerta-item-atrasado:last-child {
+  border-bottom: 1px solid #f2c1bd;
+}
+
+.central-alerta-item-atrasado:hover {
+  border-color: #e5a29d;
+  border-left-color: #b42318;
+  background-color: #fff3f2;
+  box-shadow:
+    0 3px 10px
+    rgba(180, 35, 24, 0.08);
+}
+
+.central-alerta-item-atrasado:focus {
+  border-color: #d92d20;
+  background-color: #fff3f2;
+  outline:
+    3px solid
+    rgba(217, 45, 32, 0.18);
+  outline-offset: -3px;
+}
+
+.central-alerta-item-atrasado
+  .central-alerta-titulo
+  > strong {
+  color: #912018;
+}
+
+.central-alerta-item-atrasado
+  .central-alerta-seta {
+  color: #b42318;
+}
+
+.central-alerta-prazo-atrasado {
+  border-color: #efb4b4;
+  background-color: #fff1f1;
+  color: #b42318;
+}
+
+@media (max-width: 640px) {
+  .central-alertas-contadores {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .central-alertas-contador {
+    width: fit-content;
+  }
+
+  .central-alerta-item-atrasado {
+    border-left-width: 3px;
+  }
+}
