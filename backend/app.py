@@ -1,15 +1,15 @@
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
+import mimetypes
 import os
 import sqlite3
+import uuid
 
-from flask import Flask, jsonify, request, session
+from flask import Flask, jsonify, request, send_file, session
 from flask_cors import CORS
-from werkzeug.security import (
-    check_password_hash,
-    generate_password_hash,
-)
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
@@ -37,6 +37,10 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(
     hours=8
 )
 
+app.config["MAX_CONTENT_LENGTH"] = (
+    10 * 1024 * 1024
+)
+
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 if not FRONTEND_URL:
@@ -59,14 +63,29 @@ CORS(
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE = BASE_DIR / "database.db"
 
+DIRETORIO_ANEXOS = Path(
+    os.getenv(
+        "DIRETORIO_ANEXOS",
+        str(BASE_DIR / "uploads"),
+    )
+)
+
+DIRETORIO_ANEXOS.mkdir(
+    parents=True,
+    exist_ok=True,
+)
+
 DIAS_PARA_ARQUIVAR = 30
+
+TAMANHO_MAXIMO_ANEXO = (
+    10 * 1024 * 1024
+)
 
 PRIORIDADES_VALIDAS = {
     "Baixa",
     "Média",
     "Alta",
 }
-
 
 STATUS_VALIDOS = {
     "Em andamento",
@@ -84,6 +103,26 @@ PERFIS_VALIDOS = {
     "inspetor",
 }
 
+TIPOS_DOCUMENTO_VALIDOS = {
+    "Relatório",
+    "Laudo",
+    "Foto",
+    "Ofício",
+    "Planilha",
+    "Outro",
+}
+
+EXTENSOES_ANEXO_PERMITIDAS = {
+    "pdf",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "png",
+    "jpg",
+    "jpeg",
+}
+
 
 def obter_conexao():
     conn = sqlite3.connect(DATABASE)
@@ -96,6 +135,12 @@ def obter_conexao():
     return conn
 
 
+def data_hora_atual():
+    return datetime.now(
+        timezone.utc
+    ).isoformat()
+
+
 def criar_usuario_inicial(
     cursor,
     nome,
@@ -103,20 +148,22 @@ def criar_usuario_inicial(
     senha,
     perfil,
 ):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT id
         FROM usuarios
         WHERE email = ?
-    """, (
-        email.lower(),
-    ))
+        """,
+        (
+            email.lower(),
+        ),
+    )
 
-    usuario_existente = cursor.fetchone()
-
-    if usuario_existente:
+    if cursor.fetchone():
         return
 
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO usuarios (
             nome,
             email,
@@ -125,17 +172,16 @@ def criar_usuario_inicial(
             ativo,
             data_cadastro
         )
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (
-        nome,
-        email.lower(),
-        generate_password_hash(senha),
-        perfil,
-        1,
-        datetime.now(
-            timezone.utc
-        ).isoformat(),
-    ))
+        VALUES (?, ?, ?, ?, 1, ?)
+        """,
+        (
+            nome,
+            email.lower(),
+            generate_password_hash(senha),
+            perfil,
+            data_hora_atual(),
+        ),
+    )
 
 
 def inicializar_banco():
@@ -230,50 +276,77 @@ def inicializar_banco():
         )
     """)
 
-    gestor_nome = os.getenv(
-        "GESTOR_INICIAL_NOME",
-        "Gestor VISAT",
-    )
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS anexos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            demanda_id INTEGER NOT NULL,
+            nome_original TEXT NOT NULL,
+            nome_armazenado TEXT NOT NULL UNIQUE,
+            extensao TEXT NOT NULL,
+            tipo_documento TEXT NOT NULL,
+            descricao TEXT NOT NULL,
+            tamanho_bytes INTEGER NOT NULL,
+            usuario_id INTEGER NOT NULL,
+            usuario_nome TEXT NOT NULL,
+            usuario_perfil TEXT NOT NULL,
+            data_envio TEXT NOT NULL,
+            data_atualizacao TEXT NOT NULL,
+            FOREIGN KEY (demanda_id)
+                REFERENCES demandas (id)
+                ON DELETE CASCADE,
+            FOREIGN KEY (usuario_id)
+                REFERENCES usuarios (id),
+            CHECK (
+                tipo_documento IN (
+                    'Relatório',
+                    'Laudo',
+                    'Foto',
+                    'Ofício',
+                    'Planilha',
+                    'Outro'
+                )
+            ),
+            CHECK (
+                usuario_perfil IN (
+                    'gestor',
+                    'inspetor'
+                )
+            )
+        )
+    """)
 
-    gestor_email = os.getenv(
-        "GESTOR_INICIAL_EMAIL",
-        "gestor@visat.com",
-    )
-
-    gestor_senha = os.getenv(
-        "GESTOR_INICIAL_SENHA",
-        "Gestor@123",
-    )
-
-    inspetor_nome = os.getenv(
-        "INSPETOR_INICIAL_NOME",
-        "Inspetor VISAT",
-    )
-
-    inspetor_email = os.getenv(
-        "INSPETOR_INICIAL_EMAIL",
-        "inspetor@visat.com",
-    )
-
-    inspetor_senha = os.getenv(
-        "INSPETOR_INICIAL_SENHA",
-        "Inspetor@123",
+    criar_usuario_inicial(
+        cursor,
+        os.getenv(
+            "GESTOR_INICIAL_NOME",
+            "Gestor VISAT",
+        ),
+        os.getenv(
+            "GESTOR_INICIAL_EMAIL",
+            "gestor@visat.com",
+        ),
+        os.getenv(
+            "GESTOR_INICIAL_SENHA",
+            "Gestor@123",
+        ),
+        "gestor",
     )
 
     criar_usuario_inicial(
-        cursor=cursor,
-        nome=gestor_nome,
-        email=gestor_email,
-        senha=gestor_senha,
-        perfil="gestor",
-    )
-
-    criar_usuario_inicial(
-        cursor=cursor,
-        nome=inspetor_nome,
-        email=inspetor_email,
-        senha=inspetor_senha,
-        perfil="inspetor",
+        cursor,
+        os.getenv(
+            "INSPETOR_INICIAL_NOME",
+            "Inspetor VISAT",
+        ),
+        os.getenv(
+            "INSPETOR_INICIAL_EMAIL",
+            "inspetor@visat.com",
+        ),
+        os.getenv(
+            "INSPETOR_INICIAL_SENHA",
+            "Inspetor@123",
+        ),
+        "inspetor",
     )
 
     conn.commit()
@@ -281,12 +354,6 @@ def inicializar_banco():
 
 
 inicializar_banco()
-
-
-def data_hora_atual():
-    return datetime.now(
-        timezone.utc
-    ).isoformat()
 
 
 def converter_usuario_para_dict(usuario):
@@ -302,7 +369,8 @@ def buscar_usuario_por_id(usuario_id):
     conn = obter_conexao()
     cursor = conn.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             id,
             nome,
@@ -312,9 +380,11 @@ def buscar_usuario_por_id(usuario_id):
             data_cadastro
         FROM usuarios
         WHERE id = ?
-    """, (
-        usuario_id,
-    ))
+        """,
+        (
+            usuario_id,
+        ),
+    )
 
     usuario = cursor.fetchone()
 
@@ -433,7 +503,8 @@ def registrar_historico(
     status_anterior=None,
     status_posterior=None,
 ):
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO historico (
             demanda_id,
             data_hora,
@@ -444,30 +515,44 @@ def registrar_historico(
             status_posterior
         )
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
-        demanda_id,
-        data_hora_atual(),
-        tipo_acao,
-        descricao,
-        usuario or
-        "Usuário não identificado",
-        status_anterior,
-        status_posterior,
-    ))
+        """,
+        (
+            demanda_id,
+            data_hora_atual(),
+            tipo_acao,
+            descricao,
+            usuario or
+            "Usuário não identificado",
+            status_anterior,
+            status_posterior,
+        ),
+    )
 
 
-def buscar_demanda(cursor, demanda_id):
-    cursor.execute("""
+def buscar_demanda(
+    cursor,
+    demanda_id,
+):
+    cursor.execute(
+        """
         SELECT *
         FROM demandas
         WHERE id = ?
-    """, (demanda_id,))
+        """,
+        (
+            demanda_id,
+        ),
+    )
 
     return cursor.fetchone()
 
 
-def buscar_historico(cursor, demanda_id):
-    cursor.execute("""
+def buscar_historico(
+    cursor,
+    demanda_id,
+):
+    cursor.execute(
+        """
         SELECT
             id,
             demanda_id,
@@ -480,18 +565,24 @@ def buscar_historico(cursor, demanda_id):
         FROM historico
         WHERE demanda_id = ?
         ORDER BY data_hora ASC, id ASC
-    """, (demanda_id,))
+        """,
+        (
+            demanda_id,
+        ),
+    )
 
     return [
         dict(registro)
         for registro in cursor.fetchall()
     ]
 
+
 def buscar_gargalos(
     cursor,
     demanda_id,
 ):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             id,
             demanda_id,
@@ -513,9 +604,11 @@ def buscar_gargalos(
             END,
             data_registro DESC,
             id DESC
-    """, (
-        demanda_id,
-    ))
+        """,
+        (
+            demanda_id,
+        ),
+    )
 
     return [
         dict(registro)
@@ -528,27 +621,151 @@ def buscar_gargalo(
     demanda_id,
     gargalo_id,
 ):
-    cursor.execute("""
-        SELECT
-            id,
-            demanda_id,
-            descricao,
-            status,
-            usuario_registro,
-            perfil_registro,
-            data_registro,
-            data_atualizacao,
-            usuario_resolucao,
-            data_resolucao
+    cursor.execute(
+        """
+        SELECT *
         FROM gargalos
         WHERE demanda_id = ?
           AND id = ?
-    """, (
-        demanda_id,
-        gargalo_id,
-    ))
+        """,
+        (
+            demanda_id,
+            gargalo_id,
+        ),
+    )
 
     return cursor.fetchone()
+
+
+def buscar_anexos(
+    cursor,
+    demanda_id,
+):
+    cursor.execute(
+        """
+        SELECT
+            id,
+            demanda_id,
+            nome_original,
+            extensao,
+            tipo_documento,
+            descricao,
+            tamanho_bytes,
+            usuario_id,
+            usuario_nome,
+            usuario_perfil,
+            data_envio,
+            data_atualizacao
+        FROM anexos
+        WHERE demanda_id = ?
+        ORDER BY data_envio DESC, id DESC
+        """,
+        (
+            demanda_id,
+        ),
+    )
+
+    return [
+        dict(registro)
+        for registro in cursor.fetchall()
+    ]
+
+
+def buscar_anexo(
+    cursor,
+    demanda_id,
+    anexo_id,
+):
+    cursor.execute(
+        """
+        SELECT *
+        FROM anexos
+        WHERE demanda_id = ?
+          AND id = ?
+        """,
+        (
+            demanda_id,
+            anexo_id,
+        ),
+    )
+
+    return cursor.fetchone()
+
+
+def montar_demanda(
+    cursor,
+    registro,
+):
+    demanda = dict(registro)
+
+    demanda["historico"] = (
+        buscar_historico(
+            cursor,
+            demanda["id"],
+        )
+    )
+
+    demanda["gargalos"] = (
+        buscar_gargalos(
+            cursor,
+            demanda["id"],
+        )
+    )
+
+    demanda["anexos"] = (
+        buscar_anexos(
+            cursor,
+            demanda["id"],
+        )
+    )
+
+    return demanda
+
+
+def obter_extensao_arquivo(
+    nome_arquivo,
+):
+    return (
+        Path(nome_arquivo or "")
+        .suffix
+        .lower()
+        .lstrip(".")
+    )
+
+
+def obter_caminho_anexo(
+    nome_armazenado,
+):
+    return (
+        DIRETORIO_ANEXOS /
+        nome_armazenado
+    )
+
+
+def excluir_arquivo_anexo(
+    nome_armazenado,
+):
+    caminho = obter_caminho_anexo(
+        nome_armazenado
+    )
+
+    if (
+        caminho.exists() and
+        caminho.is_file()
+    ):
+        caminho.unlink()
+
+
+def usuario_pode_excluir_anexo(
+    usuario_logado,
+    anexo,
+):
+    return (
+        usuario_logado["perfil"] ==
+        "gestor"
+        or usuario_logado["id"] ==
+        anexo["usuario_id"]
+    )
 
 
 def arquivar_demandas_vencidas(cursor):
@@ -559,9 +776,8 @@ def arquivar_demandas_vencidas(cursor):
         )
     ).isoformat()
 
-    agora = data_hora_atual()
-
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE demandas
         SET
             arquivada = 1,
@@ -570,10 +786,22 @@ def arquivar_demandas_vencidas(cursor):
           AND arquivada = 0
           AND data_finalizacao IS NOT NULL
           AND data_finalizacao <= ?
-    """, (
-        agora,
-        limite,
-    ))
+        """,
+        (
+            data_hora_atual(),
+            limite,
+        ),
+    )
+
+
+@app.errorhandler(413)
+def arquivo_muito_grande(erro):
+    return {
+        "mensagem": (
+            "O arquivo deve possuir "
+            "no máximo 10 MB."
+        )
+    }, 413
 
 
 @app.route("/")
@@ -639,7 +867,8 @@ def login():
     conn = obter_conexao()
     cursor = conn.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             id,
             nome,
@@ -650,15 +879,23 @@ def login():
             data_cadastro
         FROM usuarios
         WHERE email = ?
-    """, (
-        email,
-    ))
+        """,
+        (
+            email,
+        ),
+    )
 
     usuario = cursor.fetchone()
 
     conn.close()
 
-    if not usuario:
+    if (
+        not usuario or
+        not check_password_hash(
+            usuario["senha_hash"],
+            senha,
+        )
+    ):
         return {
             "mensagem":
                 "E-mail ou senha inválidos."
@@ -669,17 +906,6 @@ def login():
             "mensagem":
                 "Este usuário está desativado."
         }, 403
-
-    senha_valida = check_password_hash(
-        usuario["senha_hash"],
-        senha,
-    )
-
-    if not senha_valida:
-        return {
-            "mensagem":
-                "E-mail ou senha inválidos."
-        }, 401
 
     if (
         usuario["perfil"] not in
@@ -703,7 +929,6 @@ def login():
         }, 403
 
     session.clear()
-
     session.permanent = True
 
     session["usuario_id"] = (
@@ -761,6 +986,7 @@ def listar_demandas(
     cursor = conn.cursor()
 
     arquivar_demandas_vencidas(cursor)
+
     conn.commit()
 
     cursor.execute("""
@@ -770,26 +996,15 @@ def listar_demandas(
         ORDER BY id DESC
     """)
 
-    demandas = []
+    registros = cursor.fetchall()
 
-    for registro in cursor.fetchall():
-        demanda = dict(registro)
-
-        demanda["historico"] = (
-            buscar_historico(
-                cursor,
-                demanda["id"],
-            )
+    demandas = [
+        montar_demanda(
+            cursor,
+            registro,
         )
-
-        demanda["gargalos"] = (
-            buscar_gargalos(
-                cursor,
-                demanda["id"],
-            )
-        )
-
-        demandas.append(demanda)
+        for registro in registros
+    ]
 
     conn.close()
 
@@ -821,20 +1036,9 @@ def detalhar_demanda(
                 "Demanda não encontrada."
         }, 404
 
-    demanda = dict(registro)
-
-    demanda["historico"] = (
-        buscar_historico(
-            cursor,
-            demanda_id,
-        )
-    )
-
-    demanda["gargalos"] = (
-        buscar_gargalos(
-            cursor,
-            demanda_id,
-        )
+    demanda = montar_demanda(
+        cursor,
+        registro,
     )
 
     conn.close()
@@ -854,7 +1058,7 @@ def criar_demanda(
         silent=True
     ) or {}
 
-    campos_obrigatorios = [
+    obrigatorios = [
         "orgao_solicitante",
         "municipio",
         "bairro",
@@ -867,31 +1071,31 @@ def criar_demanda(
         "data_cadastro",
     ]
 
-    campos_ausentes = [
+    ausentes = [
         campo
-        for campo in campos_obrigatorios
+        for campo in obrigatorios
         if not dados.get(campo)
     ]
 
-    if campos_ausentes:
+    if ausentes:
         return {
             "mensagem":
                 "Preencha todos os campos obrigatórios.",
             "campos_ausentes":
-                campos_ausentes,
+                ausentes,
         }, 400
 
     status = dados.get("status")
+
+    prioridade = dados.get(
+        "prioridade_manual"
+    )
 
     if status not in STATUS_VALIDOS:
         return {
             "mensagem":
                 "Status inválido."
         }, 400
-
-    prioridade = dados.get(
-        "prioridade_manual"
-    )
 
     if (
         prioridade is not None and
@@ -904,8 +1108,7 @@ def criar_demanda(
         }, 400
 
     responsavel = dados.get(
-        "responsavel",
-        None,
+        "responsavel"
     )
 
     if responsavel is not None:
@@ -913,47 +1116,42 @@ def criar_demanda(
             responsavel
         ).strip()
 
-        if not responsavel:
-            responsavel = None
-    else:
-        responsavel = None
+    responsavel = responsavel or None
 
     if (
-        responsavel is not None and
+        responsavel and
         usuario_logado["perfil"] !=
         "gestor"
     ):
         return {
             "mensagem": (
-                "Somente usuários com "
-                "perfil Gestor podem "
-                "atribuir um responsável."
+                "Somente usuários com perfil "
+                "Gestor podem atribuir um responsável."
             )
         }, 403
 
     if (
-        responsavel is not None and
+        responsavel and
         len(responsavel) > 100
     ):
         return {
             "mensagem": (
-                "O nome do responsável "
-                "deve possuir no máximo "
-                "100 caracteres."
+                "O nome do responsável deve "
+                "possuir no máximo 100 caracteres."
             )
         }, 400
 
-    data_finalizacao = None
-
-    if status == "Finalizada":
-        data_finalizacao = (
-            data_hora_atual()
-        )
+    data_finalizacao = (
+        data_hora_atual()
+        if status == "Finalizada"
+        else None
+    )
 
     conn = obter_conexao()
     cursor = conn.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO demandas (
             numero_processo,
             orgao_solicitante,
@@ -978,66 +1176,54 @@ def criar_demanda(
             ?, ?, ?, ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?, ?, ?, 0, NULL
         )
-    """, (
-        dados.get("numero_processo"),
-        dados.get("orgao_solicitante"),
-        dados.get("municipio"),
-        dados.get("bairro"),
-        dados.get("tipo_ocorrencia"),
-        dados.get("data_entrada"),
-        dados.get("prazo_resposta"),
-        dados.get("descricao"),
-        prioridade,
-        dados.get(
-            "justificativa_prioridade"
+        """,
+        (
+            dados.get("numero_processo"),
+            dados.get("orgao_solicitante"),
+            dados.get("municipio"),
+            dados.get("bairro"),
+            dados.get("tipo_ocorrencia"),
+            dados.get("data_entrada"),
+            dados.get("prazo_resposta"),
+            dados.get("descricao"),
+            prioridade,
+            dados.get(
+                "justificativa_prioridade"
+            ),
+            dados.get(
+                "data_alteracao_prioridade"
+            ),
+            responsavel,
+            status,
+            dados.get("origem"),
+            dados.get("data_cadastro"),
+            data_finalizacao,
         ),
-        dados.get(
-            "data_alteracao_prioridade"
-        ),
-        responsavel,
-        status,
-        dados.get("origem"),
-        dados.get("data_cadastro"),
-        data_finalizacao,
-    ))
+    )
 
     demanda_id = cursor.lastrowid
 
     registrar_historico(
-        cursor=cursor,
-        demanda_id=demanda_id,
-        tipo_acao=
-            "Cadastro da demanda",
-        descricao=(
-            "Demanda cadastrada "
-            "manualmente no VISAT Manager."
+        cursor,
+        demanda_id,
+        "Cadastro da demanda",
+        (
+            "Demanda cadastrada manualmente "
+            "no VISAT Manager."
         ),
-        usuario=usuario_logado["nome"],
-        status_anterior=None,
-        status_posterior=status,
+        usuario_logado["nome"],
+        None,
+        status,
     )
 
     conn.commit()
 
-    demanda = buscar_demanda(
+    resultado = montar_demanda(
         cursor,
-        demanda_id,
-    )
-
-    resultado = dict(demanda)
-
-    resultado["historico"] = (
-        buscar_historico(
+        buscar_demanda(
             cursor,
             demanda_id,
-        )
-    )
-
-    resultado["gargalos"] = (
-        buscar_gargalos(
-            cursor,
-            demanda_id,
-        )
+        ),
     )
 
     conn.close()
@@ -1074,20 +1260,16 @@ def atualizar_demanda(
                 "Demanda não encontrada."
         }, 404
 
-    demanda_atual = dict(registro)
+    atual = dict(registro)
 
-    responsavel_atual = (
-        demanda_atual["responsavel"]
-    )
-
-    status_atual = (
-        demanda_atual["status"]
-    )
+    status_atual = atual["status"]
 
     prioridade_atual = (
-        demanda_atual[
-            "prioridade_manual"
-        ]
+        atual["prioridade_manual"]
+    )
+
+    responsavel_atual = (
+        atual["responsavel"]
     )
 
     novo_responsavel = dados.get(
@@ -1100,16 +1282,13 @@ def atualizar_demanda(
             novo_responsavel
         ).strip()
 
-        if not novo_responsavel:
-            novo_responsavel = None
-
-    responsavel_foi_alterado = (
-        responsavel_atual !=
-        novo_responsavel
+    novo_responsavel = (
+        novo_responsavel or None
     )
 
     if (
-        responsavel_foi_alterado and
+        novo_responsavel !=
+        responsavel_atual and
         usuario_logado["perfil"] !=
         "gestor"
     ):
@@ -1117,12 +1296,23 @@ def atualizar_demanda(
 
         return {
             "mensagem": (
-                "Somente usuários com "
-                "perfil Gestor podem "
-                "atribuir ou remover "
-                "o responsável."
+                "Somente usuários com perfil Gestor "
+                "podem atribuir ou remover o responsável."
             )
         }, 403
+
+    if (
+        novo_responsavel and
+        len(novo_responsavel) > 100
+    ):
+        conn.close()
+
+        return {
+            "mensagem": (
+                "O nome do responsável deve "
+                "possuir no máximo 100 caracteres."
+            )
+        }, 400
 
     novo_status = dados.get(
         "status",
@@ -1134,89 +1324,49 @@ def atualizar_demanda(
         prioridade_atual,
     )
 
-    novo_orgao_solicitante = dados.get(
-        "orgao_solicitante",
-        demanda_atual[
-            "orgao_solicitante"
-        ],
-    )
-
-    novo_municipio = dados.get(
-        "municipio",
-        demanda_atual["municipio"],
-    )
-
-    novo_bairro = dados.get(
-        "bairro",
-        demanda_atual["bairro"],
-    )
-
-    novo_tipo_ocorrencia = dados.get(
-        "tipo_ocorrencia",
-        demanda_atual[
-            "tipo_ocorrencia"
-        ],
-    )
-
-    novo_prazo_resposta = dados.get(
-        "prazo_resposta",
-        demanda_atual[
-            "prazo_resposta"
-        ],
-    )
-
-    nova_descricao = dados.get(
-        "descricao",
-        demanda_atual["descricao"],
-    )
-
-    justificativa_prioridade = dados.get(
-        "justificativa_prioridade",
-        demanda_atual[
-            "justificativa_prioridade"
-        ],
-    )
-
-    data_alteracao_prioridade = dados.get(
-        "data_alteracao_prioridade",
-        demanda_atual[
-            "data_alteracao_prioridade"
-        ],
-    )
-
-    campos_cadastrais = [
-        novo_orgao_solicitante,
-        novo_municipio,
-        novo_bairro,
-        novo_tipo_ocorrencia,
-        novo_prazo_resposta,
-        nova_descricao,
-    ]
+    valores = {
+        "orgao_solicitante":
+            dados.get(
+                "orgao_solicitante",
+                atual["orgao_solicitante"],
+            ),
+        "municipio":
+            dados.get(
+                "municipio",
+                atual["municipio"],
+            ),
+        "bairro":
+            dados.get(
+                "bairro",
+                atual["bairro"],
+            ),
+        "tipo_ocorrencia":
+            dados.get(
+                "tipo_ocorrencia",
+                atual["tipo_ocorrencia"],
+            ),
+        "prazo_resposta":
+            dados.get(
+                "prazo_resposta",
+                atual["prazo_resposta"],
+            ),
+        "descricao":
+            dados.get(
+                "descricao",
+                atual["descricao"],
+            ),
+    }
 
     if any(
         valor is None or
         not str(valor).strip()
-        for valor in campos_cadastrais
+        for valor in valores.values()
     ):
         conn.close()
 
         return {
             "mensagem":
                 "Preencha todos os dados da demanda."
-        }, 400
-
-    if (
-        novo_responsavel is not None and
-        len(novo_responsavel) > 100
-    ):
-        conn.close()
-
-        return {
-            "mensagem": (
-                "O nome do responsável "
-                "deve possuir no máximo "
-                "100 caracteres."
-            )
         }, 400
 
     if novo_status not in STATUS_VALIDOS:
@@ -1239,41 +1389,20 @@ def atualizar_demanda(
                 "Prioridade inválida."
         }, 400
 
-    dados_cadastrais_alterados = (
-        demanda_atual[
-            "orgao_solicitante"
-        ] != novo_orgao_solicitante
-        or demanda_atual[
-            "municipio"
-        ] != novo_municipio
-        or demanda_atual[
-            "bairro"
-        ] != novo_bairro
-        or demanda_atual[
-            "tipo_ocorrencia"
-        ] != novo_tipo_ocorrencia
-        or demanda_atual[
-            "prazo_resposta"
-        ] != novo_prazo_resposta
-        or demanda_atual[
-            "descricao"
-        ] != nova_descricao
+    dados_alterados = any(
+        atual[campo] != valor
+        for campo, valor
+        in valores.items()
     )
 
     data_finalizacao = (
-        demanda_atual[
-            "data_finalizacao"
-        ]
+        atual["data_finalizacao"]
     )
 
-    arquivada = (
-        demanda_atual["arquivada"]
-    )
+    arquivada = atual["arquivada"]
 
     data_arquivamento = (
-        demanda_atual[
-            "data_arquivamento"
-        ]
+        atual["data_arquivamento"]
     )
 
     if (
@@ -1287,7 +1416,7 @@ def atualizar_demanda(
         arquivada = 0
         data_arquivamento = None
 
-    if (
+    elif (
         status_atual == "Finalizada" and
         novo_status != "Finalizada"
     ):
@@ -1295,7 +1424,8 @@ def atualizar_demanda(
         arquivada = 0
         data_arquivamento = None
 
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE demandas
         SET
             orgao_solicitante = ?,
@@ -1313,23 +1443,35 @@ def atualizar_demanda(
             arquivada = ?,
             data_arquivamento = ?
         WHERE id = ?
-    """, (
-        novo_orgao_solicitante,
-        novo_municipio,
-        novo_bairro,
-        novo_tipo_ocorrencia,
-        novo_prazo_resposta,
-        nova_descricao,
-        novo_responsavel,
-        novo_status,
-        nova_prioridade,
-        justificativa_prioridade,
-        data_alteracao_prioridade,
-        data_finalizacao,
-        arquivada,
-        data_arquivamento,
-        demanda_id,
-    ))
+        """,
+        (
+            valores["orgao_solicitante"],
+            valores["municipio"],
+            valores["bairro"],
+            valores["tipo_ocorrencia"],
+            valores["prazo_resposta"],
+            valores["descricao"],
+            novo_responsavel,
+            novo_status,
+            nova_prioridade,
+            dados.get(
+                "justificativa_prioridade",
+                atual[
+                    "justificativa_prioridade"
+                ],
+            ),
+            dados.get(
+                "data_alteracao_prioridade",
+                atual[
+                    "data_alteracao_prioridade"
+                ],
+            ),
+            data_finalizacao,
+            arquivada,
+            data_arquivamento,
+            demanda_id,
+        ),
+    )
 
     usuario = usuario_logado["nome"]
 
@@ -1347,13 +1489,13 @@ def atualizar_demanda(
             "Sem responsável"
         )
 
-        tipo_acao = (
+        tipo = (
             "Atribuição de responsável"
             if novo_responsavel
             else "Remoção de responsável"
         )
 
-        descricao = (
+        descricao_historico = (
             f"Responsável alterado de "
             f"{anterior} para {posterior}."
             if novo_responsavel
@@ -1363,31 +1505,28 @@ def atualizar_demanda(
         )
 
         registrar_historico(
-            cursor=cursor,
-            demanda_id=demanda_id,
-            tipo_acao=tipo_acao,
-            descricao=descricao,
-            usuario=usuario,
-            status_anterior=status_atual,
-            status_posterior=
-                novo_status,
+            cursor,
+            demanda_id,
+            tipo,
+            descricao_historico,
+            usuario,
+            status_atual,
+            novo_status,
         )
 
     if status_atual != novo_status:
         registrar_historico(
-            cursor=cursor,
-            demanda_id=demanda_id,
-            tipo_acao=
-                "Alteração de status",
-            descricao=(
+            cursor,
+            demanda_id,
+            "Alteração de status",
+            (
                 f"Status alterado de "
                 f"{status_atual} para "
                 f"{novo_status}."
             ),
-            usuario=usuario,
-            status_anterior=status_atual,
-            status_posterior=
-                novo_status,
+            usuario,
+            status_atual,
+            novo_status,
         )
 
     if (
@@ -1395,81 +1534,61 @@ def atualizar_demanda(
         nova_prioridade
     ):
         if nova_prioridade is None:
-            tipo_acao = (
+            tipo = (
                 "Restauração da prioridade"
             )
 
-            descricao = (
-                "Prioridade automática "
-                "restaurada com base no prazo "
-                "da demanda."
+            descricao_historico = (
+                "Prioridade automática restaurada "
+                "com base no prazo da demanda."
             )
         else:
-            tipo_acao = (
+            tipo = (
                 "Alteração de prioridade"
             )
 
-            descricao = (
-                "Prioridade alterada "
-                f"manualmente para "
-                f"{nova_prioridade}."
+            descricao_historico = (
+                "Prioridade alterada manualmente "
+                f"para {nova_prioridade}."
             )
 
         registrar_historico(
-            cursor=cursor,
-            demanda_id=demanda_id,
-            tipo_acao=tipo_acao,
-            descricao=descricao,
-            usuario=usuario,
-            status_anterior=status_atual,
-            status_posterior=
-                novo_status,
+            cursor,
+            demanda_id,
+            tipo,
+            descricao_historico,
+            usuario,
+            status_atual,
+            novo_status,
         )
 
-    if dados_cadastrais_alterados:
+    if dados_alterados:
         registrar_historico(
-            cursor=cursor,
-            demanda_id=demanda_id,
-            tipo_acao=
-                "Edição da demanda",
-            descricao=(
+            cursor,
+            demanda_id,
+            "Edição da demanda",
+            (
                 "Os dados cadastrais da "
                 "demanda foram atualizados."
             ),
-            usuario=usuario,
-            status_anterior=status_atual,
-            status_posterior=
-                novo_status,
+            usuario,
+            status_atual,
+            novo_status,
         )
 
     conn.commit()
 
-    demanda_atualizada = dict(
+    resultado = montar_demanda(
+        cursor,
         buscar_demanda(
             cursor,
             demanda_id,
-        )
-    )
-
-    demanda_atualizada["historico"] = (
-        buscar_historico(
-            cursor,
-            demanda_id,
-        )
-    )
-
-    demanda_atualizada["gargalos"] = (
-        buscar_gargalos(
-            cursor,
-            demanda_id,
-        )
+        ),
     )
 
     conn.close()
 
-    return jsonify(
-        demanda_atualizada
-    )
+    return jsonify(resultado)
 
 
 @app.route(
@@ -1484,12 +1603,10 @@ def excluir_demanda(
     conn = obter_conexao()
     cursor = conn.cursor()
 
-    registro = buscar_demanda(
+    if not buscar_demanda(
         cursor,
         demanda_id,
-    )
-
-    if not registro:
+    ):
         conn.close()
 
         return {
@@ -1497,29 +1614,37 @@ def excluir_demanda(
                 "Demanda não encontrada."
         }, 404
 
-        cursor.execute("""
-        DELETE FROM gargalos
+    cursor.execute(
+        """
+        SELECT nome_armazenado
+        FROM anexos
         WHERE demanda_id = ?
-    """, (
-        demanda_id,
-    ))
+        """,
+        (
+            demanda_id,
+        ),
+    )
 
-    cursor.execute("""
-        DELETE FROM historico
-        WHERE demanda_id = ?
-    """, (
-        demanda_id,
-    ))
+    arquivos = [
+        registro["nome_armazenado"]
+        for registro in cursor.fetchall()
+    ]
 
-    cursor.execute("""
+    cursor.execute(
+        """
         DELETE FROM demandas
         WHERE id = ?
-    """, (
-        demanda_id,
-    ))
-    
+        """,
+        (
+            demanda_id,
+        ),
+    )
+
     conn.commit()
     conn.close()
+
+    for nome in arquivos:
+        excluir_arquivo_anexo(nome)
 
     return {
         "mensagem":
@@ -1539,12 +1664,10 @@ def listar_historico(
     conn = obter_conexao()
     cursor = conn.cursor()
 
-    registro = buscar_demanda(
+    if not buscar_demanda(
         cursor,
         demanda_id,
-    )
-
-    if not registro:
+    ):
         conn.close()
 
         return {
@@ -1560,6 +1683,7 @@ def listar_historico(
     conn.close()
 
     return jsonify(historico)
+
 
 @app.route(
     "/api/demandas/<int:demanda_id>/gargalos",
@@ -1590,9 +1714,8 @@ def registrar_gargalo(
     if len(descricao) > 500:
         return {
             "mensagem": (
-                "A descrição do gargalo "
-                "deve possuir no máximo "
-                "500 caracteres."
+                "A descrição do gargalo deve possuir "
+                "no máximo 500 caracteres."
             )
         }, 400
 
@@ -1614,7 +1737,8 @@ def registrar_gargalo(
 
     agora = data_hora_atual()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO gargalos (
             demanda_id,
             descricao,
@@ -1630,42 +1754,38 @@ def registrar_gargalo(
             ?, ?, 'Aberto', ?, ?, ?,
             ?, NULL, NULL
         )
-    """, (
-        demanda_id,
-        descricao,
-        usuario_logado["nome"],
-        usuario_logado["perfil"],
-        agora,
-        agora,
-    ))
+        """,
+        (
+            demanda_id,
+            descricao,
+            usuario_logado["nome"],
+            usuario_logado["perfil"],
+            agora,
+            agora,
+        ),
+    )
 
     gargalo_id = cursor.lastrowid
 
     registrar_historico(
-        cursor=cursor,
-        demanda_id=demanda_id,
-        tipo_acao=
-            "Registro de gargalo",
-        descricao=(
-            "Gargalo registrado: "
-            f"{descricao}"
-        ),
-        usuario=usuario_logado["nome"],
-        status_anterior=
-            demanda["status"],
-        status_posterior=
-            demanda["status"],
+        cursor,
+        demanda_id,
+        "Registro de gargalo",
+        f"Gargalo registrado: {descricao}",
+        usuario_logado["nome"],
+        demanda["status"],
+        demanda["status"],
     )
 
     conn.commit()
 
-    gargalo = buscar_gargalo(
-        cursor,
-        demanda_id,
-        gargalo_id,
+    resultado = dict(
+        buscar_gargalo(
+            cursor,
+            demanda_id,
+            gargalo_id,
+        )
     )
-
-    resultado = dict(gargalo)
 
     resultado["historico"] = (
         buscar_historico(
@@ -1705,6 +1825,12 @@ def atualizar_gargalo(
         demanda_id,
     )
 
+    gargalo = buscar_gargalo(
+        cursor,
+        demanda_id,
+        gargalo_id,
+    )
+
     if not demanda:
         conn.close()
 
@@ -1712,12 +1838,6 @@ def atualizar_gargalo(
             "mensagem":
                 "Demanda não encontrada."
         }, 404
-
-    gargalo = buscar_gargalo(
-        cursor,
-        demanda_id,
-        gargalo_id,
-    )
 
     if not gargalo:
         conn.close()
@@ -1727,21 +1847,21 @@ def atualizar_gargalo(
                 "Gargalo não encontrado."
         }, 404
 
-    gargalo_atual = dict(gargalo)
+    atual = dict(gargalo)
 
-    nova_descricao = str(
+    descricao = str(
         dados.get(
             "descricao",
-            gargalo_atual["descricao"],
+            atual["descricao"],
         )
     ).strip()
 
-    novo_status = dados.get(
+    status = dados.get(
         "status",
-        gargalo_atual["status"],
+        atual["status"],
     )
 
-    if not nova_descricao:
+    if not descricao:
         conn.close()
 
         return {
@@ -1749,19 +1869,18 @@ def atualizar_gargalo(
                 "Informe a descrição do gargalo."
         }, 400
 
-    if len(nova_descricao) > 500:
+    if len(descricao) > 500:
         conn.close()
 
         return {
             "mensagem": (
-                "A descrição do gargalo "
-                "deve possuir no máximo "
-                "500 caracteres."
+                "A descrição do gargalo deve possuir "
+                "no máximo 500 caracteres."
             )
         }, 400
 
     if (
-        novo_status not in
+        status not in
         STATUS_GARGALO_VALIDOS
     ):
         conn.close()
@@ -1771,44 +1890,27 @@ def atualizar_gargalo(
                 "Status do gargalo inválido."
         }, 400
 
-    descricao_foi_alterada = (
-        nova_descricao !=
-        gargalo_atual["descricao"]
+    descricao_alterada = (
+        descricao != atual["descricao"]
     )
 
-    status_foi_alterado = (
-        novo_status !=
-        gargalo_atual["status"]
+    status_alterado = (
+        status != atual["status"]
     )
-
-    if (
-        not descricao_foi_alterada and
-        not status_foi_alterado
-    ):
-        conn.close()
-
-        return jsonify(
-            gargalo_atual
-        )
 
     agora = data_hora_atual()
 
     usuario_resolucao = (
-        gargalo_atual[
-            "usuario_resolucao"
-        ]
+        atual["usuario_resolucao"]
     )
 
     data_resolucao = (
-        gargalo_atual[
-            "data_resolucao"
-        ]
+        atual["data_resolucao"]
     )
 
     if (
-        novo_status == "Resolvido" and
-        gargalo_atual["status"] !=
-        "Resolvido"
+        status == "Resolvido" and
+        atual["status"] != "Resolvido"
     ):
         usuario_resolucao = (
             usuario_logado["nome"]
@@ -1816,15 +1918,15 @@ def atualizar_gargalo(
 
         data_resolucao = agora
 
-    if (
-        novo_status == "Aberto" and
-        gargalo_atual["status"] ==
-        "Resolvido"
+    elif (
+        status == "Aberto" and
+        atual["status"] == "Resolvido"
     ):
         usuario_resolucao = None
         data_resolucao = None
 
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE gargalos
         SET
             descricao = ?,
@@ -1834,77 +1936,63 @@ def atualizar_gargalo(
             data_resolucao = ?
         WHERE demanda_id = ?
           AND id = ?
-    """, (
-        nova_descricao,
-        novo_status,
-        agora,
-        usuario_resolucao,
-        data_resolucao,
-        demanda_id,
-        gargalo_id,
-    ))
+        """,
+        (
+            descricao,
+            status,
+            agora,
+            usuario_resolucao,
+            data_resolucao,
+            demanda_id,
+            gargalo_id,
+        ),
+    )
 
-    if descricao_foi_alterada:
+    if descricao_alterada:
         registrar_historico(
-            cursor=cursor,
-            demanda_id=demanda_id,
-            tipo_acao=
-                "Edição de gargalo",
-            descricao=(
+            cursor,
+            demanda_id,
+            "Edição de gargalo",
+            (
                 "A descrição de um gargalo "
                 "foi atualizada."
             ),
-            usuario=usuario_logado["nome"],
-            status_anterior=
-                demanda["status"],
-            status_posterior=
-                demanda["status"],
+            usuario_logado["nome"],
+            demanda["status"],
+            demanda["status"],
         )
 
-    if status_foi_alterado:
-        if novo_status == "Resolvido":
-            tipo_acao = (
-                "Resolução de gargalo"
-            )
+    if status_alterado:
+        tipo = (
+            "Resolução de gargalo"
+            if status == "Resolvido"
+            else "Reabertura de gargalo"
+        )
 
-            descricao_historico = (
-                "Gargalo marcado como "
-                "resolvido."
-            )
-        else:
-            tipo_acao = (
-                "Reabertura de gargalo"
-            )
-
-            descricao_historico = (
-                "Gargalo reaberto."
-            )
+        texto = (
+            "Gargalo marcado como resolvido."
+            if status == "Resolvido"
+            else "Gargalo reaberto."
+        )
 
         registrar_historico(
-            cursor=cursor,
-            demanda_id=demanda_id,
-            tipo_acao=tipo_acao,
-            descricao=
-                descricao_historico,
-            usuario=usuario_logado["nome"],
-            status_anterior=
-                demanda["status"],
-            status_posterior=
-                demanda["status"],
+            cursor,
+            demanda_id,
+            tipo,
+            texto,
+            usuario_logado["nome"],
+            demanda["status"],
+            demanda["status"],
         )
 
     conn.commit()
 
-    gargalo_atualizado = (
+    resultado = dict(
         buscar_gargalo(
             cursor,
             demanda_id,
             gargalo_id,
         )
-    )
-
-    resultado = dict(
-        gargalo_atualizado
     )
 
     resultado["historico"] = (
@@ -1941,6 +2029,12 @@ def excluir_gargalo(
         demanda_id,
     )
 
+    gargalo = buscar_gargalo(
+        cursor,
+        demanda_id,
+        gargalo_id,
+    )
+
     if not demanda:
         conn.close()
 
@@ -1948,12 +2042,6 @@ def excluir_gargalo(
             "mensagem":
                 "Demanda não encontrada."
         }, 404
-
-    gargalo = buscar_gargalo(
-        cursor,
-        demanda_id,
-        gargalo_id,
-    )
 
     if not gargalo:
         conn.close()
@@ -1963,33 +2051,29 @@ def excluir_gargalo(
                 "Gargalo não encontrado."
         }, 404
 
-    descricao_gargalo = (
-        gargalo["descricao"]
-    )
-
-    cursor.execute("""
+    cursor.execute(
+        """
         DELETE FROM gargalos
         WHERE demanda_id = ?
           AND id = ?
-    """, (
-        demanda_id,
-        gargalo_id,
-    ))
+        """,
+        (
+            demanda_id,
+            gargalo_id,
+        ),
+    )
 
     registrar_historico(
-        cursor=cursor,
-        demanda_id=demanda_id,
-        tipo_acao=
-            "Exclusão de gargalo",
-        descricao=(
+        cursor,
+        demanda_id,
+        "Exclusão de gargalo",
+        (
             "Gargalo excluído: "
-            f"{descricao_gargalo}"
+            f"{gargalo['descricao']}"
         ),
-        usuario=usuario_logado["nome"],
-        status_anterior=
-            demanda["status"],
-        status_posterior=
-            demanda["status"],
+        usuario_logado["nome"],
+        demanda["status"],
+        demanda["status"],
     )
 
     conn.commit()
@@ -2007,6 +2091,581 @@ def excluir_gargalo(
         "historico":
             historico,
     }
+
+
+@app.route(
+    "/api/demandas/<int:demanda_id>/anexos",
+    methods=["POST"],
+)
+@login_obrigatorio
+def adicionar_anexo(
+    demanda_id,
+    usuario_logado,
+):
+    arquivo = request.files.get(
+        "arquivo"
+    )
+
+    tipo = str(
+        request.form.get(
+            "tipo_documento",
+            "",
+        )
+    ).strip()
+
+    descricao = str(
+        request.form.get(
+            "descricao",
+            "",
+        )
+    ).strip()
+
+    if (
+        not arquivo or
+        not arquivo.filename
+    ):
+        return {
+            "mensagem":
+                "Selecione um arquivo."
+        }, 400
+
+    nome_original = secure_filename(
+        arquivo.filename
+    )
+
+    extensao = obter_extensao_arquivo(
+        nome_original
+    )
+
+    if (
+        not nome_original or
+        extensao not in
+        EXTENSOES_ANEXO_PERMITIDAS
+    ):
+        return {
+            "mensagem": (
+                "Formato de arquivo não permitido. "
+                "Envie PDF, DOC, DOCX, XLS, XLSX, "
+                "PNG, JPG ou JPEG."
+            )
+        }, 400
+
+    if (
+        tipo not in
+        TIPOS_DOCUMENTO_VALIDOS
+    ):
+        return {
+            "mensagem": (
+                "Selecione um tipo de "
+                "documento válido."
+            )
+        }, 400
+
+    if not descricao:
+        return {
+            "mensagem":
+                "Informe uma breve descrição."
+        }, 400
+
+    if len(descricao) > 300:
+        return {
+            "mensagem": (
+                "A descrição deve possuir "
+                "no máximo 300 caracteres."
+            )
+        }, 400
+
+    conn = obter_conexao()
+    cursor = conn.cursor()
+
+    demanda = buscar_demanda(
+        cursor,
+        demanda_id,
+    )
+
+    if not demanda:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Demanda não encontrada."
+        }, 404
+
+    nome_armazenado = (
+        f"{uuid.uuid4().hex}."
+        f"{extensao}"
+    )
+
+    caminho = obter_caminho_anexo(
+        nome_armazenado
+    )
+
+    try:
+        arquivo.save(caminho)
+
+        tamanho = caminho.stat().st_size
+
+        if tamanho == 0:
+            excluir_arquivo_anexo(
+                nome_armazenado
+            )
+
+            conn.close()
+
+            return {
+                "mensagem":
+                    "O arquivo está vazio."
+            }, 400
+
+        if (
+            tamanho >
+            TAMANHO_MAXIMO_ANEXO
+        ):
+            excluir_arquivo_anexo(
+                nome_armazenado
+            )
+
+            conn.close()
+
+            return {
+                "mensagem": (
+                    "O arquivo deve possuir "
+                    "no máximo 10 MB."
+                )
+            }, 413
+
+        agora = data_hora_atual()
+
+        cursor.execute(
+            """
+            INSERT INTO anexos (
+                demanda_id,
+                nome_original,
+                nome_armazenado,
+                extensao,
+                tipo_documento,
+                descricao,
+                tamanho_bytes,
+                usuario_id,
+                usuario_nome,
+                usuario_perfil,
+                data_envio,
+                data_atualizacao
+            )
+            VALUES (
+                ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?
+            )
+            """,
+            (
+                demanda_id,
+                nome_original,
+                nome_armazenado,
+                extensao,
+                tipo,
+                descricao,
+                tamanho,
+                usuario_logado["id"],
+                usuario_logado["nome"],
+                usuario_logado["perfil"],
+                agora,
+                agora,
+            ),
+        )
+
+        anexo_id = cursor.lastrowid
+
+        registrar_historico(
+            cursor,
+            demanda_id,
+            "Envio de documento",
+            (
+                "Documento anexado: "
+                f"{nome_original}."
+            ),
+            usuario_logado["nome"],
+            demanda["status"],
+            demanda["status"],
+        )
+
+        conn.commit()
+
+        resultado = dict(
+            buscar_anexo(
+                cursor,
+                demanda_id,
+                anexo_id,
+            )
+        )
+
+        resultado.pop(
+            "nome_armazenado",
+            None,
+        )
+
+        resultado["historico"] = (
+            buscar_historico(
+                cursor,
+                demanda_id,
+            )
+        )
+
+        conn.close()
+
+        return jsonify(resultado), 201
+
+    except Exception:
+        conn.rollback()
+        conn.close()
+
+        excluir_arquivo_anexo(
+            nome_armazenado
+        )
+
+        return {
+            "mensagem": (
+                "Não foi possível salvar "
+                "o documento."
+            )
+        }, 500
+
+
+@app.route(
+    (
+        "/api/demandas/"
+        "<int:demanda_id>/anexos/"
+        "<int:anexo_id>"
+    ),
+    methods=["PUT"],
+)
+@perfil_obrigatorio("gestor")
+def atualizar_anexo(
+    demanda_id,
+    anexo_id,
+    usuario_logado,
+):
+    dados = request.get_json(
+        silent=True
+    ) or {}
+
+    conn = obter_conexao()
+    cursor = conn.cursor()
+
+    demanda = buscar_demanda(
+        cursor,
+        demanda_id,
+    )
+
+    anexo = buscar_anexo(
+        cursor,
+        demanda_id,
+        anexo_id,
+    )
+
+    if not demanda:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Demanda não encontrada."
+        }, 404
+
+    if not anexo:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Documento não encontrado."
+        }, 404
+
+    tipo = str(
+        dados.get(
+            "tipo_documento",
+            anexo["tipo_documento"],
+        )
+    ).strip()
+
+    descricao = str(
+        dados.get(
+            "descricao",
+            anexo["descricao"],
+        )
+    ).strip()
+
+    if (
+        tipo not in
+        TIPOS_DOCUMENTO_VALIDOS
+    ):
+        conn.close()
+
+        return {
+            "mensagem": (
+                "Selecione um tipo de "
+                "documento válido."
+            )
+        }, 400
+
+    if not descricao:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Informe uma breve descrição."
+        }, 400
+
+    if len(descricao) > 300:
+        conn.close()
+
+        return {
+            "mensagem": (
+                "A descrição deve possuir "
+                "no máximo 300 caracteres."
+            )
+        }, 400
+
+    if (
+        tipo != anexo["tipo_documento"] or
+        descricao != anexo["descricao"]
+    ):
+        cursor.execute(
+            """
+            UPDATE anexos
+            SET
+                tipo_documento = ?,
+                descricao = ?,
+                data_atualizacao = ?
+            WHERE demanda_id = ?
+              AND id = ?
+            """,
+            (
+                tipo,
+                descricao,
+                data_hora_atual(),
+                demanda_id,
+                anexo_id,
+            ),
+        )
+
+        registrar_historico(
+            cursor,
+            demanda_id,
+            "Edição de documento",
+            (
+                "Os dados do documento "
+                f"{anexo['nome_original']} "
+                "foram atualizados."
+            ),
+            usuario_logado["nome"],
+            demanda["status"],
+            demanda["status"],
+        )
+
+        conn.commit()
+
+    resultado = dict(
+        buscar_anexo(
+            cursor,
+            demanda_id,
+            anexo_id,
+        )
+    )
+
+    resultado.pop(
+        "nome_armazenado",
+        None,
+    )
+
+    resultado["historico"] = (
+        buscar_historico(
+            cursor,
+            demanda_id,
+        )
+    )
+
+    conn.close()
+
+    return jsonify(resultado)
+
+
+@app.route(
+    (
+        "/api/demandas/"
+        "<int:demanda_id>/anexos/"
+        "<int:anexo_id>/arquivo"
+    ),
+    methods=["GET"],
+)
+@login_obrigatorio
+def obter_arquivo_anexo(
+    demanda_id,
+    anexo_id,
+    usuario_logado,
+):
+    conn = obter_conexao()
+    cursor = conn.cursor()
+
+    if not buscar_demanda(
+        cursor,
+        demanda_id,
+    ):
+        conn.close()
+
+        return {
+            "mensagem":
+                "Demanda não encontrada."
+        }, 404
+
+    anexo = buscar_anexo(
+        cursor,
+        demanda_id,
+        anexo_id,
+    )
+
+    conn.close()
+
+    if not anexo:
+        return {
+            "mensagem":
+                "Documento não encontrado."
+        }, 404
+
+    caminho = obter_caminho_anexo(
+        anexo["nome_armazenado"]
+    )
+
+    if not caminho.exists():
+        return {
+            "mensagem": (
+                "O arquivo não está mais "
+                "disponível no servidor."
+            )
+        }, 404
+
+    tipo_mime = (
+        mimetypes.guess_type(
+            anexo["nome_original"]
+        )[0]
+        or "application/octet-stream"
+    )
+
+    baixar = (
+        request.args.get(
+            "download",
+            "false",
+        ).lower() == "true"
+    )
+
+    return send_file(
+        caminho,
+        mimetype=tipo_mime,
+        as_attachment=baixar,
+        download_name=
+            anexo["nome_original"],
+    )
+
+
+@app.route(
+    (
+        "/api/demandas/"
+        "<int:demanda_id>/anexos/"
+        "<int:anexo_id>"
+    ),
+    methods=["DELETE"],
+)
+@login_obrigatorio
+def excluir_anexo(
+    demanda_id,
+    anexo_id,
+    usuario_logado,
+):
+    conn = obter_conexao()
+    cursor = conn.cursor()
+
+    demanda = buscar_demanda(
+        cursor,
+        demanda_id,
+    )
+
+    anexo = buscar_anexo(
+        cursor,
+        demanda_id,
+        anexo_id,
+    )
+
+    if not demanda:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Demanda não encontrada."
+        }, 404
+
+    if not anexo:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Documento não encontrado."
+        }, 404
+
+    if not usuario_pode_excluir_anexo(
+        usuario_logado,
+        anexo,
+    ):
+        conn.close()
+
+        return {
+            "mensagem": (
+                "Você só pode excluir documentos "
+                "enviados por você."
+            )
+        }, 403
+
+    cursor.execute(
+        """
+        DELETE FROM anexos
+        WHERE demanda_id = ?
+          AND id = ?
+        """,
+        (
+            demanda_id,
+            anexo_id,
+        ),
+    )
+
+    registrar_historico(
+        cursor,
+        demanda_id,
+        "Exclusão de documento",
+        (
+            "Documento excluído: "
+            f"{anexo['nome_original']}."
+        ),
+        usuario_logado["nome"],
+        demanda["status"],
+        demanda["status"],
+    )
+
+    conn.commit()
+
+    historico = buscar_historico(
+        cursor,
+        demanda_id,
+    )
+
+    conn.close()
+
+    excluir_arquivo_anexo(
+        anexo["nome_armazenado"]
+    )
+
+    return {
+        "mensagem":
+            "Documento excluído com sucesso.",
+        "historico":
+            historico,
+    }
+
 
 if __name__ == "__main__":
     app.run(debug=True)
