@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import {
   useNavigate,
   useParams,
@@ -16,12 +20,22 @@ const STATUS = [
   'Finalizada',
 ]
 
+const TIPOS_DOCUMENTO = [
+  'Relatório',
+  'Laudo',
+  'Foto',
+  'Ofício',
+  'Planilha',
+  'Outro',
+]
+
 function formatarData(data) {
   if (!data) {
     return '-'
   }
 
-  const [ano, mes, dia] = data.split('-')
+  const [ano, mes, dia] =
+    data.split('-')
 
   return `${dia}/${mes}/${ano}`
 }
@@ -37,31 +51,59 @@ function formatarDataHora(dataHora) {
     return '-'
   }
 
-  return data.toLocaleString('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  })
+  return data.toLocaleString(
+    'pt-BR',
+    {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    },
+  )
 }
 
-function criarClassePrioridade(prioridade) {
-  return prioridade
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '-')
+function formatarTamanho(bytes) {
+  const tamanho =
+    Number(bytes) || 0
+
+  if (tamanho < 1024) {
+    return `${tamanho} B`
+  }
+
+  if (
+    tamanho <
+    1024 * 1024
+  ) {
+    return (
+      `${(
+        tamanho / 1024
+      ).toFixed(1)} KB`
+    )
+  }
+
+  return (
+    `${(
+      tamanho /
+      (1024 * 1024)
+    ).toFixed(1)} MB`
+  )
 }
 
-function criarClasseStatus(status) {
-  return (status || '')
+function criarClasse(texto) {
+  return (texto || '')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(
+      /[\u0300-\u036f]/g,
+      '',
+    )
     .replace(/\s+/g, '-')
 }
 
 function DetalhesDemanda() {
   const navigate = useNavigate()
   const { id } = useParams()
+
+  const arquivoInputRef =
+    useRef(null)
 
   const {
     responsaveis,
@@ -77,11 +119,19 @@ function DetalhesDemanda() {
     resolverGargalo,
     reabrirGargalo,
     excluirGargalo,
+    anexarDocumento,
+    editarDocumento,
+    abrirDocumento,
+    baixarDocumento,
+    excluirDocumento,
   } = useDemandas()
 
   const {
     usuarioEhGestor,
   } = useAuth()
+
+  const demanda =
+    buscarDemandaPorId(id)
 
   const [
     confirmacaoAberta,
@@ -121,7 +171,9 @@ function DetalhesDemanda() {
   const [
     statusSelecionado,
     setStatusSelecionado,
-  ] = useState('Em andamento')
+  ] = useState(
+    'Em andamento',
+  )
 
   const [
     mensagemStatus,
@@ -132,6 +184,11 @@ function DetalhesDemanda() {
     modoEdicao,
     setModoEdicao,
   ] = useState(false)
+
+  const [
+    mensagemEdicao,
+    setMensagemEdicao,
+  ] = useState('')
 
   const [
     dadosEdicao,
@@ -146,8 +203,48 @@ function DetalhesDemanda() {
   })
 
   const [
-    mensagemEdicao,
-    setMensagemEdicao,
+    arquivoDocumento,
+    setArquivoDocumento,
+  ] = useState(null)
+
+  const [
+    tipoDocumento,
+    setTipoDocumento,
+  ] = useState('')
+
+  const [
+    descricaoDocumento,
+    setDescricaoDocumento,
+  ] = useState('')
+
+  const [
+    mensagemDocumento,
+    setMensagemDocumento,
+  ] = useState('')
+
+  const [
+    enviandoDocumento,
+    setEnviandoDocumento,
+  ] = useState(false)
+
+  const [
+    documentoEmProcessamento,
+    setDocumentoEmProcessamento,
+  ] = useState(null)
+
+  const [
+    documentoEmEdicao,
+    setDocumentoEmEdicao,
+  ] = useState(null)
+
+  const [
+    tipoDocumentoEdicao,
+    setTipoDocumentoEdicao,
+  ] = useState('')
+
+  const [
+    descricaoDocumentoEdicao,
+    setDescricaoDocumentoEdicao,
   ] = useState('')
 
   const [
@@ -185,8 +282,6 @@ function DetalhesDemanda() {
     setExibirTodosGargalos,
   ] = useState(false)
 
-  const demanda = buscarDemandaPorId(id)
-
   useEffect(() => {
     if (!demanda) {
       return
@@ -197,18 +292,21 @@ function DetalhesDemanda() {
     )
 
     setStatusSelecionado(
-      demanda.status || 'Em andamento',
+      demanda.status ||
+        'Em andamento',
     )
 
     setDadosEdicao({
       orgaoSolicitante:
-        demanda.orgaoSolicitante || '',
+        demanda.orgaoSolicitante ||
+        '',
       municipio:
         demanda.municipio || '',
       bairro:
         demanda.bairro || '',
       tipoOcorrencia:
-        demanda.tipoOcorrencia || '',
+        demanda.tipoOcorrencia ||
+        '',
       prazoResposta:
         demanda.prazoResposta || '',
       descricao:
@@ -216,34 +314,93 @@ function DetalhesDemanda() {
     })
   }, [demanda])
 
-  function abrirConfirmacao() {
-    if (!usuarioEhGestor) {
-      return
-    }
+  if (!demanda) {
+    return (
+      <div className="detalhes-page">
+        <div className="demanda-nao-encontrada">
+          <h1>
+            Demanda não encontrada
+          </h1>
 
-    setConfirmacaoAberta(true)
+          <p>
+            O registro solicitado não
+            existe ou não está mais
+            disponível.
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate('/demandas')
+            }
+          >
+            Voltar para demandas
+          </button>
+        </div>
+      </div>
+    )
   }
 
-  function fecharConfirmacao() {
-    setConfirmacaoAberta(false)
-  }
+  const prioridadeAutomatica =
+    calcularPrioridade(
+      demanda.prazoResposta,
+    )
+
+  const prioridadeAtual =
+    demanda.prioridadeManual ||
+    prioridadeAutomatica
+
+  const prioridadeFoiAjustada =
+    Boolean(
+      demanda.prioridadeManual,
+    )
+
+  const classePrioridade =
+    criarClasse(
+      prioridadeAtual,
+    )
+
+  const classePrioridadeAutomatica =
+    criarClasse(
+      prioridadeAutomatica,
+    )
+
+  const classeStatus =
+    criarClasse(
+      demanda.status,
+    )
+
+  const anexos =
+    demanda.anexos || []
+
+  const gargalos =
+    demanda.gargalos || []
+
+  const quantidadeGargalosAbertos =
+    gargalos.filter(
+      (gargalo) =>
+        gargalo.status ===
+        'Aberto',
+    ).length
+
+  const possuiGargalosOcultos =
+    gargalos.length > 3
+
+  const gargalosVisiveis =
+    exibirTodosGargalos
+      ? gargalos
+      : gargalos.slice(0, 3)
 
   async function confirmarExclusao() {
     if (!usuarioEhGestor) {
-      setConfirmacaoAberta(false)
-
-      window.alert(
-        'Somente usuários com perfil Gestor podem excluir demandas.',
-      )
-
       return
     }
 
     try {
-      const demandaExcluida =
+      const resultado =
         await excluirDemanda(id)
 
-      if (!demandaExcluida) {
+      if (!resultado) {
         window.alert(
           'Não foi possível encontrar a demanda para exclusão.',
         )
@@ -266,31 +423,19 @@ function DetalhesDemanda() {
   }
 
   function abrirModalPrioridade() {
-    if (!demanda) {
-      return
-    }
-
-    const prioridadeAutomatica =
-      calcularPrioridade(
-        demanda.prazoResposta,
-      )
-
     setNovaPrioridade(
       demanda.prioridadeManual ||
         prioridadeAutomatica,
     )
 
     setJustificativaPrioridade(
-      demanda.justificativaPrioridade || '',
+      demanda
+        .justificativaPrioridade ||
+        '',
     )
 
     setErroPrioridade('')
     setModalPrioridadeAberto(true)
-  }
-
-  function fecharModalPrioridade() {
-    setModalPrioridadeAberto(false)
-    setErroPrioridade('')
   }
 
   async function salvarPrioridadeManual(
@@ -307,22 +452,25 @@ function DetalhesDemanda() {
     }
 
     try {
-      const prioridadeAlterada =
+      const resultado =
         await alterarPrioridade(
           id,
           novaPrioridade,
           justificativaPrioridade,
         )
 
-      if (!prioridadeAlterada) {
+      if (!resultado) {
         setErroPrioridade(
-          'Não foi possível alterar a prioridade. Tente novamente.',
+          'Não foi possível alterar a prioridade.',
         )
 
         return
       }
 
-      setModalPrioridadeAberto(false)
+      setModalPrioridadeAberto(
+        false,
+      )
+
       setErroPrioridade('')
     } catch (erro) {
       console.error(
@@ -339,12 +487,12 @@ function DetalhesDemanda() {
 
   async function restaurarPrioridade() {
     try {
-      const prioridadeRestaurada =
+      const resultado =
         await restaurarPrioridadeAutomatica(
           id,
         )
 
-      if (!prioridadeRestaurada) {
+      if (!resultado) {
         setErroPrioridade(
           'Não foi possível restaurar a prioridade automática.',
         )
@@ -352,13 +500,19 @@ function DetalhesDemanda() {
         return
       }
 
-      setModalPrioridadeAberto(false)
+      setModalPrioridadeAberto(
+        false,
+      )
+
       setErroPrioridade('')
       setNovaPrioridade('')
-      setJustificativaPrioridade('')
+
+      setJustificativaPrioridade(
+        '',
+      )
     } catch (erro) {
       console.error(
-        'Erro ao restaurar prioridade automática:',
+        'Erro ao restaurar prioridade:',
         erro,
       )
 
@@ -369,46 +523,28 @@ function DetalhesDemanda() {
     }
   }
 
-  async function salvarResponsavel(evento) {
+  async function salvarResponsavel(
+    evento,
+  ) {
     evento.preventDefault()
-
-    if (!usuarioEhGestor) {
-      setMensagemResponsavel(
-        'Somente usuários com perfil Gestor podem atribuir ou remover o responsável.',
-      )
-
-      return
-    }
 
     const responsavelTratado =
       responsavelSelecionado.trim()
 
-    if (responsavelTratado.length > 100) {
-      setMensagemResponsavel(
-        'O nome do responsável deve possuir no máximo 100 caracteres.',
-      )
-
-      return
-    }
-
     try {
-      const responsavelAtualizado =
+      const resultado =
         await atribuirResponsavel(
           id,
           responsavelTratado,
         )
 
-      if (!responsavelAtualizado) {
+      if (!resultado) {
         setMensagemResponsavel(
           'Não foi possível atualizar o responsável.',
         )
 
         return
       }
-
-      setResponsavelSelecionado(
-        responsavelTratado,
-      )
 
       setMensagemResponsavel(
         responsavelTratado
@@ -428,7 +564,9 @@ function DetalhesDemanda() {
     }
   }
 
-  async function salvarStatus(evento) {
+  async function salvarStatus(
+    evento,
+  ) {
     evento.preventDefault()
 
     if (
@@ -443,22 +581,16 @@ function DetalhesDemanda() {
     }
 
     try {
-      const statusAtualizado =
+      const resultado =
         await alterarStatus(
           id,
           statusSelecionado,
         )
 
-      if (!statusAtualizado) {
-        setMensagemStatus(
-          'Não foi possível atualizar o status.',
-        )
-
-        return
-      }
-
       setMensagemStatus(
-        'Status atualizado com sucesso.',
+        resultado
+          ? 'Status atualizado com sucesso.'
+          : 'Não foi possível atualizar o status.',
       )
     } catch (erro) {
       console.error(
@@ -473,7 +605,9 @@ function DetalhesDemanda() {
     }
   }
 
-  async function salvarEdicao(evento) {
+  async function salvarEdicao(
+    evento,
+  ) {
     evento.preventDefault()
 
     try {
@@ -514,13 +648,15 @@ function DetalhesDemanda() {
 
     setDadosEdicao({
       orgaoSolicitante:
-        demanda.orgaoSolicitante || '',
+        demanda.orgaoSolicitante ||
+        '',
       municipio:
         demanda.municipio || '',
       bairro:
         demanda.bairro || '',
       tipoOcorrencia:
-        demanda.tipoOcorrencia || '',
+        demanda.tipoOcorrencia ||
+        '',
       prazoResposta:
         demanda.prazoResposta || '',
       descricao:
@@ -528,41 +664,247 @@ function DetalhesDemanda() {
     })
   }
 
+  async function salvarDocumento(
+    evento,
+  ) {
+    evento.preventDefault()
+
+    try {
+      setEnviandoDocumento(true)
+      setMensagemDocumento('')
+
+      const resultado =
+        await anexarDocumento(
+          id,
+          arquivoDocumento,
+          tipoDocumento,
+          descricaoDocumento,
+        )
+
+      if (!resultado) {
+        setMensagemDocumento(
+          'Não foi possível anexar o documento.',
+        )
+
+        return
+      }
+
+      setArquivoDocumento(null)
+      setTipoDocumento('')
+      setDescricaoDocumento('')
+
+      if (
+        arquivoInputRef.current
+      ) {
+        arquivoInputRef.current.value =
+          ''
+      }
+
+      setMensagemDocumento(
+        'Documento anexado com sucesso.',
+      )
+    } catch (erro) {
+      console.error(
+        'Erro ao anexar documento:',
+        erro,
+      )
+
+      setMensagemDocumento(
+        erro.message ||
+          'Não foi possível anexar o documento.',
+      )
+    } finally {
+      setEnviandoDocumento(false)
+    }
+  }
+
+  function iniciarEdicaoDocumento(
+    anexo,
+  ) {
+    if (!usuarioEhGestor) {
+      return
+    }
+
+    setDocumentoEmEdicao(
+      anexo.id,
+    )
+
+    setTipoDocumentoEdicao(
+      anexo.tipoDocumento,
+    )
+
+    setDescricaoDocumentoEdicao(
+      anexo.descricao,
+    )
+
+    setMensagemDocumento('')
+  }
+
+  function cancelarEdicaoDocumento() {
+    setDocumentoEmEdicao(null)
+    setTipoDocumentoEdicao('')
+
+    setDescricaoDocumentoEdicao(
+      '',
+    )
+  }
+
+  async function salvarEdicaoDocumento(
+    anexoId,
+  ) {
+    try {
+      setDocumentoEmProcessamento(
+        anexoId,
+      )
+
+      setMensagemDocumento('')
+
+      const resultado =
+        await editarDocumento(
+          id,
+          anexoId,
+          tipoDocumentoEdicao,
+          descricaoDocumentoEdicao,
+        )
+
+      if (!resultado) {
+        setMensagemDocumento(
+          'Não foi possível editar o documento.',
+        )
+
+        return
+      }
+
+      cancelarEdicaoDocumento()
+
+      setMensagemDocumento(
+        'Documento atualizado com sucesso.',
+      )
+    } catch (erro) {
+      console.error(
+        'Erro ao editar documento:',
+        erro,
+      )
+
+      setMensagemDocumento(
+        erro.message ||
+          'Não foi possível editar o documento.',
+      )
+    } finally {
+      setDocumentoEmProcessamento(
+        null,
+      )
+    }
+  }
+
+  async function executarAcaoDocumento(
+    anexoId,
+    acao,
+  ) {
+    try {
+      setDocumentoEmProcessamento(
+        anexoId,
+      )
+
+      setMensagemDocumento('')
+
+      await acao(
+        id,
+        anexoId,
+      )
+    } catch (erro) {
+      console.error(
+        'Erro ao acessar documento:',
+        erro,
+      )
+
+      setMensagemDocumento(
+        erro.message ||
+          'Não foi possível acessar o documento.',
+      )
+    } finally {
+      setDocumentoEmProcessamento(
+        null,
+      )
+    }
+  }
+
+  async function confirmarExclusaoDocumento(
+    anexo,
+  ) {
+    const confirmou =
+      window.confirm(
+        `Deseja excluir o documento “${anexo.nomeOriginal}”?`,
+      )
+
+    if (!confirmou) {
+      return
+    }
+
+    try {
+      setDocumentoEmProcessamento(
+        anexo.id,
+      )
+
+      setMensagemDocumento('')
+
+      const resultado =
+        await excluirDocumento(
+          id,
+          anexo.id,
+        )
+
+      if (!resultado) {
+        setMensagemDocumento(
+          'Não foi possível excluir o documento.',
+        )
+
+        return
+      }
+
+      if (
+        documentoEmEdicao ===
+        anexo.id
+      ) {
+        cancelarEdicaoDocumento()
+      }
+
+      setMensagemDocumento(
+        'Documento excluído com sucesso.',
+      )
+    } catch (erro) {
+      console.error(
+        'Erro ao excluir documento:',
+        erro,
+      )
+
+      setMensagemDocumento(
+        erro.message ||
+          'Não foi possível excluir o documento.',
+      )
+    } finally {
+      setDocumentoEmProcessamento(
+        null,
+      )
+    }
+  }
+
   async function salvarNovoGargalo(
     evento,
   ) {
     evento.preventDefault()
 
-    const descricaoTratada =
-      descricaoGargalo.trim()
-
-    if (!descricaoTratada) {
-      setMensagemGargalo(
-        'Informe a descrição do gargalo.',
-      )
-
-      return
-    }
-
-    if (descricaoTratada.length > 500) {
-      setMensagemGargalo(
-        'A descrição do gargalo deve possuir no máximo 500 caracteres.',
-      )
-
-      return
-    }
-
     try {
       setSalvandoGargalo(true)
       setMensagemGargalo('')
 
-      const gargaloRegistrado =
+      const resultado =
         await registrarGargalo(
           id,
-          descricaoTratada,
+          descricaoGargalo,
         )
 
-      if (!gargaloRegistrado) {
+      if (!resultado) {
         setMensagemGargalo(
           'Não foi possível registrar o gargalo.',
         )
@@ -610,35 +952,15 @@ function DetalhesDemanda() {
 
   function cancelarEdicaoGargalo() {
     setGargaloEmEdicao(null)
-    setDescricaoGargaloEdicao('')
+
+    setDescricaoGargaloEdicao(
+      '',
+    )
   }
 
   async function salvarEdicaoGargalo(
     gargaloId,
   ) {
-    if (!usuarioEhGestor) {
-      return
-    }
-
-    const descricaoTratada =
-      descricaoGargaloEdicao.trim()
-
-    if (!descricaoTratada) {
-      setMensagemGargalo(
-        'Informe a descrição do gargalo.',
-      )
-
-      return
-    }
-
-    if (descricaoTratada.length > 500) {
-      setMensagemGargalo(
-        'A descrição do gargalo deve possuir no máximo 500 caracteres.',
-      )
-
-      return
-    }
-
     try {
       setGargaloEmProcessamento(
         gargaloId,
@@ -646,14 +968,14 @@ function DetalhesDemanda() {
 
       setMensagemGargalo('')
 
-      const gargaloAtualizado =
+      const resultado =
         await editarGargalo(
           id,
           gargaloId,
-          descricaoTratada,
+          descricaoGargaloEdicao,
         )
 
-      if (!gargaloAtualizado) {
+      if (!resultado) {
         setMensagemGargalo(
           'Não foi possível editar o gargalo.',
         )
@@ -661,8 +983,7 @@ function DetalhesDemanda() {
         return
       }
 
-      setGargaloEmEdicao(null)
-      setDescricaoGargaloEdicao('')
+      cancelarEdicaoGargalo()
 
       setMensagemGargalo(
         'Gargalo atualizado com sucesso.',
@@ -678,17 +999,15 @@ function DetalhesDemanda() {
           'Não foi possível editar o gargalo.',
       )
     } finally {
-      setGargaloEmProcessamento(null)
+      setGargaloEmProcessamento(
+        null,
+      )
     }
   }
 
   async function alternarStatusGargalo(
     gargalo,
   ) {
-    if (!usuarioEhGestor) {
-      return
-    }
-
     try {
       setGargaloEmProcessamento(
         gargalo.id,
@@ -697,7 +1016,8 @@ function DetalhesDemanda() {
       setMensagemGargalo('')
 
       const resultado =
-        gargalo.status === 'Resolvido'
+        gargalo.status ===
+        'Resolvido'
           ? await reabrirGargalo(
               id,
               gargalo.id,
@@ -716,13 +1036,14 @@ function DetalhesDemanda() {
       }
 
       setMensagemGargalo(
-        gargalo.status === 'Resolvido'
+        gargalo.status ===
+        'Resolvido'
           ? 'Gargalo reaberto com sucesso.'
           : 'Gargalo marcado como resolvido.',
       )
     } catch (erro) {
       console.error(
-        'Erro ao alterar status do gargalo:',
+        'Erro ao atualizar gargalo:',
         erro,
       )
 
@@ -731,23 +1052,21 @@ function DetalhesDemanda() {
           'Não foi possível atualizar o gargalo.',
       )
     } finally {
-      setGargaloEmProcessamento(null)
+      setGargaloEmProcessamento(
+        null,
+      )
     }
   }
 
   async function confirmarExclusaoGargalo(
     gargalo,
   ) {
-    if (!usuarioEhGestor) {
-      return
-    }
-
-    const exclusaoConfirmada =
+    const confirmou =
       window.confirm(
-        'Deseja realmente excluir este gargalo? Esta ação não poderá ser desfeita.',
+        'Deseja realmente excluir este gargalo?',
       )
 
-    if (!exclusaoConfirmada) {
+    if (!confirmou) {
       return
     }
 
@@ -776,8 +1095,7 @@ function DetalhesDemanda() {
         gargaloEmEdicao ===
         gargalo.id
       ) {
-        setGargaloEmEdicao(null)
-        setDescricaoGargaloEdicao('')
+        cancelarEdicaoGargalo()
       }
 
       setMensagemGargalo(
@@ -794,76 +1112,11 @@ function DetalhesDemanda() {
           'Não foi possível excluir o gargalo.',
       )
     } finally {
-      setGargaloEmProcessamento(null)
+      setGargaloEmProcessamento(
+        null,
+      )
     }
   }
-
-  if (!demanda) {
-    return (
-      <div className="detalhes-page">
-        <div className="demanda-nao-encontrada">
-          <h1>Demanda não encontrada</h1>
-
-          <p>
-            O registro solicitado não existe ou não está
-            mais disponível.
-          </p>
-
-          <button
-            type="button"
-            onClick={() =>
-              navigate('/demandas')
-            }
-          >
-            Voltar para demandas
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  const prioridadeAutomatica =
-    calcularPrioridade(
-      demanda.prazoResposta,
-    )
-
-  const prioridadeAtual =
-    demanda.prioridadeManual ||
-    prioridadeAutomatica
-
-  const prioridadeFoiAjustada =
-    Boolean(demanda.prioridadeManual)
-
-  const classePrioridade =
-    criarClassePrioridade(
-      prioridadeAtual,
-    )
-
-  const classePrioridadeAutomatica =
-    criarClassePrioridade(
-      prioridadeAutomatica,
-    )
-
-  const classeStatus =
-    criarClasseStatus(demanda.status)
-
-  const gargalos =
-    demanda.gargalos || []
-
-  const quantidadeGargalosAbertos =
-    gargalos.filter(
-      (gargalo) =>
-        gargalo.status === 'Aberto',
-    ).length
-
-  const possuiGargalosOcultos =
-    gargalos.length > 3
-
-  const gargalosVisiveis =
-    exibirTodosGargalos
-      ? gargalos
-      : gargalos.slice(0, 3)
-
   return (
     <div className="detalhes-page">
       <nav
@@ -879,7 +1132,9 @@ function DetalhesDemanda() {
           Demandas
         </button>
 
-        <span aria-hidden="true">›</span>
+        <span aria-hidden="true">
+          ›
+        </span>
 
         <strong>
           {demanda.orgaoSolicitante}
@@ -897,8 +1152,8 @@ function DetalhesDemanda() {
           </h1>
 
           <p>
-            Consulte as informações registradas para esta
-            demanda.
+            Consulte as informações
+            registradas para esta demanda.
           </p>
         </div>
 
@@ -913,6 +1168,271 @@ function DetalhesDemanda() {
         </button>
       </div>
 
+      <section className="detalhes-card">
+        <div className="detalhes-card-header">
+          <div>
+            <h2>
+              Informações da demanda
+            </h2>
+
+            <p>
+              Dados principais registrados
+              no cadastro manual.
+            </p>
+          </div>
+
+          {!modoEdicao && (
+            <button
+              type="button"
+              className="alterar-prioridade-button"
+              onClick={() => {
+                setModoEdicao(true)
+                setMensagemEdicao('')
+              }}
+            >
+              Editar dados
+            </button>
+          )}
+        </div>
+
+        {mensagemEdicao && (
+          <p
+            className="status-mensagem"
+            role="status"
+          >
+            {mensagemEdicao}
+          </p>
+        )}
+
+        {!modoEdicao ? (
+          <div className="detalhes-grid">
+            <div className="detalhes-campo">
+              <span>
+                Órgão solicitante
+              </span>
+
+              <strong>
+                {demanda.orgaoSolicitante}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo">
+              <span>
+                Tipo de ocorrência
+              </span>
+
+              <strong>
+                {demanda.tipoOcorrencia}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo">
+              <span>
+                Data de entrada
+              </span>
+
+              <strong>
+                {formatarData(
+                  demanda.dataEntrada,
+                )}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo">
+              <span>
+                Prazo de resposta
+              </span>
+
+              <strong>
+                {formatarData(
+                  demanda.prazoResposta,
+                )}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo">
+              <span>Município</span>
+
+              <strong>
+                {demanda.municipio}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo">
+              <span>
+                Bairro ou área
+              </span>
+
+              <strong>
+                {demanda.bairro}
+              </strong>
+            </div>
+
+            <div className="detalhes-campo detalhes-campo-completo">
+              <span>
+                Descrição da demanda
+              </span>
+
+              <p>
+                {demanda.descricao}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <form
+            className="detalhes-grid"
+            onSubmit={salvarEdicao}
+          >
+            <label className="detalhes-campo">
+              <span>
+                Órgão solicitante
+              </span>
+
+              <input
+                type="text"
+                value={
+                  dadosEdicao
+                    .orgaoSolicitante
+                }
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    orgaoSolicitante:
+                      evento.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="detalhes-campo">
+              <span>
+                Tipo de ocorrência
+              </span>
+
+              <input
+                type="text"
+                value={
+                  dadosEdicao
+                    .tipoOcorrencia
+                }
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    tipoOcorrencia:
+                      evento.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="detalhes-campo">
+              <span>
+                Prazo de resposta
+              </span>
+
+              <input
+                type="date"
+                value={
+                  dadosEdicao
+                    .prazoResposta
+                }
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    prazoResposta:
+                      evento.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="detalhes-campo">
+              <span>Município</span>
+
+              <input
+                type="text"
+                value={
+                  dadosEdicao.municipio
+                }
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    municipio:
+                      evento.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="detalhes-campo">
+              <span>
+                Bairro ou área
+              </span>
+
+              <input
+                type="text"
+                value={
+                  dadosEdicao.bairro
+                }
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    bairro:
+                      evento.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="detalhes-campo detalhes-campo-completo">
+              <span>
+                Descrição da demanda
+              </span>
+
+              <textarea
+                rows="5"
+                value={
+                  dadosEdicao.descricao
+                }
+                onChange={(evento) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    descricao:
+                      evento.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <div className="detalhes-campo detalhes-campo-completo">
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '1rem',
+                }}
+              >
+                <button
+                  type="submit"
+                  className="salvar-status-button"
+                >
+                  Salvar alterações
+                </button>
+
+                <button
+                  type="button"
+                  className="cancelar-prioridade-button"
+                  onClick={
+                    cancelarEdicao
+                  }
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+      </section>
+
       <section className="detalhes-card responsavel-card">
         <div className="detalhes-card-header responsavel-card-header">
           <div className="responsavel-card-texto">
@@ -923,12 +1443,12 @@ function DetalhesDemanda() {
             <p>
               {usuarioEhGestor
                 ? (
-                  'Atribua a demanda a um integrante da equipe ' +
-                  'para acompanhar a distribuição do trabalho.'
+                  'Atribua a demanda a um ' +
+                  'integrante da equipe.'
                 )
                 : (
-                  'Consulte o integrante responsável pelo ' +
-                  'acompanhamento desta demanda.'
+                  'Consulte o integrante ' +
+                  'responsável pelo acompanhamento.'
                 )}
             </p>
           </div>
@@ -949,7 +1469,9 @@ function DetalhesDemanda() {
           <>
             <form
               className="responsavel-form"
-              onSubmit={salvarResponsavel}
+              onSubmit={
+                salvarResponsavel
+              }
             >
               <div className="responsavel-form-field">
                 <label htmlFor="responsavelDemanda">
@@ -962,14 +1484,17 @@ function DetalhesDemanda() {
                   list="listaResponsaveis"
                   maxLength="100"
                   autoComplete="off"
-                  placeholder="Digite ou pesquise um responsável"
-                  value={responsavelSelecionado}
+                  value={
+                    responsavelSelecionado
+                  }
                   onChange={(evento) => {
                     setResponsavelSelecionado(
                       evento.target.value,
                     )
 
-                    setMensagemResponsavel('')
+                    setMensagemResponsavel(
+                      '',
+                    )
                   }}
                 />
 
@@ -983,12 +1508,6 @@ function DetalhesDemanda() {
                     ),
                   )}
                 </datalist>
-
-                <small className="responsavel-form-ajuda">
-                  Pesquise um responsável existente ou digite
-                  um novo nome. Para remover o responsável,
-                  apague o conteúdo do campo e salve.
-                </small>
               </div>
 
               <button
@@ -1010,20 +1529,414 @@ function DetalhesDemanda() {
           </>
         ) : (
           <p className="responsavel-mensagem">
-            A atribuição ou remoção do responsável é
+            A atribuição ou remoção é
             exclusiva do perfil Gestor.
           </p>
         )}
       </section>
 
+      <section className="detalhes-card documentos-card">
+        <div className="detalhes-card-header documentos-card-header">
+          <div>
+            <h2>
+              Documentos anexados
+            </h2>
+
+            <p>
+              Organize as evidências da
+              demanda com tipo, descrição
+              e responsável.
+            </p>
+          </div>
+
+          <div className="documentos-resumo">
+            <span>
+              Total de documentos
+            </span>
+
+            <strong>
+              {anexos.length}
+            </strong>
+          </div>
+        </div>
+
+        <form
+          className="documento-form"
+          onSubmit={salvarDocumento}
+        >
+          <div className="documento-form-grid">
+            <div className="documento-form-field">
+              <label htmlFor="arquivoDocumento">
+                Arquivo
+              </label>
+
+              <input
+                ref={arquivoInputRef}
+                id="arquivoDocumento"
+                type="file"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                onChange={(evento) => {
+                  setArquivoDocumento(
+                    evento.target
+                      .files?.[0] ||
+                      null,
+                  )
+
+                  setMensagemDocumento(
+                    '',
+                  )
+                }}
+              />
+
+              <small>
+                PDF, Word, Excel ou imagem.
+                Máximo de 10 MB.
+              </small>
+            </div>
+
+            <div className="documento-form-field">
+              <label htmlFor="tipoDocumento">
+                Tipo de documento
+              </label>
+
+              <select
+                id="tipoDocumento"
+                value={tipoDocumento}
+                onChange={(evento) => {
+                  setTipoDocumento(
+                    evento.target.value,
+                  )
+
+                  setMensagemDocumento(
+                    '',
+                  )
+                }}
+              >
+                <option value="">
+                  Selecione o tipo
+                </option>
+
+                {TIPOS_DOCUMENTO.map(
+                  (tipo) => (
+                    <option
+                      key={tipo}
+                      value={tipo}
+                    >
+                      {tipo}
+                    </option>
+                  ),
+                )}
+              </select>
+            </div>
+
+            <div className="documento-form-field documento-form-descricao">
+              <label htmlFor="descricaoDocumento">
+                Breve descrição
+              </label>
+
+              <textarea
+                id="descricaoDocumento"
+                rows="3"
+                maxLength="300"
+                value={
+                  descricaoDocumento
+                }
+                onChange={(evento) => {
+                  setDescricaoDocumento(
+                    evento.target.value,
+                  )
+
+                  setMensagemDocumento(
+                    '',
+                  )
+                }}
+                placeholder="Informe o conteúdo ou a finalidade do documento"
+              />
+
+              <small>
+                {descricaoDocumento.length}
+                /300 caracteres
+              </small>
+            </div>
+          </div>
+
+          <button
+            className="registrar-documento-button"
+            type="submit"
+            disabled={
+              enviandoDocumento
+            }
+          >
+            {enviandoDocumento
+              ? 'Enviando...'
+              : 'Anexar documento'}
+          </button>
+        </form>
+
+        {mensagemDocumento && (
+          <p
+            className="documento-mensagem"
+            role="status"
+          >
+            {mensagemDocumento}
+          </p>
+        )}
+
+        <div className="documentos-lista">
+          {anexos.length === 0 ? (
+            <div className="documentos-vazio">
+              <strong>
+                Nenhum documento anexado
+              </strong>
+
+              <p>
+                Os arquivos enviados para
+                esta demanda aparecerão aqui.
+              </p>
+            </div>
+          ) : (
+            anexos.map((anexo) => {
+              const editando =
+                documentoEmEdicao ===
+                anexo.id
+
+              const processando =
+                documentoEmProcessamento ===
+                anexo.id
+
+              return (
+                <article
+                  className="documento-item"
+                  key={anexo.id}
+                >
+                  <div className="documento-item-topo">
+                    <div className="documento-identificacao">
+                      <span className="documento-extensao">
+                        {(
+                          anexo.extensao ||
+                          'ARQ'
+                        ).toUpperCase()}
+                      </span>
+
+                      <div>
+                        <strong>
+                          {anexo.nomeOriginal}
+                        </strong>
+
+                        <span>
+                          {formatarTamanho(
+                            anexo.tamanhoBytes,
+                          )}
+                          {' · '}
+                          {
+                            anexo.tipoDocumento
+                          }
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="documento-data">
+                      Enviado em{' '}
+                      {formatarDataHora(
+                        anexo.dataEnvio,
+                      )}
+                    </span>
+                  </div>
+
+                  {editando ? (
+                    <div className="documento-edicao">
+                      <label>
+                        Tipo de documento
+
+                        <select
+                          value={
+                            tipoDocumentoEdicao
+                          }
+                          onChange={(
+                            evento,
+                          ) =>
+                            setTipoDocumentoEdicao(
+                              evento.target
+                                .value,
+                            )
+                          }
+                        >
+                          {TIPOS_DOCUMENTO.map(
+                            (tipo) => (
+                              <option
+                                key={tipo}
+                                value={tipo}
+                              >
+                                {tipo}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                      </label>
+
+                      <label>
+                        Descrição
+
+                        <textarea
+                          rows="3"
+                          maxLength="300"
+                          value={
+                            descricaoDocumentoEdicao
+                          }
+                          onChange={(
+                            evento,
+                          ) =>
+                            setDescricaoDocumentoEdicao(
+                              evento.target
+                                .value,
+                            )
+                          }
+                        />
+                      </label>
+
+                      <div className="documento-edicao-acoes">
+                        <button
+                          type="button"
+                          className="documento-cancelar-button"
+                          disabled={
+                            processando
+                          }
+                          onClick={
+                            cancelarEdicaoDocumento
+                          }
+                        >
+                          Cancelar
+                        </button>
+
+                        <button
+                          type="button"
+                          className="documento-salvar-button"
+                          disabled={
+                            processando
+                          }
+                          onClick={() =>
+                            salvarEdicaoDocumento(
+                              anexo.id,
+                            )
+                          }
+                        >
+                          {processando
+                            ? 'Salvando...'
+                            : 'Salvar edição'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="documento-descricao">
+                      {anexo.descricao}
+                    </p>
+                  )}
+
+                  <div className="documento-metadados">
+                    <span>
+                      Enviado por{' '}
+                      <strong>
+                        {anexo.usuarioNome ||
+                          'Usuário não identificado'}
+                      </strong>
+                    </span>
+
+                    {anexo.dataAtualizacao !==
+                      anexo.dataEnvio && (
+                      <span>
+                        Atualizado em{' '}
+                        {formatarDataHora(
+                          anexo
+                            .dataAtualizacao,
+                        )}
+                      </span>
+                    )}
+                  </div>
+
+                  {!editando && (
+                    <div className="documento-acoes">
+                      <button
+                        type="button"
+                        className="documento-abrir-button"
+                        disabled={
+                          processando
+                        }
+                        onClick={() =>
+                          executarAcaoDocumento(
+                            anexo.id,
+                            abrirDocumento,
+                          )
+                        }
+                      >
+                        Abrir
+                      </button>
+
+                      <button
+                        type="button"
+                        className="documento-baixar-button"
+                        disabled={
+                          processando
+                        }
+                        onClick={() =>
+                          executarAcaoDocumento(
+                            anexo.id,
+                            baixarDocumento,
+                          )
+                        }
+                      >
+                        Baixar
+                      </button>
+
+                      {usuarioEhGestor && (
+                        <button
+                          type="button"
+                          className="documento-editar-button"
+                          disabled={
+                            processando
+                          }
+                          onClick={() =>
+                            iniciarEdicaoDocumento(
+                              anexo,
+                            )
+                          }
+                        >
+                          Editar
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        className="documento-excluir-button"
+                        disabled={
+                          processando
+                        }
+                        onClick={() =>
+                          confirmarExclusaoDocumento(
+                            anexo,
+                          )
+                        }
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  )}
+                </article>
+              )
+            })
+          )}
+        </div>
+      </section>
+
       <section className="detalhes-card status-card">
         <div className="detalhes-card-header status-card-header">
           <div className="status-card-texto">
-            <h2>Status da demanda</h2>
+            <h2>
+              Status da demanda
+            </h2>
 
             <p>
-              Registre a etapa atual da demanda para manter
-              o acompanhamento do processo atualizado.
+              Registre a etapa atual da
+              demanda.
             </p>
           </div>
 
@@ -1031,7 +1944,12 @@ function DetalhesDemanda() {
             <span>Status atual</span>
 
             <strong
-              className={`status-atual-badge status-${classeStatus}`}
+              className={
+                (
+                  'status-atual-badge ' +
+                  `status-${classeStatus}`
+                )
+              }
             >
               {demanda.status}
             </strong>
@@ -1095,16 +2013,18 @@ function DetalhesDemanda() {
             </h2>
 
             <p>
-              A prioridade inicial é calculada
-              automaticamente pelo prazo e pode ser ajustada
-              conforme a complexidade da demanda.
+              A prioridade é calculada
+              pelo prazo e pode ser
+              ajustada.
             </p>
           </div>
 
           <button
             className="alterar-prioridade-button"
             type="button"
-            onClick={abrirModalPrioridade}
+            onClick={
+              abrirModalPrioridade
+            }
           >
             Alterar prioridade
           </button>
@@ -1112,11 +2032,18 @@ function DetalhesDemanda() {
 
         <div className="prioridade-comparacao">
           <div className="prioridade-comparacao-item">
-            <span>Prioridade atual</span>
+            <span>
+              Prioridade atual
+            </span>
 
             <div>
               <span
-                className={`detalhes-prioridade-badge prioridade-${classePrioridade}`}
+                className={
+                  (
+                    'detalhes-prioridade-badge ' +
+                    `prioridade-${classePrioridade}`
+                  )
+                }
               >
                 {prioridadeAtual}
               </span>
@@ -1130,17 +2057,25 @@ function DetalhesDemanda() {
           </div>
 
           <div className="prioridade-comparacao-item">
-            <span>Sugestão pelo prazo</span>
+            <span>
+              Sugestão pelo prazo
+            </span>
 
             <div>
               <span
-                className={`detalhes-prioridade-badge prioridade-${classePrioridadeAutomatica}`}
+                className={
+                  (
+                    'detalhes-prioridade-badge ' +
+                    `prioridade-${classePrioridadeAutomatica}`
+                  )
+                }
               >
                 {prioridadeAutomatica}
               </span>
 
               <small>
-                Calculada pelo prazo de resposta
+                Calculada pelo prazo de
+                resposta
               </small>
             </div>
           </div>
@@ -1154,7 +2089,8 @@ function DetalhesDemanda() {
               </span>
 
               <p>
-                {demanda.justificativaPrioridade ||
+                {demanda
+                  .justificativaPrioridade ||
                   'Nenhuma justificativa informada.'}
               </p>
             </div>
@@ -1162,261 +2098,11 @@ function DetalhesDemanda() {
             <small>
               Alterada em{' '}
               {formatarDataHora(
-                demanda.dataAlteracaoPrioridade,
+                demanda
+                  .dataAlteracaoPrioridade,
               )}
             </small>
           </div>
-        )}
-      </section>
-
-      <section className="detalhes-card">
-        <div className="detalhes-card-header">
-          <div>
-            <h2>
-              Informações da demanda
-            </h2>
-
-            <p>
-              Dados registrados no cadastro manual.
-            </p>
-          </div>
-
-          {!modoEdicao && (
-            <button
-              type="button"
-              className="alterar-prioridade-button"
-              onClick={() => {
-                setModoEdicao(true)
-                setMensagemEdicao('')
-              }}
-            >
-              Editar dados
-            </button>
-          )}
-        </div>
-
-        {mensagemEdicao && (
-          <p
-            className="status-mensagem"
-            role="status"
-          >
-            {mensagemEdicao}
-          </p>
-        )}
-
-        {!modoEdicao ? (
-          <div className="detalhes-grid">
-            <div className="detalhes-campo">
-              <span>
-                Órgão solicitante
-              </span>
-
-              <strong>
-                {demanda.orgaoSolicitante}
-              </strong>
-            </div>
-
-            <div className="detalhes-campo">
-              <span>
-                Tipo de ocorrência
-              </span>
-
-              <strong>
-                {demanda.tipoOcorrencia}
-              </strong>
-            </div>
-
-            <div className="detalhes-campo">
-              <span>Data de entrada</span>
-
-              <strong>
-                {formatarData(
-                  demanda.dataEntrada,
-                )}
-              </strong>
-            </div>
-
-            <div className="detalhes-campo">
-              <span>
-                Prazo de resposta
-              </span>
-
-              <strong>
-                {formatarData(
-                  demanda.prazoResposta,
-                )}
-              </strong>
-            </div>
-
-            <div className="detalhes-campo">
-              <span>Município</span>
-
-              <strong>
-                {demanda.municipio}
-              </strong>
-            </div>
-
-            <div className="detalhes-campo">
-              <span>Bairro ou área</span>
-
-              <strong>
-                {demanda.bairro}
-              </strong>
-            </div>
-
-            <div className="detalhes-campo detalhes-campo-completo">
-              <span>
-                Descrição da demanda
-              </span>
-
-              <p>{demanda.descricao}</p>
-            </div>
-          </div>
-        ) : (
-          <form
-            className="detalhes-grid"
-            onSubmit={salvarEdicao}
-          >
-            <div className="detalhes-campo">
-              <span>
-                Órgão solicitante
-              </span>
-
-              <input
-                type="text"
-                value={
-                  dadosEdicao.orgaoSolicitante
-                }
-                onChange={(evento) =>
-                  setDadosEdicao({
-                    ...dadosEdicao,
-                    orgaoSolicitante:
-                      evento.target.value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="detalhes-campo">
-              <span>
-                Tipo de ocorrência
-              </span>
-
-              <input
-                type="text"
-                value={
-                  dadosEdicao.tipoOcorrencia
-                }
-                onChange={(evento) =>
-                  setDadosEdicao({
-                    ...dadosEdicao,
-                    tipoOcorrencia:
-                      evento.target.value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="detalhes-campo">
-              <span>
-                Prazo de resposta
-              </span>
-
-              <input
-                type="date"
-                value={
-                  dadosEdicao.prazoResposta
-                }
-                onChange={(evento) =>
-                  setDadosEdicao({
-                    ...dadosEdicao,
-                    prazoResposta:
-                      evento.target.value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="detalhes-campo">
-              <span>Município</span>
-
-              <input
-                type="text"
-                value={
-                  dadosEdicao.municipio
-                }
-                onChange={(evento) =>
-                  setDadosEdicao({
-                    ...dadosEdicao,
-                    municipio:
-                      evento.target.value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="detalhes-campo">
-              <span>Bairro ou área</span>
-
-              <input
-                type="text"
-                value={
-                  dadosEdicao.bairro
-                }
-                onChange={(evento) =>
-                  setDadosEdicao({
-                    ...dadosEdicao,
-                    bairro:
-                      evento.target.value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="detalhes-campo detalhes-campo-completo">
-              <span>
-                Descrição da demanda
-              </span>
-
-              <textarea
-                rows="5"
-                value={
-                  dadosEdicao.descricao
-                }
-                onChange={(evento) =>
-                  setDadosEdicao({
-                    ...dadosEdicao,
-                    descricao:
-                      evento.target.value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="detalhes-campo detalhes-campo-completo">
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '1rem',
-                }}
-              >
-                <button
-                  type="submit"
-                  className="salvar-status-button"
-                >
-                  Salvar alterações
-                </button>
-
-                <button
-                  type="button"
-                  className="cancelar-prioridade-button"
-                  onClick={cancelarEdicao}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </form>
         )}
       </section>
 
@@ -1428,23 +2114,29 @@ function DetalhesDemanda() {
             </h2>
 
             <p>
-              Registre dificuldades que estejam impedindo ou
-              atrasando o andamento da demanda.
+              Registre dificuldades que
+              estejam atrasando a demanda.
             </p>
           </div>
 
           <div className="gargalos-resumo">
-            <span>Gargalos abertos</span>
+            <span>
+              Gargalos abertos
+            </span>
 
             <strong>
-              {quantidadeGargalosAbertos}
+              {
+                quantidadeGargalosAbertos
+              }
             </strong>
           </div>
         </div>
 
         <form
           className="gargalo-form"
-          onSubmit={salvarNovoGargalo}
+          onSubmit={
+            salvarNovoGargalo
+          }
         >
           <div className="gargalo-form-field">
             <label htmlFor="descricaoGargalo">
@@ -1455,7 +2147,6 @@ function DetalhesDemanda() {
               id="descricaoGargalo"
               rows="3"
               maxLength="500"
-              placeholder="Descreva de forma objetiva onde a demanda está travando"
               value={descricaoGargalo}
               onChange={(evento) => {
                 setDescricaoGargalo(
@@ -1467,14 +2158,17 @@ function DetalhesDemanda() {
             />
 
             <small>
-              {descricaoGargalo.length}/500 caracteres
+              {descricaoGargalo.length}
+              /500 caracteres
             </small>
           </div>
 
           <button
             className="registrar-gargalo-button"
             type="submit"
-            disabled={salvandoGargalo}
+            disabled={
+              salvandoGargalo
+            }
           >
             {salvandoGargalo
               ? 'Registrando...'
@@ -1499,208 +2193,224 @@ function DetalhesDemanda() {
               </strong>
 
               <p>
-                Quando uma dificuldade for identificada,
-                registre-a acima para facilitar o
+                Registre uma dificuldade
+                acima para facilitar o
                 acompanhamento.
               </p>
             </div>
           ) : (
-            gargalosVisiveis.map((gargalo) => {
-              const estaEmEdicao =
-                gargaloEmEdicao ===
-                gargalo.id
+            gargalosVisiveis.map(
+              (gargalo) => {
+                const editando =
+                  gargaloEmEdicao ===
+                    gargalo.id
 
-              const estaProcessando =
-                gargaloEmProcessamento ===
-                gargalo.id
+                const processando =
+                  gargaloEmProcessamento ===
+                    gargalo.id
 
-              const estaResolvido =
-                gargalo.status ===
-                'Resolvido'
+                const resolvido =
+                  gargalo.status ===
+                    'Resolvido'
 
-              return (
-                <article
-                  className={
-                    estaResolvido
-                      ? (
-                        'gargalo-item ' +
-                        'gargalo-item-resolvido'
-                      )
-                      : 'gargalo-item'
-                  }
-                  key={gargalo.id}
-                >
-                  <div className="gargalo-item-cabecalho">
-                    <span
-                      className={
-                        estaResolvido
-                          ? (
-                            'gargalo-status ' +
-                            'gargalo-status-resolvido'
-                          )
-                          : (
-                            'gargalo-status ' +
-                            'gargalo-status-aberto'
-                          )
-                      }
-                    >
-                      {gargalo.status}
-                    </span>
-
-                    <span className="gargalo-data">
-                      Registrado em{' '}
-                      {formatarDataHora(
-                        gargalo.dataRegistro,
-                      )}
-                    </span>
-                  </div>
-
-                  {estaEmEdicao ? (
-                    <div className="gargalo-edicao">
-                      <label
-                        htmlFor={`gargalo-${gargalo.id}`}
-                      >
-                        Editar descrição
-                      </label>
-
-                      <textarea
-                        id={`gargalo-${gargalo.id}`}
-                        rows="3"
-                        maxLength="500"
-                        value={
-                          descricaoGargaloEdicao
-                        }
-                        onChange={(evento) =>
-                          setDescricaoGargaloEdicao(
-                            evento.target.value,
-                          )
-                        }
-                      />
-
-                      <small>
-                        {descricaoGargaloEdicao.length}/500
-                        {' '}caracteres
-                      </small>
-
-                      <div className="gargalo-edicao-acoes">
-                        <button
-                          className="gargalo-cancelar-button"
-                          type="button"
-                          disabled={estaProcessando}
-                          onClick={
-                            cancelarEdicaoGargalo
-                          }
-                        >
-                          Cancelar
-                        </button>
-
-                        <button
-                          className="gargalo-salvar-button"
-                          type="button"
-                          disabled={estaProcessando}
-                          onClick={() =>
-                            salvarEdicaoGargalo(
-                              gargalo.id,
+                return (
+                  <article
+                    className={
+                      resolvido
+                        ? (
+                          'gargalo-item ' +
+                          'gargalo-item-resolvido'
+                        )
+                        : 'gargalo-item'
+                    }
+                    key={gargalo.id}
+                  >
+                    <div className="gargalo-item-cabecalho">
+                      <span
+                        className={
+                          resolvido
+                            ? (
+                              'gargalo-status ' +
+                              'gargalo-status-resolvido'
                             )
-                          }
-                        >
-                          {estaProcessando
-                            ? 'Salvando...'
-                            : 'Salvar edição'}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="gargalo-descricao">
-                      {gargalo.descricao}
-                    </p>
-                  )}
-
-                  <div className="gargalo-metadados">
-                    <span>
-                      Registrado por{' '}
-                      <strong>
-                        {gargalo.usuarioRegistro ||
-                          'Usuário não identificado'}
-                      </strong>
-                    </span>
-
-                    {estaResolvido &&
-                      gargalo.usuarioResolucao && (
-                        <span>
-                          Resolvido por{' '}
-                          <strong>
-                            {gargalo.usuarioResolucao}
-                          </strong>
-                          {' '}em{' '}
-                          {formatarDataHora(
-                            gargalo.dataResolucao,
-                          )}
-                        </span>
-                      )}
-                  </div>
-
-                  {usuarioEhGestor &&
-                    !estaEmEdicao && (
-                      <div className="gargalo-acoes">
-                        <button
-                          className="gargalo-editar-button"
-                          type="button"
-                          disabled={estaProcessando}
-                          onClick={() =>
-                            iniciarEdicaoGargalo(
-                              gargalo,
-                            )
-                          }
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          className={
-                            estaResolvido
-                              ? (
-                                'gargalo-reabrir-button'
-                              )
-                              : (
-                                'gargalo-resolver-button'
-                              )
-                          }
-                          type="button"
-                          disabled={estaProcessando}
-                          onClick={() =>
-                            alternarStatusGargalo(
-                              gargalo,
-                            )
-                          }
-                        >
-                          {estaProcessando
-                            ? 'Aguarde...'
                             : (
-                              estaResolvido
-                                ? 'Reabrir'
-                                : 'Marcar como resolvido'
-                            )}
-                        </button>
-
-                        <button
-                          className="gargalo-excluir-button"
-                          type="button"
-                          disabled={estaProcessando}
-                          onClick={() =>
-                            confirmarExclusaoGargalo(
-                              gargalo,
+                              'gargalo-status ' +
+                              'gargalo-status-aberto'
                             )
+                        }
+                      >
+                        {gargalo.status}
+                      </span>
+
+                      <span className="gargalo-data">
+                        Registrado em{' '}
+                        {formatarDataHora(
+                          gargalo
+                            .dataRegistro,
+                        )}
+                      </span>
+                    </div>
+
+                    {editando ? (
+                      <div className="gargalo-edicao">
+                        <label
+                          htmlFor={
+                            `gargalo-${gargalo.id}`
                           }
                         >
-                          Excluir
-                        </button>
+                          Editar descrição
+                        </label>
+
+                        <textarea
+                          id={
+                            `gargalo-${gargalo.id}`
+                          }
+                          rows="3"
+                          maxLength="500"
+                          value={
+                            descricaoGargaloEdicao
+                          }
+                          onChange={(
+                            evento,
+                          ) =>
+                            setDescricaoGargaloEdicao(
+                              evento.target
+                                .value,
+                            )
+                          }
+                        />
+
+                        <div className="gargalo-edicao-acoes">
+                          <button
+                            className="gargalo-cancelar-button"
+                            type="button"
+                            onClick={
+                              cancelarEdicaoGargalo
+                            }
+                          >
+                            Cancelar
+                          </button>
+
+                          <button
+                            className="gargalo-salvar-button"
+                            type="button"
+                            disabled={
+                              processando
+                            }
+                            onClick={() =>
+                              salvarEdicaoGargalo(
+                                gargalo.id,
+                              )
+                            }
+                          >
+                            {processando
+                              ? 'Salvando...'
+                              : (
+                                'Salvar edição'
+                              )}
+                          </button>
+                        </div>
                       </div>
+                    ) : (
+                      <p className="gargalo-descricao">
+                        {gargalo.descricao}
+                      </p>
                     )}
-                </article>
-              )
-            })
-        )}
+
+                    <div className="gargalo-metadados">
+                      <span>
+                        Registrado por{' '}
+                        <strong>
+                          {gargalo
+                            .usuarioRegistro ||
+                            'Usuário não identificado'}
+                        </strong>
+                      </span>
+
+                      {resolvido &&
+                        gargalo
+                          .usuarioResolucao && (
+                          <span>
+                            Resolvido por{' '}
+                            <strong>
+                              {
+                                gargalo
+                                  .usuarioResolucao
+                              }
+                            </strong>
+                            {' '}em{' '}
+                            {formatarDataHora(
+                              gargalo
+                                .dataResolucao,
+                            )}
+                          </span>
+                        )}
+                    </div>
+
+                    {usuarioEhGestor &&
+                      !editando && (
+                        <div className="gargalo-acoes">
+                          <button
+                            className="gargalo-editar-button"
+                            type="button"
+                            onClick={() =>
+                              iniciarEdicaoGargalo(
+                                gargalo,
+                              )
+                            }
+                          >
+                            Editar
+                          </button>
+
+                          <button
+                            className={
+                              resolvido
+                                ? (
+                                  'gargalo-reabrir-button'
+                                )
+                                : (
+                                  'gargalo-resolver-button'
+                                )
+                            }
+                            type="button"
+                            disabled={
+                              processando
+                            }
+                            onClick={() =>
+                              alternarStatusGargalo(
+                                gargalo,
+                              )
+                            }
+                          >
+                            {processando
+                              ? 'Aguarde...'
+                              : (
+                                resolvido
+                                  ? 'Reabrir'
+                                  : (
+                                    'Marcar como resolvido'
+                                  )
+                              )}
+                          </button>
+
+                          <button
+                            className="gargalo-excluir-button"
+                            type="button"
+                            onClick={() =>
+                              confirmarExclusaoGargalo(
+                                gargalo,
+                              )
+                            }
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      )}
+                  </article>
+                )
+              },
+            )
+          )}
 
           {possuiGargalosOcultos && (
             <div className="gargalos-expansao">
@@ -1710,12 +2420,7 @@ function DetalhesDemanda() {
                     `${gargalos.length} gargalos exibidos`
                   )
                   : (
-                    `${gargalos.length - 3} ` +
-                    (
-                      gargalos.length - 3 === 1
-                        ? 'gargalo oculto'
-                        : 'gargalos ocultos'
-                    )
+                    `${gargalos.length - 3} gargalos ocultos`
                   )}
               </span>
 
@@ -1727,8 +2432,7 @@ function DetalhesDemanda() {
                 }
                 onClick={() =>
                   setExibirTodosGargalos(
-                    (valorAtual) =>
-                      !valorAtual,
+                    (valor) => !valor,
                   )
                 }
               >
@@ -1752,18 +2456,24 @@ function DetalhesDemanda() {
       {usuarioEhGestor && (
         <section className="acoes-perigosas">
           <div className="acoes-perigosas-texto">
-            <h2>Excluir demanda</h2>
+            <h2>
+              Excluir demanda
+            </h2>
 
             <p>
-              Esta ação removerá a demanda da lista e não
-              poderá ser desfeita.
+              Esta ação removerá a demanda
+              e não poderá ser desfeita.
             </p>
           </div>
 
           <button
             className="excluir-demanda-button"
             type="button"
-            onClick={abrirConfirmacao}
+            onClick={() =>
+              setConfirmacaoAberta(
+                true,
+              )
+            }
           >
             Excluir demanda
           </button>
@@ -1774,8 +2484,10 @@ function DetalhesDemanda() {
         <div
           className="prioridade-modal-overlay"
           role="presentation"
-          onMouseDown={
-            fecharModalPrioridade
+          onMouseDown={() =>
+            setModalPrioridadeAberto(
+              false,
+            )
           }
         >
           <section
@@ -1783,7 +2495,6 @@ function DetalhesDemanda() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="prioridade-modal-titulo"
-            aria-describedby="prioridade-modal-descricao"
             onMouseDown={(evento) =>
               evento.stopPropagation()
             }
@@ -1798,18 +2509,21 @@ function DetalhesDemanda() {
                   Alterar prioridade
                 </h2>
 
-                <p id="prioridade-modal-descricao">
-                  Ajuste a prioridade conforme a complexidade
-                  e a necessidade de trabalho da demanda.
+                <p>
+                  Ajuste a prioridade
+                  conforme a complexidade
+                  da demanda.
                 </p>
               </div>
 
               <button
                 className="prioridade-modal-fechar"
                 type="button"
-                aria-label="Fechar janela de alteração de prioridade"
-                onClick={
-                  fecharModalPrioridade
+                aria-label="Fechar janela"
+                onClick={() =>
+                  setModalPrioridadeAberto(
+                    false,
+                  )
                 }
               >
                 ×
@@ -1824,14 +2538,22 @@ function DetalhesDemanda() {
             >
               <div className="prioridade-sugestao">
                 <span>
-                  Sugestão automática pelo prazo
+                  Sugestão automática pelo
+                  prazo
                 </span>
 
                 <strong>
                   <span
-                    className={`detalhes-prioridade-badge prioridade-${classePrioridadeAutomatica}`}
+                    className={
+                      (
+                        'detalhes-prioridade-badge ' +
+                        `prioridade-${classePrioridadeAutomatica}`
+                      )
+                    }
                   >
-                    {prioridadeAutomatica}
+                    {
+                      prioridadeAutomatica
+                    }
                   </span>
                 </strong>
               </div>
@@ -1847,8 +2569,7 @@ function DetalhesDemanda() {
 
               <div className="prioridade-form-field">
                 <label htmlFor="novaPrioridade">
-                  Nova prioridade{' '}
-                  <span>*</span>
+                  Nova prioridade
                 </label>
 
                 <select
@@ -1880,16 +2601,12 @@ function DetalhesDemanda() {
 
               <div className="prioridade-form-field">
                 <label htmlFor="justificativaPrioridade">
-                  Justificativa{' '}
-                  <small>
-                    (opcional)
-                  </small>
+                  Justificativa
                 </label>
 
                 <textarea
                   id="justificativaPrioridade"
                   rows="5"
-                  placeholder="Explique por que a prioridade precisa ser ajustada"
                   value={
                     justificativaPrioridade
                   }
@@ -1918,8 +2635,10 @@ function DetalhesDemanda() {
                   <button
                     className="cancelar-prioridade-button"
                     type="button"
-                    onClick={
-                      fecharModalPrioridade
+                    onClick={() =>
+                      setModalPrioridadeAberto(
+                        false,
+                      )
                     }
                   >
                     Cancelar
@@ -1938,91 +2657,76 @@ function DetalhesDemanda() {
         </div>
       )}
 
-      {usuarioEhGestor && confirmacaoAberta && (
-        <div
-          className="confirmacao-overlay"
-          role="presentation"
-          onMouseDown={
-            fecharConfirmacao
-          }
-        >
-          <section
-            className="confirmacao-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="confirmacao-titulo"
-            aria-describedby="confirmacao-descricao"
-            onMouseDown={(evento) =>
-              evento.stopPropagation()
+      {usuarioEhGestor &&
+        confirmacaoAberta && (
+          <div
+            className="confirmacao-overlay"
+            role="presentation"
+            onMouseDown={() =>
+              setConfirmacaoAberta(
+                false,
+              )
             }
           >
-            <div
-              className="confirmacao-icone"
-              aria-hidden="true"
+            <section
+              className="confirmacao-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="confirmacao-titulo"
+              onMouseDown={(evento) =>
+                evento.stopPropagation()
+              }
             >
-              !
-            </div>
-
-            <h2 id="confirmacao-titulo">
-              Excluir demanda?
-            </h2>
-
-            <p id="confirmacao-descricao">
-              Você está prestes a excluir a demanda de{' '}
-              <strong>
-                {demanda.orgaoSolicitante}
-              </strong>
-              . Esta ação não poderá ser desfeita.
-            </p>
-
-            <div className="confirmacao-detalhes">
-              <div>
-                <span>
-                  Tipo de ocorrência
-                </span>
-
-                <strong>
-                  {demanda.tipoOcorrencia}
-                </strong>
+              <div
+                className="confirmacao-icone"
+                aria-hidden="true"
+              >
+                !
               </div>
 
-              <div>
-                <span>
-                  Prazo de resposta
-                </span>
+              <h2 id="confirmacao-titulo">
+                Excluir demanda?
+              </h2>
 
+              <p>
+                Você está prestes a
+                excluir a demanda de{' '}
                 <strong>
-                  {formatarData(
-                    demanda.prazoResposta,
-                  )}
+                  {
+                    demanda
+                      .orgaoSolicitante
+                  }
                 </strong>
+                . Esta ação não poderá ser
+                desfeita.
+              </p>
+
+              <div className="confirmacao-acoes">
+                <button
+                  className="cancelar-exclusao-button"
+                  type="button"
+                  onClick={() =>
+                    setConfirmacaoAberta(
+                      false,
+                    )
+                  }
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  className="confirmar-exclusao-button"
+                  type="button"
+                  onClick={
+                    confirmarExclusao
+                  }
+                >
+                  Excluir demanda
+                </button>
               </div>
-            </div>
-
-            <div className="confirmacao-acoes">
-              <button
-                className="cancelar-exclusao-button"
-                type="button"
-                onClick={
-                  fecharConfirmacao
-                }
-              >
-                Cancelar
-              </button>
-
-              <button
-                className="confirmar-exclusao-button"
-                type="button"
-                onClick={
-                  confirmarExclusao
-                }
-              >
-                Excluir demanda
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
+            </section>
+          </div>
+        )}
     </div>
   )
 }

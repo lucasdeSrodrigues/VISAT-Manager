@@ -36,6 +36,29 @@ const STATUS_GARGALO_VALIDOS = [
   'Resolvido',
 ]
 
+const TIPOS_DOCUMENTO_VALIDOS = [
+  'Relatório',
+  'Laudo',
+  'Foto',
+  'Ofício',
+  'Planilha',
+  'Outro',
+]
+
+const EXTENSOES_DOCUMENTO_VALIDAS = [
+  'pdf',
+  'doc',
+  'docx',
+  'xls',
+  'xlsx',
+  'png',
+  'jpg',
+  'jpeg',
+]
+
+const TAMANHO_MAXIMO_ANEXO =
+  10 * 1024 * 1024
+
 function formatarEventoHistorico(
   evento,
 ) {
@@ -82,6 +105,40 @@ function formatarGargalo(
   }
 }
 
+function formatarAnexo(
+  anexo,
+) {
+  return {
+    id: String(anexo.id),
+    demandaId: String(
+      anexo.demanda_id,
+    ),
+    nomeOriginal:
+      anexo.nome_original,
+    extensao:
+      anexo.extensao,
+    tipoDocumento:
+      anexo.tipo_documento,
+    descricao:
+      anexo.descricao,
+    tamanhoBytes:
+      Number(
+        anexo.tamanho_bytes,
+      ) || 0,
+    usuarioId: String(
+      anexo.usuario_id,
+    ),
+    usuarioNome:
+      anexo.usuario_nome,
+    usuarioPerfil:
+      anexo.usuario_perfil,
+    dataEnvio:
+      anexo.data_envio,
+    dataAtualizacao:
+      anexo.data_atualizacao,
+  }
+}
+
 function formatarDemanda(demanda) {
   return {
     id: String(demanda.id),
@@ -124,6 +181,9 @@ function formatarDemanda(demanda) {
     gargalos: (
       demanda.gargalos || []
     ).map(formatarGargalo),
+    anexos: (
+      demanda.anexos || []
+    ).map(formatarAnexo),
   }
 }
 
@@ -169,7 +229,74 @@ function obterMensagemErro(
     )
   }
 
+  if (resposta.status === 413) {
+    return (
+      'O arquivo deve possuir ' +
+      'no máximo 10 MB.'
+    )
+  }
+
   return mensagemPadrao
+}
+
+function obterExtensaoArquivo(
+  nomeArquivo,
+) {
+  const partesNome =
+    String(nomeArquivo || '')
+      .split('.')
+
+  if (partesNome.length < 2) {
+    return ''
+  }
+
+  return (
+    partesNome
+      .pop()
+      .toLowerCase()
+  )
+}
+
+function validarArquivoAnexo(
+  arquivo,
+) {
+  if (!arquivo) {
+    throw new Error(
+      'Selecione um arquivo.',
+    )
+  }
+
+  if (arquivo.size === 0) {
+    throw new Error(
+      'O arquivo está vazio.',
+    )
+  }
+
+  if (
+    arquivo.size >
+    TAMANHO_MAXIMO_ANEXO
+  ) {
+    throw new Error(
+      'O arquivo deve possuir no máximo 10 MB.',
+    )
+  }
+
+  const extensao =
+    obterExtensaoArquivo(
+      arquivo.name,
+    )
+
+  if (
+    !EXTENSOES_DOCUMENTO_VALIDAS.includes(
+      extensao,
+    )
+  ) {
+    throw new Error(
+      'Formato de arquivo não permitido. ' +
+      'Envie PDF, DOC, DOCX, XLS, XLSX, ' +
+      'PNG, JPG ou JPEG.',
+    )
+  }
 }
 
 export function DemandasProvider({
@@ -284,9 +411,10 @@ export function DemandasProvider({
     return demandaFormatada
   }
 
-  function atualizarGargalosDaDemanda(
+  function atualizarColecaoDaDemanda(
     demandaId,
-    atualizarGargalos,
+    nomeColecao,
+    atualizarColecao,
     historicoAtualizado = null,
   ) {
     const idTratado =
@@ -300,14 +428,18 @@ export function DemandasProvider({
           return demanda
         }
 
-        const novosGargalos =
-          atualizarGargalos(
-            demanda.gargalos || [],
+        const colecaoAtual =
+          demanda[nomeColecao] || []
+
+        const novaColecao =
+          atualizarColecao(
+            colecaoAtual,
           )
 
         return {
           ...demanda,
-          gargalos: novosGargalos,
+          [nomeColecao]:
+            novaColecao,
           historico:
             Array.isArray(
               historicoAtualizado,
@@ -318,6 +450,32 @@ export function DemandasProvider({
               : demanda.historico,
         }
       }),
+    )
+  }
+
+  function atualizarGargalosDaDemanda(
+    demandaId,
+    atualizarGargalos,
+    historicoAtualizado = null,
+  ) {
+    atualizarColecaoDaDemanda(
+      demandaId,
+      'gargalos',
+      atualizarGargalos,
+      historicoAtualizado,
+    )
+  }
+
+  function atualizarAnexosDaDemanda(
+    demandaId,
+    atualizarAnexos,
+    historicoAtualizado = null,
+  ) {
+    atualizarColecaoDaDemanda(
+      demandaId,
+      'anexos',
+      atualizarAnexos,
+      historicoAtualizado,
     )
   }
 
@@ -339,7 +497,8 @@ export function DemandasProvider({
         novaDemanda.orgaoSolicitante,
       municipio:
         novaDemanda.municipio,
-      bairro: novaDemanda.bairro,
+      bairro:
+        novaDemanda.bairro,  
       tipo_ocorrencia:
         novaDemanda.tipoOcorrencia,
       data_entrada:
@@ -365,7 +524,8 @@ export function DemandasProvider({
         novaDemanda.status ||
         'Em andamento',
       origem: 'Manual',
-      data_cadastro: dataCadastro,
+      data_cadastro:
+        dataCadastro,
     }
 
     const resposta = await fetch(
@@ -554,7 +714,8 @@ export function DemandasProvider({
 
     await atualizarDemanda(id, {
       prioridade_manual: null,
-      justificativa_prioridade: null,
+      justificativa_prioridade:
+        null,
       data_alteracao_prioridade:
         null,
     })
@@ -631,22 +792,33 @@ export function DemandasProvider({
     }
 
     const orgaoSolicitante =
-      dadosAtualizados.orgaoSolicitante.trim()
+      dadosAtualizados
+        .orgaoSolicitante
+        .trim()
 
     const municipio =
-      dadosAtualizados.municipio.trim()
+      dadosAtualizados
+        .municipio
+        .trim()
 
     const bairro =
-      dadosAtualizados.bairro.trim()
+      dadosAtualizados
+        .bairro
+        .trim()
 
     const tipoOcorrencia =
-      dadosAtualizados.tipoOcorrencia.trim()
+      dadosAtualizados
+        .tipoOcorrencia
+        .trim()
 
     const prazoResposta =
-      dadosAtualizados.prazoResposta
+      dadosAtualizados
+        .prazoResposta
 
     const descricao =
-      dadosAtualizados.descricao.trim()
+      dadosAtualizados
+        .descricao
+        .trim()
 
     if (
       !orgaoSolicitante ||
@@ -1018,6 +1190,435 @@ export function DemandasProvider({
     return true
   }
 
+  async function anexarDocumento(
+    demandaId,
+    arquivo,
+    tipoDocumento,
+    descricao,
+  ) {
+    const demandaIdTratado =
+      String(demandaId)
+
+    const demanda =
+      buscarDemandaPorId(
+        demandaIdTratado,
+      )
+
+    if (!demanda) {
+      return false
+    }
+
+    validarArquivoAnexo(arquivo)
+
+    const tipoTratado =
+      tipoDocumento?.trim()
+
+    const descricaoTratada =
+      descricao?.trim()
+
+    if (
+      !TIPOS_DOCUMENTO_VALIDOS.includes(
+        tipoTratado,
+      )
+    ) {
+      throw new Error(
+        'Selecione um tipo de documento válido.',
+      )
+    }
+
+    if (!descricaoTratada) {
+      throw new Error(
+        'Informe uma breve descrição.',
+      )
+    }
+
+    if (
+      descricaoTratada.length > 300
+    ) {
+      throw new Error(
+        'A descrição deve possuir no máximo 300 caracteres.',
+      )
+    }
+
+    const formulario =
+      new FormData()
+
+    formulario.append(
+      'arquivo',
+      arquivo,
+    )
+
+    formulario.append(
+      'tipo_documento',
+      tipoTratado,
+    )
+
+    formulario.append(
+      'descricao',
+      descricaoTratada,
+    )
+
+    const resposta = await fetch(
+      `${API_URL}/${demandaIdTratado}/anexos`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        body: formulario,
+      },
+    )
+
+    const resultado =
+      await obterResultadoResposta(
+        resposta,
+      )
+
+    if (!resposta.ok) {
+      throw new Error(
+        obterMensagemErro(
+          resposta,
+          resultado,
+          'Não foi possível anexar o documento.',
+        ),
+      )
+    }
+
+    const anexoFormatado =
+      formatarAnexo(resultado)
+
+    atualizarAnexosDaDemanda(
+      demandaIdTratado,
+      (anexosAtuais) => [
+        anexoFormatado,
+        ...anexosAtuais,
+      ],
+      resultado.historico,
+    )
+
+    return anexoFormatado
+  }
+
+  async function editarDocumento(
+    demandaId,
+    anexoId,
+    tipoDocumento,
+    descricao,
+  ) {
+    const demandaIdTratado =
+      String(demandaId)
+
+    const anexoIdTratado =
+      String(anexoId)
+
+    const demanda =
+      buscarDemandaPorId(
+        demandaIdTratado,
+      )
+
+    if (!demanda) {
+      return false
+    }
+
+    const anexoExiste =
+      (demanda.anexos || []).some(
+        (anexo) =>
+          anexo.id ===
+          anexoIdTratado,
+      )
+
+    if (!anexoExiste) {
+      return false
+    }
+
+    const tipoTratado =
+      tipoDocumento?.trim()
+
+    const descricaoTratada =
+      descricao?.trim()
+
+    if (
+      !TIPOS_DOCUMENTO_VALIDOS.includes(
+        tipoTratado,
+      )
+    ) {
+      throw new Error(
+        'Selecione um tipo de documento válido.',
+      )
+    }
+
+    if (!descricaoTratada) {
+      throw new Error(
+        'Informe uma breve descrição.',
+      )
+    }
+
+    if (
+      descricaoTratada.length > 300
+    ) {
+      throw new Error(
+        'A descrição deve possuir no máximo 300 caracteres.',
+      )
+    }
+
+    const resposta = await fetch(
+      (
+        `${API_URL}/${demandaIdTratado}` +
+        `/anexos/${anexoIdTratado}`
+      ),
+      {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+        body: JSON.stringify({
+          tipo_documento:
+            tipoTratado,
+          descricao:
+            descricaoTratada,
+        }),
+      },
+    )
+
+    const resultado =
+      await obterResultadoResposta(
+        resposta,
+      )
+
+    if (!resposta.ok) {
+      throw new Error(
+        obterMensagemErro(
+          resposta,
+          resultado,
+          'Não foi possível editar o documento.',
+        ),
+      )
+    }
+
+    const anexoFormatado =
+      formatarAnexo(resultado)
+
+    atualizarAnexosDaDemanda(
+      demandaIdTratado,
+      (anexosAtuais) =>
+        anexosAtuais.map(
+          (anexo) =>
+            anexo.id ===
+            anexoIdTratado
+              ? anexoFormatado
+              : anexo,
+        ),
+      resultado.historico,
+    )
+
+    return anexoFormatado
+  }
+
+  async function obterArquivoDocumento(
+    demandaId,
+    anexoId,
+    baixar = false,
+  ) {
+    const demandaIdTratado =
+      String(demandaId)
+
+    const anexoIdTratado =
+      String(anexoId)
+
+    const demanda =
+      buscarDemandaPorId(
+        demandaIdTratado,
+      )
+
+    if (!demanda) {
+      return false
+    }
+
+    const anexo =
+      (demanda.anexos || []).find(
+        (item) =>
+          item.id ===
+          anexoIdTratado,
+      )
+
+    if (!anexo) {
+      return false
+    }
+
+    const parametroDownload =
+      baixar
+        ? '?download=true'
+        : ''
+
+    const resposta = await fetch(
+      (
+        `${API_URL}/${demandaIdTratado}` +
+        `/anexos/${anexoIdTratado}` +
+        `/arquivo${parametroDownload}`
+      ),
+      {
+        method: 'GET',
+        credentials: 'include',
+      },
+    )
+
+    if (!resposta.ok) {
+      const resultado =
+        await obterResultadoResposta(
+          resposta,
+        )
+
+      throw new Error(
+        obterMensagemErro(
+          resposta,
+          resultado,
+          baixar
+            ? 'Não foi possível baixar o documento.'
+            : 'Não foi possível abrir o documento.',
+        ),
+      )
+    }
+
+    const blob =
+      await resposta.blob()
+
+    const urlTemporaria =
+      URL.createObjectURL(blob)
+
+    if (baixar) {
+      const link =
+        document.createElement('a')
+
+      link.href = urlTemporaria
+      link.download =
+        anexo.nomeOriginal
+
+      document.body.appendChild(
+        link,
+      )
+
+      link.click()
+      link.remove()
+    } else {
+      const novaJanela =
+        window.open(
+          urlTemporaria,
+          '_blank',
+          'noopener,noreferrer',
+        )
+
+      if (!novaJanela) {
+        URL.revokeObjectURL(
+          urlTemporaria,
+        )
+
+        throw new Error(
+          'O navegador bloqueou a abertura do documento. Permita pop-ups e tente novamente.',
+        )
+      }
+    }
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(
+        urlTemporaria,
+      )
+    }, 60000)
+
+    return true
+  }
+
+  async function abrirDocumento(
+    demandaId,
+    anexoId,
+  ) {
+    return obterArquivoDocumento(
+      demandaId,
+      anexoId,
+      false,
+    )
+  }
+
+  async function baixarDocumento(
+    demandaId,
+    anexoId,
+  ) {
+    return obterArquivoDocumento(
+      demandaId,
+      anexoId,
+      true,
+    )
+  }
+
+  async function excluirDocumento(
+    demandaId,
+    anexoId,
+  ) {
+    const demandaIdTratado =
+      String(demandaId)
+
+    const anexoIdTratado =
+      String(anexoId)
+
+    const demanda =
+      buscarDemandaPorId(
+        demandaIdTratado,
+      )
+
+    if (!demanda) {
+      return false
+    }
+
+    const anexoExiste =
+      (demanda.anexos || []).some(
+        (anexo) =>
+          anexo.id ===
+          anexoIdTratado,
+      )
+
+    if (!anexoExiste) {
+      return false
+    }
+
+    const resposta = await fetch(
+      (
+        `${API_URL}/${demandaIdTratado}` +
+        `/anexos/${anexoIdTratado}`
+      ),
+      {
+        method: 'DELETE',
+        credentials: 'include',
+      },
+    )
+
+    const resultado =
+      await obterResultadoResposta(
+        resposta,
+      )
+
+    if (!resposta.ok) {
+      throw new Error(
+        obterMensagemErro(
+          resposta,
+          resultado,
+          'Não foi possível excluir o documento.',
+        ),
+      )
+    }
+
+    atualizarAnexosDaDemanda(
+      demandaIdTratado,
+      (anexosAtuais) =>
+        anexosAtuais.filter(
+          (anexo) =>
+            anexo.id !==
+            anexoIdTratado,
+        ),
+      resultado.historico,
+    )
+
+    return true
+  }
+
   return (
     <DemandasContext.Provider
       value={{
@@ -1039,6 +1640,11 @@ export function DemandasProvider({
         resolverGargalo,
         reabrirGargalo,
         excluirGargalo,
+        anexarDocumento,
+        editarDocumento,
+        abrirDocumento,
+        baixarDocumento,
+        excluirDocumento,
       }}
     >
       {children}
