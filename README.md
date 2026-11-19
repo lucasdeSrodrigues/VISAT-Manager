@@ -33,59 +33,80 @@ Para testar as funcionalidades do VISAT Manager, selecione o perfil desejado na 
 
 > As credenciais são destinadas exclusivamente ao ambiente acadêmico de demonstração. O perfil selecionado deve corresponder ao usuário informado.
 
-## 🔎 Status Atual
+🔎 Status Atual
 
-O VISAT Manager encontra-se em estágio funcional avançado, com as funcionalidades das Sprints 01 e 02 concluídas e a implementação da Sprint 03 em andamento.
+O VISAT Manager encontra-se em produção, com frontend hospedado na Vercel e backend hospedado no Render, permitindo o gerenciamento completo do ciclo de vida das demandas da VISAT, desde o cadastro inicial até o arquivamento.
 
-Nas duas primeiras Sprints, foram desenvolvidos e integrados os principais recursos de gerenciamento de demandas:
+Ao longo das três sprints, foram desenvolvidos e integrados os principais recursos da plataforma:
 
-- Cadastro manual e listagem centralizada de demandas;
-- Classificação automática e ajuste manual de prioridades;
-- Dashboard gerencial e Central de Alertas de prazos;
-- Busca e filtros por área, bairro e responsável;
-- Atualização do status das demandas;
-- Visualização detalhada, linha do tempo e histórico completo;
-- Edição dos dados cadastrados;
-- Atribuição de responsáveis;
-- Exclusão de demandas com confirmação.
+<ul>
+<li>Cadastro manual e listagem centralizada de demandas;</li>
+<li>Classificação automática e ajuste manual de prioridades;</li>
+<li>Dashboard gerencial com indicadores operacionais;</li>
+<li>Central de Alertas para monitoramento de prazos;</li>
+<li>Indicador de demandas atrasadas;</li>
+<li>Busca e filtros por área, bairro e responsável;</li>
+<li>Atualização do status das demandas;</li>
+<li>Visualização detalhada das demandas;</li>
+<li>Linha do tempo e histórico completo de movimentações;</li>
+<li>Edição dos dados cadastrados;</li>
+<li>Atribuição e remoção de responsáveis;</li>
+<li>Exclusão de demandas com confirmação;</li>
+<li>Registro e acompanhamento de gargalos operacionais;</li>
+<li>Anexação, consulta e download de documentos;</li>
+<li>Arquivamento e consulta de demandas arquivadas.</li>
+</ul>
 
-Na Sprint 03, foi implementado o controle de acesso com os perfis **Gestor** e **Inspetor**. O sistema agora possui autenticação por e-mail e senha, com validação realizada pelo backend e sessões protegidas por cookie.
+Na Sprint 03, foi implementado o sistema de autenticação com os perfis <strong>Gestor</strong> e <strong>Inspetor</strong>. O acesso é realizado por e-mail e senha, com validação pelo backend e gerenciamento de sessão através de cookies protegidos.
 
 As permissões são diferenciadas conforme o perfil:
 
-- **Gestor:** possui acesso às funções administrativas, incluindo atribuir ou remover responsáveis e excluir demandas;
-- **Inspetor:** possui acesso às funções operacionais, como cadastrar, consultar e atualizar demandas, sem permissão para atribuir responsáveis ou realizar exclusões.
+<ul>
+<li><strong>Gestor:</strong> possui acesso às funções administrativas, incluindo atribuição e remoção de responsáveis, exclusão de demandas, visualização dos gargalos registrados, gerenciamento de demandas arquivadas e acompanhamento global dos indicadores do sistema.</li>
 
-As restrições são aplicadas tanto na interface quanto no backend, evitando que operações não autorizadas sejam executadas diretamente pela API. O histórico também registra automaticamente o usuário autenticado responsável por cada movimentação.
+<li><strong>Inspetor:</strong> possui acesso às funções operacionais, incluindo cadastro, consulta e atualização de demandas, registro de gargalos operacionais e anexação de documentos, sem permissão para atribuir responsáveis ou excluir demandas.</li>
+</ul>
+
+As restrições são aplicadas tanto na interface quanto no backend, impedindo que operações não autorizadas sejam executadas diretamente pela API. O histórico também registra automaticamente o usuário autenticado responsável por cada movimentação realizada.
 
 A aplicação utiliza a seguinte arquitetura:
 
-### Frontend
+<strong>Frontend</strong>
 
-- React;
-- Vite;
-- JavaScript;
-- React Router DOM;
-- Publicação na Vercel.
+<ul>
+<li>React;</li>
+<li>Vite;</li>
+<li>JavaScript;</li>
+<li>React Router DOM;</li>
+<li>Publicação na Vercel.</li>
+</ul>
 
-### Backend
+<strong>Backend</strong>
 
-- Python;
-- Flask;
-- API REST;
-- Autenticação por sessão;
-- Publicação no Render.
+<ul>
+<li>Python;</li>
+<li>Flask;</li>
+<li>API REST;</li>
+<li>Autenticação por sessão;</li>
+<li>Publicação no Render.</li>
+</ul>
 
-### Banco de dados
+<strong>Banco de Dados</strong>
 
-- SQLite;
-- Armazenamento de demandas, históricos e usuários;
-- Inicialização automática das tabelas necessárias;
-- Senhas armazenadas de forma protegida por hash.
+<ul>
+<li>SQLite;</li>
+<li>Armazenamento de demandas;</li>
+<li>Armazenamento de usuários;</li>
+<li>Armazenamento de históricos;</li>
+<li>Armazenamento de gargalos;</li>
+<li>Armazenamento de documentos anexados;</li>
+<li>Inicialização automática das tabelas necessárias;</li>
+<li>Senhas armazenadas de forma protegida por hash.</li>
+</ul>
 
-O frontend se comunica com o backend pela variável de ambiente `VITE_API_URL`. O backend gerencia autenticação, permissões, cadastro, consulta, atualização e exclusão das demandas.
+O frontend se comunica com o backend por meio da variável de ambiente <code>VITE_API_URL</code>. O backend é responsável pela autenticação, autorização, cadastro, consulta, atualização, arquivamento e exclusão das demandas, além do gerenciamento dos documentos e registros operacionais.
 
-✅ **Situação atual do projeto:** sistema publicado e integrado, com autenticação, perfis de acesso, permissões diferenciadas, persistência em banco de dados, Dashboard, Central de Alertas, filtros avançados, gestão de status, responsáveis e histórico completo das demandas.
+✅ <strong>Situação atual do projeto:</strong> sistema publicado e integrado em ambiente de produção, com autenticação, perfis de acesso, permissões diferenciadas, persistência em banco de dados, Dashboard gerencial, Central de Alertas, indicadores de demandas atrasadas, filtros avançados, gestão de status, responsáveis, gargalos operacionais, anexação de documentos, arquivamento de demandas e histórico completo das movimentações.
 
 ## 🏃 Sprints
 
