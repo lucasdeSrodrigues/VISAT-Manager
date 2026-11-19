@@ -154,6 +154,72 @@ Tecnologias incorporadas nesta Sprint:
 Status:
 **Status:** ✅ Concluída
 
+<h3>Sprint 03</h3>
+
+<p><strong>Objetivo:</strong> fortalecer a gestão das demandas através de controle de acesso, monitoramento gerencial, registro de gargalos, gestão documental e arquivamento de processos concluídos.</p>
+
+<p><strong>Histórias de Usuário Implementadas:</strong></p>
+
+<ul>
+  <li>
+    <strong>US08 — Arquivar e consultar demandas arquivadas</strong><br>
+    Permite que demandas finalizadas sejam arquivadas e posteriormente consultadas em modo somente leitura, preservando histórico e documentos vinculados.<br>
+    
+  </li>
+
+  <li>
+    <strong>US10 — Receber alerta de demanda atrasada</strong><br>
+    Destaca demandas com prazo ultrapassado, auxiliando gestores na rápida identificação de situações críticas e prioritárias.<br>
+    
+  </li>
+
+  <li>
+    <strong>US12 — Visualizar indicadores gerenciais</strong><br>
+    Amplia os indicadores do Dashboard para fornecer uma visão mais clara da situação das demandas e apoiar a tomada de decisão.<br>
+    
+  </li>
+
+  <li>
+    <strong>US13 — Registrar gargalos operacionais</strong><br>
+    Permite que inspetores registrem dificuldades encontradas durante a execução das demandas e que gestores acompanhem esses registros para apoiar a resolução dos problemas identificados.<br>
+    
+  </li>
+
+  <li>
+    <strong>US14 — Anexar documentos à demanda</strong><br>
+    Permite incluir documentos relacionados às demandas, informando tipo e descrição, facilitando a organização das evidências e consultas futuras.<br>
+    
+  </li>
+</ul>
+
+<p><strong>Principais entregas da Sprint:</strong></p>
+
+<ul>
+  <li>Sistema de autenticação com perfis Gestor e Inspetor;</li>
+  <li>Controle de permissões aplicado no frontend e backend;</li>
+  <li>Indicador de demandas atrasadas no Dashboard;</li>
+  <li>Registro e acompanhamento de gargalos operacionais;</li>
+  <li>Anexação, consulta e download de documentos;</li>
+  <li>Arquivamento manual de demandas finalizadas;</li>
+  <li>Consulta de demandas arquivadas em modo somente leitura;</li>
+  <li>Registro de histórico de arquivamentos e movimentações dos usuários;</li>
+  <li>Validação de sessão através de autenticação integrada entre frontend e backend;</li>
+  <li>Publicação da aplicação em ambiente de produção (Vercel + Render).</li>
+</ul>
+
+<p><strong>Tecnologias incorporadas nesta Sprint:</strong></p>
+
+<ul>
+  <li>Autenticação baseada em sessão;</li>
+  <li>Cookies HttpOnly;</li>
+  <li>Controle de acesso por perfis;</li>
+  <li>React;</li>
+  <li>Flask;</li>
+  <li>SQLite.</li>
+</ul>
+
+<p><strong>Status:</strong> ✅ Concluída</p>
+
 ## Tela do board/backlog
 
 https://trello.com/invite/b/6a958f5ae0e46b0d0e91853f/ATTI7515ce6337281d37eeb479b51089f280304B3628/projeto-visat
