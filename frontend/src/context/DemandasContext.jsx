@@ -19,6 +19,9 @@ if (!API_BASE_URL) {
 const API_URL =
   `${API_BASE_URL}/api/demandas`
 
+const API_ARQUIVADAS_URL =
+  `${API_URL}/arquivadas`
+
 const PRIORIDADES_VALIDAS = [
   'Baixa',
   'Média',
@@ -67,10 +70,14 @@ function formatarEventoHistorico(
     demandaId: String(
       evento.demanda_id,
     ),
-    dataHora: evento.data_hora,
-    tipoAcao: evento.tipo_acao,
-    descricao: evento.descricao,
-    usuario: evento.usuario,
+    dataHora:
+      evento.data_hora,
+    tipoAcao:
+      evento.tipo_acao,
+    descricao:
+      evento.descricao,
+    usuario:
+      evento.usuario,
     statusAnterior:
       evento.status_anterior,
     statusPosterior:
@@ -89,7 +96,8 @@ function formatarGargalo(
     descricao:
       gargalo.descricao,
     status:
-      gargalo.status || 'Aberto',
+      gargalo.status ||
+      'Aberto',
     usuarioRegistro:
       gargalo.usuario_registro,
     perfilRegistro:
@@ -139,22 +147,27 @@ function formatarAnexo(
   }
 }
 
-function formatarDemanda(demanda) {
+function formatarDemanda(
+  demanda,
+) {
   return {
     id: String(demanda.id),
     numeroProcesso:
       demanda.numero_processo,
     orgaoSolicitante:
       demanda.orgao_solicitante,
-    municipio: demanda.municipio,
-    bairro: demanda.bairro,
+    municipio:
+      demanda.municipio,
+    bairro:
+      demanda.bairro,
     tipoOcorrencia:
       demanda.tipo_ocorrencia,
     dataEntrada:
       demanda.data_entrada,
     prazoResposta:
       demanda.prazo_resposta,
-    descricao: demanda.descricao,
+    descricao:
+      demanda.descricao,
     prioridadeManual:
       demanda.prioridade_manual,
     justificativaPrioridade:
@@ -166,24 +179,33 @@ function formatarDemanda(demanda) {
     status:
       demanda.status ||
       'Em andamento',
-    origem: demanda.origem,
+    origem:
+      demanda.origem,
     dataCadastro:
       demanda.data_cadastro,
     dataFinalizacao:
       demanda.data_finalizacao,
     arquivada:
-      Boolean(demanda.arquivada),
+      Boolean(
+        demanda.arquivada,
+      ),
     dataArquivamento:
       demanda.data_arquivamento,
     historico: (
       demanda.historico || []
-    ).map(formatarEventoHistorico),
+    ).map(
+      formatarEventoHistorico,
+    ),
     gargalos: (
       demanda.gargalos || []
-    ).map(formatarGargalo),
+    ).map(
+      formatarGargalo,
+    ),
     anexos: (
       demanda.anexos || []
-    ).map(formatarAnexo),
+    ).map(
+      formatarAnexo,
+    ),
   }
 }
 
@@ -229,6 +251,13 @@ function obterMensagemErro(
     )
   }
 
+  if (resposta.status === 409) {
+    return (
+      'A operação não pode ser realizada ' +
+      'no estado atual da demanda.'
+    )
+  }
+
   if (resposta.status === 413) {
     return (
       'O arquivo deve possuir ' +
@@ -250,11 +279,9 @@ function obterExtensaoArquivo(
     return ''
   }
 
-  return (
-    partesNome
-      .pop()
-      .toLowerCase()
-  )
+  return partesNome
+    .pop()
+    .toLowerCase()
 }
 
 function validarArquivoAnexo(
@@ -299,11 +326,32 @@ function validarArquivoAnexo(
   }
 }
 
+function validarDemandaEditavel(
+  demanda,
+) {
+  if (!demanda) {
+    return
+  }
+
+  if (demanda.arquivada) {
+    throw new Error(
+      'Demandas arquivadas estão disponíveis somente para consulta.',
+    )
+  }
+}
+
 export function DemandasProvider({
   children,
 }) {
-  const [demandas, setDemandas] =
-    useState([])
+  const [
+    demandas,
+    setDemandas,
+  ] = useState([])
+
+  const [
+    demandasArquivadas,
+    setDemandasArquivadas,
+  ] = useState([])
 
   const [
     carregandoDemandas,
@@ -311,8 +359,23 @@ export function DemandasProvider({
   ] = useState(true)
 
   const [
+    carregandoArquivadas,
+    setCarregandoArquivadas,
+  ] = useState(false)
+
+  const [
+    arquivadasCarregadas,
+    setArquivadasCarregadas,
+  ] = useState(false)
+
+  const [
     erroAoCarregar,
     setErroAoCarregar,
+  ] = useState('')
+
+  const [
+    erroAoCarregarArquivadas,
+    setErroAoCarregarArquivadas,
   ] = useState('')
 
   useEffect(() => {
@@ -368,7 +431,9 @@ export function DemandasProvider({
             'Não foi possível carregar as demandas. Verifique se o backend está funcionando.',
         )
       } finally {
-        setCarregandoDemandas(false)
+        setCarregandoDemandas(
+          false,
+        )
       }
     }
 
@@ -377,19 +442,195 @@ export function DemandasProvider({
 
   const responsaveis = [
     ...new Set(
-      demandas
+      [
+        ...demandas,
+        ...demandasArquivadas,
+      ]
         .map(
           (demanda) =>
-            demanda.responsavel?.trim(),
+            demanda.responsavel
+              ?.trim(),
         )
         .filter(Boolean),
     ),
-  ].sort((responsavelA, responsavelB) =>
-    responsavelA.localeCompare(
+  ].sort(
+    (
+      responsavelA,
       responsavelB,
-      'pt-BR',
-    ),
+    ) =>
+      responsavelA.localeCompare(
+        responsavelB,
+        'pt-BR',
+      ),
   )
+
+  async function carregarDemandasArquivadas(
+    forcarAtualizacao = false,
+  ) {
+    if (
+      arquivadasCarregadas &&
+      !forcarAtualizacao
+    ) {
+      return demandasArquivadas
+    }
+
+    try {
+      setCarregandoArquivadas(true)
+
+      setErroAoCarregarArquivadas(
+        '',
+      )
+
+      const resposta = await fetch(
+        API_ARQUIVADAS_URL,
+        {
+          method: 'GET',
+          credentials: 'include',
+        },
+      )
+
+      const resultado =
+        await obterResultadoResposta(
+          resposta,
+        )
+
+      if (!resposta.ok) {
+        throw new Error(
+          obterMensagemErro(
+            resposta,
+            resultado,
+            'Não foi possível carregar as demandas arquivadas.',
+          ),
+        )
+      }
+
+      if (!Array.isArray(resultado)) {
+        throw new Error(
+          'A resposta recebida ao carregar as demandas arquivadas é inválida.',
+        )
+      }
+
+      const arquivadasFormatadas =
+        resultado.map(
+          formatarDemanda,
+        )
+
+      setDemandasArquivadas(
+        arquivadasFormatadas,
+      )
+
+      setArquivadasCarregadas(
+        true,
+      )
+
+      return arquivadasFormatadas
+    } catch (erro) {
+      console.error(
+        'Erro ao carregar demandas arquivadas:',
+        erro,
+      )
+
+      setErroAoCarregarArquivadas(
+        erro.message ||
+          'Não foi possível carregar as demandas arquivadas.',
+      )
+
+      throw erro
+    } finally {
+      setCarregandoArquivadas(
+        false,
+      )
+    }
+  }
+
+  function buscarDemandaPorId(id) {
+    const idTratado =
+      String(id)
+
+    return (
+      demandas.find(
+        (demanda) =>
+          demanda.id ===
+          idTratado,
+      ) ||
+      demandasArquivadas.find(
+        (demanda) =>
+          demanda.id ===
+          idTratado,
+      )
+    )
+  }
+
+  function buscarDemandaArquivadaPorId(
+    id,
+  ) {
+    const idTratado =
+      String(id)
+
+    return demandasArquivadas.find(
+      (demanda) =>
+        demanda.id === idTratado,
+    )
+  }
+
+  function substituirDemandaAtiva(
+    demandaAtualizada,
+  ) {
+    const demandaFormatada =
+      formatarDemanda(
+        demandaAtualizada,
+      )
+
+    setDemandas(
+      (demandasAtuais) =>
+        demandasAtuais.map(
+          (demanda) =>
+            demanda.id ===
+            demandaFormatada.id
+              ? demandaFormatada
+              : demanda,
+        ),
+    )
+
+    return demandaFormatada
+  }
+
+  function substituirDemandaArquivada(
+    demandaAtualizada,
+  ) {
+    const demandaFormatada =
+      formatarDemanda(
+        demandaAtualizada,
+      )
+
+    setDemandasArquivadas(
+      (demandasAtuais) => {
+        const demandaExiste =
+          demandasAtuais.some(
+            (demanda) =>
+              demanda.id ===
+              demandaFormatada.id,
+          )
+
+        if (!demandaExiste) {
+          return [
+            demandaFormatada,
+            ...demandasAtuais,
+          ]
+        }
+
+        return demandasAtuais.map(
+          (demanda) =>
+            demanda.id ===
+            demandaFormatada.id
+              ? demandaFormatada
+              : demanda,
+        )
+      },
+    )
+
+    return demandaFormatada
+  }
 
   function substituirDemanda(
     demandaAtualizada,
@@ -399,16 +640,17 @@ export function DemandasProvider({
         demandaAtualizada,
       )
 
-    setDemandas((demandasAtuais) =>
-      demandasAtuais.map((demanda) =>
-        demanda.id ===
-        demandaFormatada.id
-          ? demandaFormatada
-          : demanda,
-      ),
-    )
+    if (
+      demandaFormatada.arquivada
+    ) {
+      return substituirDemandaArquivada(
+        demandaAtualizada,
+      )
+    }
 
-    return demandaFormatada
+    return substituirDemandaAtiva(
+      demandaAtualizada,
+    )
   }
 
   function atualizarColecaoDaDemanda(
@@ -420,36 +662,42 @@ export function DemandasProvider({
     const idTratado =
       String(demandaId)
 
-    setDemandas((demandasAtuais) =>
-      demandasAtuais.map((demanda) => {
-        if (
-          demanda.id !== idTratado
-        ) {
-          return demanda
-        }
+    setDemandas(
+      (demandasAtuais) =>
+        demandasAtuais.map(
+          (demanda) => {
+            if (
+              demanda.id !==
+              idTratado
+            ) {
+              return demanda
+            }
 
-        const colecaoAtual =
-          demanda[nomeColecao] || []
+            const colecaoAtual =
+              demanda[
+                nomeColecao
+              ] || []
 
-        const novaColecao =
-          atualizarColecao(
-            colecaoAtual,
-          )
+            const novaColecao =
+              atualizarColecao(
+                colecaoAtual,
+              )
 
-        return {
-          ...demanda,
-          [nomeColecao]:
-            novaColecao,
-          historico:
-            Array.isArray(
-              historicoAtualizado,
-            )
-              ? historicoAtualizado.map(
-                  formatarEventoHistorico,
+            return {
+              ...demanda,
+              [nomeColecao]:
+               novaColecao,
+              historico:
+                Array.isArray(
+                  historicoAtualizado,
                 )
-              : demanda.historico,
-        }
-      }),
+                  ? historicoAtualizado.map(
+                      formatarEventoHistorico,
+                    )
+                  : demanda.historico,
+            }
+          },
+        ),
     )
   }
 
@@ -479,6 +727,92 @@ export function DemandasProvider({
     )
   }
 
+  async function arquivarDemanda(id) {
+    const idTratado =
+      String(id)
+
+    const demanda =
+      demandas.find(
+        (item) =>
+          item.id === idTratado,
+      )
+
+    if (!demanda) {
+      return false
+    }
+
+    if (
+      demanda.status !==
+      'Finalizada'
+    ) {
+      throw new Error(
+        'Somente demandas finalizadas podem ser arquivadas.',
+      )
+    }
+
+    const resposta = await fetch(
+      (
+        `${API_URL}/${idTratado}` +
+        '/arquivar'
+      ),
+      {
+        method: 'POST',
+        credentials: 'include',
+      },
+    )
+
+    const resultado =
+      await obterResultadoResposta(
+        resposta,
+      )
+
+    if (!resposta.ok) {
+      throw new Error(
+        obterMensagemErro(
+          resposta,
+          resultado,
+          'Não foi possível arquivar a demanda.',
+        ),
+      )
+    }
+
+    const demandaArquivada =
+      formatarDemanda(
+        resultado,
+      )
+
+    setDemandas(
+      (demandasAtuais) =>
+        demandasAtuais.filter(
+          (item) =>
+            item.id !==
+            idTratado,
+        ),
+    )
+
+    setDemandasArquivadas(
+      (arquivadasAtuais) => {
+        const semDuplicacao =
+          arquivadasAtuais.filter(
+            (item) =>
+              item.id !==
+              idTratado,
+          )
+
+        return [
+          demandaArquivada,
+          ...semDuplicacao,
+        ]
+      },
+    )
+
+    setArquivadasCarregadas(
+      true,
+    )
+
+    return demandaArquivada
+  }
+
   async function cadastrarDemanda(
     novaDemanda,
   ) {
@@ -486,29 +820,34 @@ export function DemandasProvider({
       new Date().toISOString()
 
     const responsavelTratado =
-      novaDemanda.responsavel?.trim() ||
-      null
+      novaDemanda.responsavel
+        ?.trim() || null
 
     const dadosParaApi = {
       numero_processo:
-        novaDemanda.numeroProcesso ||
+        novaDemanda
+          .numeroProcesso ||
         null,
       orgao_solicitante:
-        novaDemanda.orgaoSolicitante,
+        novaDemanda
+          .orgaoSolicitante,
       municipio:
         novaDemanda.municipio,
       bairro:
-        novaDemanda.bairro,  
+        novaDemanda.bairro,
       tipo_ocorrencia:
-        novaDemanda.tipoOcorrencia,
+        novaDemanda
+          .tipoOcorrencia,
       data_entrada:
         novaDemanda.dataEntrada,
       prazo_resposta:
-        novaDemanda.prazoResposta,
+        novaDemanda
+          .prazoResposta,
       descricao:
         novaDemanda.descricao,
       prioridade_manual:
-        novaDemanda.prioridadeManual ||
+        novaDemanda
+          .prioridadeManual ||
         null,
       justificativa_prioridade:
         novaDemanda
@@ -523,7 +862,8 @@ export function DemandasProvider({
       status:
         novaDemanda.status ||
         'Em andamento',
-      origem: 'Manual',
+      origem:
+        'Manual',
       data_cadastro:
         dataCadastro,
     }
@@ -559,28 +899,39 @@ export function DemandasProvider({
     }
 
     const demandaCadastrada =
-      formatarDemanda(resultado)
+      formatarDemanda(
+        resultado,
+      )
 
-    setDemandas((demandasAtuais) => [
-      ...demandasAtuais,
-      demandaCadastrada,
-    ])
+    setDemandas(
+      (demandasAtuais) => [
+        ...demandasAtuais,
+        demandaCadastrada,
+      ],
+    )
 
     return demandaCadastrada
-  }
-
-  function buscarDemandaPorId(id) {
-    return demandas.find(
-      (demanda) =>
-        demanda.id === String(id),
-    )
   }
 
   async function atualizarDemanda(
     id,
     dados,
   ) {
-    const idTratado = String(id)
+    const idTratado =
+      String(id)
+
+    const demanda =
+      buscarDemandaPorId(
+        idTratado,
+      )
+
+    if (!demanda) {
+      return false
+    }
+
+    validarDemandaEditavel(
+      demanda,
+    )
 
     const resposta = await fetch(
       `${API_URL}/${idTratado}`,
@@ -591,7 +942,9 @@ export function DemandasProvider({
           'Content-Type':
             'application/json',
         },
-        body: JSON.stringify(dados),
+        body: JSON.stringify(
+          dados,
+        ),
       },
     )
 
@@ -621,17 +974,21 @@ export function DemandasProvider({
   }
 
   async function excluirDemanda(id) {
-    const idTratado = String(id)
+    const idTratado =
+      String(id)
 
-    const demandaExiste =
-      demandas.some(
-        (demanda) =>
-          demanda.id === idTratado,
+    const demanda =
+      buscarDemandaPorId(
+        idTratado,
       )
 
-    if (!demandaExiste) {
+    if (!demanda) {
       return false
     }
+
+    validarDemandaEditavel(
+      demanda,
+    )
 
     const resposta = await fetch(
       `${API_URL}/${idTratado}`,
@@ -656,17 +1013,18 @@ export function DemandasProvider({
       )
     }
 
-    setDemandas((demandasAtuais) =>
-      demandasAtuais.filter(
-        (demanda) =>
-          demanda.id !== idTratado,
-      ),
+    setDemandas(
+      (demandasAtuais) =>
+        demandasAtuais.filter(
+          (item) =>
+            item.id !==
+            idTratado,
+        ),
     )
 
     return true
   }
-
-  async function alterarPrioridade(
+    async function alterarPrioridade(
     id,
     novaPrioridade,
     justificativa,
@@ -686,8 +1044,12 @@ export function DemandasProvider({
       return false
     }
 
+    validarDemandaEditavel(
+      demanda,
+    )
+
     const justificativaTratada =
-      justificativa.trim()
+      justificativa?.trim() || ''
 
     await atualizarDemanda(id, {
       prioridade_manual:
@@ -712,6 +1074,10 @@ export function DemandasProvider({
       return false
     }
 
+    validarDemandaEditavel(
+      demanda,
+    )
+
     await atualizarDemanda(id, {
       prioridade_manual: null,
       justificativa_prioridade:
@@ -728,7 +1094,8 @@ export function DemandasProvider({
     novoResponsavel,
   ) {
     const responsavelTratado =
-      novoResponsavel?.trim() || null
+      novoResponsavel?.trim() ||
+      null
 
     if (
       responsavelTratado &&
@@ -745,6 +1112,10 @@ export function DemandasProvider({
     if (!demanda) {
       return false
     }
+
+    validarDemandaEditavel(
+      demanda,
+    )
 
     await atualizarDemanda(id, {
       responsavel:
@@ -773,6 +1144,10 @@ export function DemandasProvider({
       return false
     }
 
+    validarDemandaEditavel(
+      demanda,
+    )
+
     await atualizarDemanda(id, {
       status: novoStatus,
     })
@@ -790,6 +1165,10 @@ export function DemandasProvider({
     if (!demanda) {
       return false
     }
+
+    validarDemandaEditavel(
+      demanda,
+    )
 
     const orgaoSolicitante =
       dadosAtualizados
@@ -856,11 +1235,17 @@ export function DemandasProvider({
       String(demandaId)
 
     const demanda =
-      buscarDemandaPorId(idTratado)
+      buscarDemandaPorId(
+        idTratado,
+      )
 
     if (!demanda) {
       return false
     }
+
+    validarDemandaEditavel(
+      demanda,
+    )
 
     const descricaoTratada =
       descricao?.trim()
@@ -872,7 +1257,8 @@ export function DemandasProvider({
     }
 
     if (
-      descricaoTratada.length > 500
+      descricaoTratada.length >
+      500
     ) {
       throw new Error(
         'A descrição do gargalo deve possuir no máximo 500 caracteres.',
@@ -880,7 +1266,10 @@ export function DemandasProvider({
     }
 
     const resposta = await fetch(
-      `${API_URL}/${idTratado}/gargalos`,
+      (
+        `${API_URL}/${idTratado}` +
+        '/gargalos'
+      ),
       {
         method: 'POST',
         credentials: 'include',
@@ -911,7 +1300,9 @@ export function DemandasProvider({
     }
 
     const gargaloFormatado =
-      formatarGargalo(resultado)
+      formatarGargalo(
+        resultado,
+      )
 
     atualizarGargalosDaDemanda(
       idTratado,
@@ -945,8 +1336,14 @@ export function DemandasProvider({
       return false
     }
 
+    validarDemandaEditavel(
+      demanda,
+    )
+
     const gargaloAtual =
-      (demanda.gargalos || []).find(
+      (
+        demanda.gargalos || []
+      ).find(
         (gargalo) =>
           gargalo.id ===
           gargaloIdTratado,
@@ -959,10 +1356,11 @@ export function DemandasProvider({
     const dadosParaApi = {}
 
     if (
-      Object.prototype.hasOwnProperty.call(
-        dadosAtualizados,
-        'descricao',
-      )
+      Object.prototype
+        .hasOwnProperty.call(
+          dadosAtualizados,
+          'descricao',
+        )
     ) {
       const descricaoTratada =
         dadosAtualizados
@@ -976,7 +1374,8 @@ export function DemandasProvider({
       }
 
       if (
-        descricaoTratada.length > 500
+        descricaoTratada.length >
+        500
       ) {
         throw new Error(
           'A descrição do gargalo deve possuir no máximo 500 caracteres.',
@@ -988,15 +1387,17 @@ export function DemandasProvider({
     }
 
     if (
-      Object.prototype.hasOwnProperty.call(
-        dadosAtualizados,
-        'status',
-      )
+      Object.prototype
+        .hasOwnProperty.call(
+          dadosAtualizados,
+          'status',
+        )
     ) {
       if (
-        !STATUS_GARGALO_VALIDOS.includes(
-          dadosAtualizados.status,
-        )
+        !STATUS_GARGALO_VALIDOS
+          .includes(
+            dadosAtualizados.status,
+          )
       ) {
         throw new Error(
           'Status do gargalo inválido.',
@@ -1009,8 +1410,10 @@ export function DemandasProvider({
 
     const resposta = await fetch(
       (
-        `${API_URL}/${demandaIdTratado}` +
-        `/gargalos/${gargaloIdTratado}`
+        `${API_URL}/` +
+        `${demandaIdTratado}/` +
+        `gargalos/` +
+        `${gargaloIdTratado}`
       ),
       {
         method: 'PUT',
@@ -1041,7 +1444,9 @@ export function DemandasProvider({
     }
 
     const gargaloFormatado =
-      formatarGargalo(resultado)
+      formatarGargalo(
+        resultado,
+      )
 
     atualizarGargalosDaDemanda(
       demandaIdTratado,
@@ -1080,9 +1485,10 @@ export function DemandasProvider({
     novoStatus,
   ) {
     if (
-      !STATUS_GARGALO_VALIDOS.includes(
-        novoStatus,
-      )
+      !STATUS_GARGALO_VALIDOS
+        .includes(
+          novoStatus,
+        )
     ) {
       throw new Error(
         'Status do gargalo inválido.',
@@ -1093,7 +1499,8 @@ export function DemandasProvider({
       demandaId,
       gargaloId,
       {
-        status: novoStatus,
+        status:
+          novoStatus,
       },
     )
   }
@@ -1139,8 +1546,14 @@ export function DemandasProvider({
       return false
     }
 
+    validarDemandaEditavel(
+      demanda,
+    )
+
     const gargaloExiste =
-      (demanda.gargalos || []).some(
+      (
+        demanda.gargalos || []
+      ).some(
         (gargalo) =>
           gargalo.id ===
           gargaloIdTratado,
@@ -1152,8 +1565,10 @@ export function DemandasProvider({
 
     const resposta = await fetch(
       (
-        `${API_URL}/${demandaIdTratado}` +
-        `/gargalos/${gargaloIdTratado}`
+        `${API_URL}/` +
+        `${demandaIdTratado}/` +
+        `gargalos/` +
+        `${gargaloIdTratado}`
       ),
       {
         method: 'DELETE',
@@ -1208,7 +1623,13 @@ export function DemandasProvider({
       return false
     }
 
-    validarArquivoAnexo(arquivo)
+    validarDemandaEditavel(
+      demanda,
+    )
+
+    validarArquivoAnexo(
+      arquivo,
+    )
 
     const tipoTratado =
       tipoDocumento?.trim()
@@ -1217,9 +1638,10 @@ export function DemandasProvider({
       descricao?.trim()
 
     if (
-      !TIPOS_DOCUMENTO_VALIDOS.includes(
-        tipoTratado,
-      )
+      !TIPOS_DOCUMENTO_VALIDOS
+        .includes(
+          tipoTratado,
+        )
     ) {
       throw new Error(
         'Selecione um tipo de documento válido.',
@@ -1233,7 +1655,8 @@ export function DemandasProvider({
     }
 
     if (
-      descricaoTratada.length > 300
+      descricaoTratada.length >
+      300
     ) {
       throw new Error(
         'A descrição deve possuir no máximo 300 caracteres.',
@@ -1259,7 +1682,11 @@ export function DemandasProvider({
     )
 
     const resposta = await fetch(
-      `${API_URL}/${demandaIdTratado}/anexos`,
+      (
+        `${API_URL}/` +
+        `${demandaIdTratado}/` +
+        'anexos'
+      ),
       {
         method: 'POST',
         credentials: 'include',
@@ -1283,7 +1710,9 @@ export function DemandasProvider({
     }
 
     const anexoFormatado =
-      formatarAnexo(resultado)
+      formatarAnexo(
+        resultado,
+      )
 
     atualizarAnexosDaDemanda(
       demandaIdTratado,
@@ -1318,8 +1747,14 @@ export function DemandasProvider({
       return false
     }
 
+    validarDemandaEditavel(
+      demanda,
+    )
+
     const anexoExiste =
-      (demanda.anexos || []).some(
+      (
+        demanda.anexos || []
+      ).some(
         (anexo) =>
           anexo.id ===
           anexoIdTratado,
@@ -1336,9 +1771,10 @@ export function DemandasProvider({
       descricao?.trim()
 
     if (
-      !TIPOS_DOCUMENTO_VALIDOS.includes(
-        tipoTratado,
-      )
+      !TIPOS_DOCUMENTO_VALIDOS
+        .includes(
+          tipoTratado,
+        )
     ) {
       throw new Error(
         'Selecione um tipo de documento válido.',
@@ -1352,7 +1788,8 @@ export function DemandasProvider({
     }
 
     if (
-      descricaoTratada.length > 300
+      descricaoTratada.length >
+      300
     ) {
       throw new Error(
         'A descrição deve possuir no máximo 300 caracteres.',
@@ -1361,8 +1798,10 @@ export function DemandasProvider({
 
     const resposta = await fetch(
       (
-        `${API_URL}/${demandaIdTratado}` +
-        `/anexos/${anexoIdTratado}`
+        `${API_URL}/` +
+        `${demandaIdTratado}/` +
+        `anexos/` +
+        `${anexoIdTratado}`
       ),
       {
         method: 'PUT',
@@ -1396,7 +1835,9 @@ export function DemandasProvider({
     }
 
     const anexoFormatado =
-      formatarAnexo(resultado)
+      formatarAnexo(
+        resultado,
+      )
 
     atualizarAnexosDaDemanda(
       demandaIdTratado,
@@ -1413,8 +1854,7 @@ export function DemandasProvider({
 
     return anexoFormatado
   }
-
-  async function obterArquivoDocumento(
+    async function obterArquivoDocumento(
     demandaId,
     anexoId,
     baixar = false,
@@ -1435,7 +1875,9 @@ export function DemandasProvider({
     }
 
     const anexo =
-      (demanda.anexos || []).find(
+      (
+        demanda.anexos || []
+      ).find(
         (item) =>
           item.id ===
           anexoIdTratado,
@@ -1452,9 +1894,11 @@ export function DemandasProvider({
 
     const resposta = await fetch(
       (
-        `${API_URL}/${demandaIdTratado}` +
-        `/anexos/${anexoIdTratado}` +
-        `/arquivo${parametroDownload}`
+        `${API_URL}/` +
+        `${demandaIdTratado}/` +
+        `anexos/` +
+        `${anexoIdTratado}/` +
+        `arquivo${parametroDownload}`
       ),
       {
         method: 'GET',
@@ -1483,13 +1927,19 @@ export function DemandasProvider({
       await resposta.blob()
 
     const urlTemporaria =
-      URL.createObjectURL(blob)
+      URL.createObjectURL(
+        blob,
+      )
 
     if (baixar) {
       const link =
-        document.createElement('a')
+        document.createElement(
+          'a',
+        )
 
-      link.href = urlTemporaria
+      link.href =
+        urlTemporaria
+
       link.download =
         anexo.nomeOriginal
 
@@ -1498,6 +1948,7 @@ export function DemandasProvider({
       )
 
       link.click()
+
       link.remove()
     } else {
       const novaJanela =
@@ -1518,11 +1969,14 @@ export function DemandasProvider({
       }
     }
 
-    window.setTimeout(() => {
-      URL.revokeObjectURL(
-        urlTemporaria,
-      )
-    }, 60000)
+    window.setTimeout(
+      () => {
+        URL.revokeObjectURL(
+          urlTemporaria,
+        )
+      },
+      60000,
+    )
 
     return true
   }
@@ -1568,8 +2022,14 @@ export function DemandasProvider({
       return false
     }
 
+    validarDemandaEditavel(
+      demanda,
+    )
+
     const anexoExiste =
-      (demanda.anexos || []).some(
+      (
+        demanda.anexos || []
+      ).some(
         (anexo) =>
           anexo.id ===
           anexoIdTratado,
@@ -1581,8 +2041,10 @@ export function DemandasProvider({
 
     const resposta = await fetch(
       (
-        `${API_URL}/${demandaIdTratado}` +
-        `/anexos/${anexoIdTratado}`
+        `${API_URL}/` +
+        `${demandaIdTratado}/` +
+        `anexos/` +
+        `${anexoIdTratado}`
       ),
       {
         method: 'DELETE',
@@ -1623,11 +2085,18 @@ export function DemandasProvider({
     <DemandasContext.Provider
       value={{
         demandas,
+        demandasArquivadas,
         responsaveis,
         carregandoDemandas,
+        carregandoArquivadas,
+        arquivadasCarregadas,
         erroAoCarregar,
+        erroAoCarregarArquivadas,
+        carregarDemandasArquivadas,
         cadastrarDemanda,
         buscarDemandaPorId,
+        buscarDemandaArquivadaPorId,
+        arquivarDemanda,
         excluirDemanda,
         alterarPrioridade,
         restaurarPrioridadeAutomatica,
@@ -1653,9 +2122,10 @@ export function DemandasProvider({
 }
 
 export function useDemandas() {
-  const contexto = useContext(
-    DemandasContext,
-  )
+  const contexto =
+    useContext(
+      DemandasContext,
+    )
 
   if (!contexto) {
     throw new Error(

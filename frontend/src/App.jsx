@@ -8,6 +8,7 @@ import {
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Demandas from './pages/Demandas'
+import DemandasArquivadas from './pages/DemandasArquivadas'
 import CadastroDemanda from './pages/CadastroDemanda'
 import DetalhesDemanda from './pages/DetalhesDemanda'
 import HistoricoCompleto from './pages/HistoricoCompleto'
@@ -18,7 +19,9 @@ import { useAuth } from './context/AuthContext.jsx'
 
 import './App.css'
 
-function RotaProtegida({ children }) {
+function RotaProtegida({
+  children,
+}) {
   const {
     autenticado,
     verificandoAutenticacao,
@@ -78,7 +81,9 @@ function RotaLogin() {
   return <Login />
 }
 
-function PaginaComLayout({ children }) {
+function PaginaComLayout({
+  children,
+}) {
   return (
     <RotaProtegida>
       <Layout>
@@ -129,7 +134,9 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={<RotaLogin />}
+          element={
+            <RotaLogin />
+          }
         />
 
         <Route
@@ -146,6 +153,15 @@ function App() {
           element={
             <PaginaComLayout>
               <Demandas />
+            </PaginaComLayout>
+          }
+        />
+
+        <Route
+          path="/demandas/arquivadas"
+          element={
+            <PaginaComLayout>
+              <DemandasArquivadas />
             </PaginaComLayout>
           }
         />
@@ -179,7 +195,9 @@ function App() {
 
         <Route
           path="*"
-          element={<RotaNaoEncontrada />}
+          element={
+            <RotaNaoEncontrada />
+          }
         />
       </Routes>
     </BrowserRouter>
