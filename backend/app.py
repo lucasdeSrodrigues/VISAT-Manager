@@ -6,9 +6,18 @@ import os
 import sqlite3
 import uuid
 
-from flask import Flask, jsonify, request, send_file, session
+from flask import (
+    Flask,
+    jsonify,
+    request,
+    send_file,
+    session,
+)
 from flask_cors import CORS
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import (
+    check_password_hash,
+    generate_password_hash,
+)
 from werkzeug.utils import secure_filename
 
 
@@ -61,6 +70,7 @@ CORS(
 )
 
 BASE_DIR = Path(__file__).resolve().parent
+
 DATABASE = BASE_DIR / "database.db"
 
 DIRETORIO_ANEXOS = Path(
@@ -126,6 +136,7 @@ EXTENSOES_ANEXO_PERMITIDAS = {
 
 def obter_conexao():
     conn = sqlite3.connect(DATABASE)
+
     conn.row_factory = sqlite3.Row
 
     conn.execute(
@@ -177,7 +188,9 @@ def criar_usuario_inicial(
         (
             nome,
             email.lower(),
-            generate_password_hash(senha),
+            generate_password_hash(
+                senha
+            ),
             perfil,
             data_hora_atual(),
         ),
@@ -186,6 +199,7 @@ def criar_usuario_inicial(
 
 def inicializar_banco():
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -316,57 +330,67 @@ def inicializar_banco():
     """)
 
     criar_usuario_inicial(
-        cursor,
-        os.getenv(
+        cursor=cursor,
+        nome=os.getenv(
             "GESTOR_INICIAL_NOME",
             "Gestor VISAT",
         ),
-        os.getenv(
+        email=os.getenv(
             "GESTOR_INICIAL_EMAIL",
             "gestor@visat.com",
         ),
-        os.getenv(
+        senha=os.getenv(
             "GESTOR_INICIAL_SENHA",
             "Gestor@123",
         ),
-        "gestor",
+        perfil="gestor",
     )
 
     criar_usuario_inicial(
-        cursor,
-        os.getenv(
+        cursor=cursor,
+        nome=os.getenv(
             "INSPETOR_INICIAL_NOME",
             "Inspetor VISAT",
         ),
-        os.getenv(
+        email=os.getenv(
             "INSPETOR_INICIAL_EMAIL",
             "inspetor@visat.com",
         ),
-        os.getenv(
+        senha=os.getenv(
             "INSPETOR_INICIAL_SENHA",
             "Inspetor@123",
         ),
-        "inspetor",
+        perfil="inspetor",
     )
 
     conn.commit()
+
     conn.close()
 
 
 inicializar_banco()
 
 
-def converter_usuario_para_dict(usuario):
+def converter_usuario_para_dict(
+    usuario,
+):
     return {
-        "id": usuario["id"],
-        "nome": usuario["nome"],
-        "email": usuario["email"],
-        "perfil": usuario["perfil"],
+        "id":
+            usuario["id"],
+        "nome":
+            usuario["nome"],
+        "email":
+            usuario["email"],
+        "perfil":
+            usuario["perfil"],
     }
 
 
-def buscar_usuario_por_id(usuario_id):
+def buscar_usuario_por_id(
+    usuario_id,
+):
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     cursor.execute(
@@ -407,10 +431,12 @@ def obter_usuario_autenticado():
 
     if not usuario:
         session.clear()
+
         return None
 
     if not usuario["ativo"]:
         session.clear()
+
         return None
 
     if (
@@ -418,6 +444,7 @@ def obter_usuario_autenticado():
         PERFIS_VALIDOS
     ):
         session.clear()
+
         return None
 
     return usuario
@@ -573,7 +600,8 @@ def buscar_historico(
 
     return [
         dict(registro)
-        for registro in cursor.fetchall()
+        for registro
+        in cursor.fetchall()
     ]
 
 
@@ -612,7 +640,8 @@ def buscar_gargalos(
 
     return [
         dict(registro)
-        for registro in cursor.fetchall()
+        for registro
+        in cursor.fetchall()
     ]
 
 
@@ -658,7 +687,9 @@ def buscar_anexos(
             data_atualizacao
         FROM anexos
         WHERE demanda_id = ?
-        ORDER BY data_envio DESC, id DESC
+        ORDER BY
+            data_envio DESC,
+            id DESC
         """,
         (
             demanda_id,
@@ -667,7 +698,8 @@ def buscar_anexos(
 
     return [
         dict(registro)
-        for registro in cursor.fetchall()
+        for registro
+        in cursor.fetchall()
     ]
 
 
@@ -722,6 +754,20 @@ def montar_demanda(
     return demanda
 
 
+def validar_demanda_editavel(
+    demanda,
+):
+    if not demanda["arquivada"]:
+        return None
+
+    return {
+        "mensagem": (
+            "Demandas arquivadas estão "
+            "disponíveis somente para consulta."
+        )
+    }, 409
+
+
 def obter_extensao_arquivo(
     nome_arquivo,
 ):
@@ -768,9 +814,13 @@ def usuario_pode_excluir_anexo(
     )
 
 
-def arquivar_demandas_vencidas(cursor):
+def arquivar_demandas_vencidas(
+    cursor,
+):
     limite = (
-        datetime.now(timezone.utc) -
+        datetime.now(
+            timezone.utc
+        ) -
         timedelta(
             days=DIAS_PARA_ARQUIVAR
         )
@@ -778,20 +828,66 @@ def arquivar_demandas_vencidas(cursor):
 
     cursor.execute(
         """
-        UPDATE demandas
-        SET
-            arquivada = 1,
-            data_arquivamento = ?
+        SELECT
+            id,
+            status
+        FROM demandas
         WHERE status = 'Finalizada'
           AND arquivada = 0
           AND data_finalizacao IS NOT NULL
           AND data_finalizacao <= ?
+        ORDER BY id ASC
         """,
         (
-            data_hora_atual(),
             limite,
         ),
     )
+
+    demandas_para_arquivar = (
+        cursor.fetchall()
+    )
+
+    for demanda in demandas_para_arquivar:
+        agora = data_hora_atual()
+
+        cursor.execute(
+            """
+            UPDATE demandas
+            SET
+                arquivada = 1,
+                data_arquivamento = ?
+            WHERE id = ?
+              AND arquivada = 0
+            """,
+            (
+                agora,
+                demanda["id"],
+            ),
+        )
+
+        if cursor.rowcount == 0:
+            continue
+
+        registrar_historico(
+            cursor=cursor,
+            demanda_id=demanda["id"],
+            tipo_acao=(
+                "Arquivamento automático"
+            ),
+            descricao=(
+                "Demanda arquivada "
+                "automaticamente após "
+                f"{DIAS_PARA_ARQUIVAR} "
+                "dias da finalização."
+            ),
+            usuario="Sistema",
+            status_anterior=(
+                demanda["status"]
+            ),
+            status_posterior=(
+                demanda["status"]
+            ),
+        )
 
 
 @app.errorhandler(413)
@@ -807,8 +903,10 @@ def arquivo_muito_grande(erro):
 @app.route("/")
 def home():
     return {
-        "mensagem":
-            "VISAT Manager Backend funcionando!"
+        "mensagem": (
+            "VISAT Manager Backend "
+            "funcionando!"
+        )
     }
 
 
@@ -865,6 +963,7 @@ def login():
         }, 400
 
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     cursor.execute(
@@ -912,8 +1011,10 @@ def login():
         PERFIS_VALIDOS
     ):
         return {
-            "mensagem":
-                "O perfil deste usuário é inválido."
+            "mensagem": (
+                "O perfil deste usuário "
+                "é inválido."
+            )
         }, 403
 
     if (
@@ -929,6 +1030,7 @@ def login():
         }, 403
 
     session.clear()
+
     session.permanent = True
 
     session["usuario_id"] = (
@@ -969,11 +1071,11 @@ def logout():
     session.clear()
 
     return {
-        "mensagem":
-            "Sessão encerrada com sucesso."
+        "mensagem": (
+            "Sessão encerrada "
+            "com sucesso."
+        )
     }
-
-
 @app.route(
     "/api/demandas",
     methods=["GET"],
@@ -983,18 +1085,23 @@ def listar_demandas(
     usuario_logado,
 ):
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
-    arquivar_demandas_vencidas(cursor)
+    arquivar_demandas_vencidas(
+        cursor
+    )
 
     conn.commit()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT *
         FROM demandas
         WHERE arquivada = 0
         ORDER BY id DESC
-    """)
+        """
+    )
 
     registros = cursor.fetchall()
 
@@ -1003,7 +1110,8 @@ def listar_demandas(
             cursor,
             registro,
         )
-        for registro in registros
+        for registro
+        in registros
     ]
 
     conn.close()
@@ -1012,7 +1120,55 @@ def listar_demandas(
 
 
 @app.route(
-    "/api/demandas/<int:demanda_id>",
+    "/api/demandas/arquivadas",
+    methods=["GET"],
+)
+@login_obrigatorio
+def listar_demandas_arquivadas(
+    usuario_logado,
+):
+    conn = obter_conexao()
+
+    cursor = conn.cursor()
+
+    arquivar_demandas_vencidas(
+        cursor
+    )
+
+    conn.commit()
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM demandas
+        WHERE arquivada = 1
+        ORDER BY
+            data_arquivamento DESC,
+            id DESC
+        """
+    )
+
+    registros = cursor.fetchall()
+
+    demandas = [
+        montar_demanda(
+            cursor,
+            registro,
+        )
+        for registro
+        in registros
+    ]
+
+    conn.close()
+
+    return jsonify(demandas)
+
+
+@app.route(
+    (
+        "/api/demandas/"
+        "<int:demanda_id>"
+    ),
     methods=["GET"],
 )
 @login_obrigatorio
@@ -1021,6 +1177,7 @@ def detalhar_demanda(
     usuario_logado,
 ):
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     registro = buscar_demanda(
@@ -1044,6 +1201,123 @@ def detalhar_demanda(
     conn.close()
 
     return jsonify(demanda)
+
+
+@app.route(
+    (
+        "/api/demandas/"
+        "<int:demanda_id>/arquivar"
+    ),
+    methods=["POST"],
+)
+@perfil_obrigatorio("gestor")
+def arquivar_demanda_manual(
+    demanda_id,
+    usuario_logado,
+):
+    conn = obter_conexao()
+
+    cursor = conn.cursor()
+
+    demanda = buscar_demanda(
+        cursor,
+        demanda_id,
+    )
+
+    if not demanda:
+        conn.close()
+
+        return {
+            "mensagem":
+                "Demanda não encontrada."
+        }, 404
+
+    if demanda["arquivada"]:
+        conn.close()
+
+        return {
+            "mensagem":
+                "A demanda já está arquivada."
+        }, 409
+
+    if (
+        demanda["status"] !=
+        "Finalizada"
+    ):
+        conn.close()
+
+        return {
+            "mensagem": (
+                "Somente demandas com status "
+                "Finalizada podem ser arquivadas."
+            )
+        }, 400
+
+    agora = data_hora_atual()
+
+    cursor.execute(
+        """
+        UPDATE demandas
+        SET
+            arquivada = 1,
+            data_arquivamento = ?
+        WHERE id = ?
+          AND arquivada = 0
+        """,
+        (
+            agora,
+            demanda_id,
+        ),
+    )
+
+    if cursor.rowcount == 0:
+        conn.close()
+
+        return {
+            "mensagem": (
+                "Não foi possível arquivar "
+                "a demanda."
+            )
+        }, 409
+
+    registrar_historico(
+        cursor=cursor,
+        demanda_id=demanda_id,
+        tipo_acao=(
+            "Arquivamento manual"
+        ),
+        descricao=(
+            "Demanda arquivada "
+            "manualmente pelo Gestor."
+        ),
+        usuario=(
+            usuario_logado["nome"]
+        ),
+        status_anterior=(
+            demanda["status"]
+        ),
+        status_posterior=(
+            demanda["status"]
+        ),
+    )
+
+    conn.commit()
+
+    demanda_arquivada = (
+        buscar_demanda(
+            cursor,
+            demanda_id,
+        )
+    )
+
+    resultado = montar_demanda(
+        cursor,
+        demanda_arquivada,
+    )
+
+    conn.close()
+
+    return jsonify(resultado)
 
 
 @app.route(
@@ -1079,13 +1353,17 @@ def criar_demanda(
 
     if ausentes:
         return {
-            "mensagem":
-                "Preencha todos os campos obrigatórios.",
+            "mensagem": (
+                "Preencha todos os "
+                "campos obrigatórios."
+            ),
             "campos_ausentes":
                 ausentes,
         }, 400
 
-    status = dados.get("status")
+    status = dados.get(
+        "status"
+    )
 
     prioridade = dados.get(
         "prioridade_manual"
@@ -1126,7 +1404,8 @@ def criar_demanda(
         return {
             "mensagem": (
                 "Somente usuários com perfil "
-                "Gestor podem atribuir um responsável."
+                "Gestor podem atribuir "
+                "um responsável."
             )
         }, 403
 
@@ -1137,7 +1416,8 @@ def criar_demanda(
         return {
             "mensagem": (
                 "O nome do responsável deve "
-                "possuir no máximo 100 caracteres."
+                "possuir no máximo "
+                "100 caracteres."
             )
         }, 400
 
@@ -1148,6 +1428,7 @@ def criar_demanda(
     )
 
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     cursor.execute(
@@ -1178,14 +1459,30 @@ def criar_demanda(
         )
         """,
         (
-            dados.get("numero_processo"),
-            dados.get("orgao_solicitante"),
-            dados.get("municipio"),
-            dados.get("bairro"),
-            dados.get("tipo_ocorrencia"),
-            dados.get("data_entrada"),
-            dados.get("prazo_resposta"),
-            dados.get("descricao"),
+            dados.get(
+                "numero_processo"
+            ),
+            dados.get(
+                "orgao_solicitante"
+            ),
+            dados.get(
+                "municipio"
+            ),
+            dados.get(
+                "bairro"
+            ),
+            dados.get(
+                "tipo_ocorrencia"
+            ),
+            dados.get(
+                "data_entrada"
+            ),
+            dados.get(
+                "prazo_resposta"
+            ),
+            dados.get(
+                "descricao"
+            ),
             prioridade,
             dados.get(
                 "justificativa_prioridade"
@@ -1195,8 +1492,12 @@ def criar_demanda(
             ),
             responsavel,
             status,
-            dados.get("origem"),
-            dados.get("data_cadastro"),
+            dados.get(
+                "origem"
+            ),
+            dados.get(
+                "data_cadastro"
+            ),
             data_finalizacao,
         ),
     )
@@ -1204,16 +1505,21 @@ def criar_demanda(
     demanda_id = cursor.lastrowid
 
     registrar_historico(
-        cursor,
-        demanda_id,
-        "Cadastro da demanda",
-        (
-            "Demanda cadastrada manualmente "
-            "no VISAT Manager."
+        cursor=cursor,
+        demanda_id=demanda_id,
+        tipo_acao=(
+            "Cadastro da demanda"
         ),
-        usuario_logado["nome"],
-        None,
-        status,
+        descricao=(
+            "Demanda cadastrada "
+            "manualmente no "
+            "VISAT Manager."
+        ),
+        usuario=(
+            usuario_logado["nome"]
+        ),
+        status_anterior=None,
+        status_posterior=status,
     )
 
     conn.commit()
@@ -1232,7 +1538,10 @@ def criar_demanda(
 
 
 @app.route(
-    "/api/demandas/<int:demanda_id>",
+    (
+        "/api/demandas/"
+        "<int:demanda_id>"
+    ),
     methods=["PUT"],
 )
 @login_obrigatorio
@@ -1245,6 +1554,7 @@ def atualizar_demanda(
     ) or {}
 
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     registro = buscar_demanda(
@@ -1260,9 +1570,22 @@ def atualizar_demanda(
                 "Demanda não encontrada."
         }, 404
 
+    erro_arquivada = (
+        validar_demanda_editavel(
+            registro
+        )
+    )
+
+    if erro_arquivada:
+        conn.close()
+
+        return erro_arquivada
+
     atual = dict(registro)
 
-    status_atual = atual["status"]
+    status_atual = (
+        atual["status"]
+    )
 
     prioridade_atual = (
         atual["prioridade_manual"]
@@ -1296,8 +1619,9 @@ def atualizar_demanda(
 
         return {
             "mensagem": (
-                "Somente usuários com perfil Gestor "
-                "podem atribuir ou remover o responsável."
+                "Somente usuários com perfil "
+                "Gestor podem atribuir ou "
+                "remover o responsável."
             )
         }, 403
 
@@ -1310,7 +1634,8 @@ def atualizar_demanda(
         return {
             "mensagem": (
                 "O nome do responsável deve "
-                "possuir no máximo 100 caracteres."
+                "possuir no máximo "
+                "100 caracteres."
             )
         }, 400
 
@@ -1328,7 +1653,9 @@ def atualizar_demanda(
         "orgao_solicitante":
             dados.get(
                 "orgao_solicitante",
-                atual["orgao_solicitante"],
+                atual[
+                    "orgao_solicitante"
+                ],
             ),
         "municipio":
             dados.get(
@@ -1343,12 +1670,16 @@ def atualizar_demanda(
         "tipo_ocorrencia":
             dados.get(
                 "tipo_ocorrencia",
-                atual["tipo_ocorrencia"],
+                atual[
+                    "tipo_ocorrencia"
+                ],
             ),
         "prazo_resposta":
             dados.get(
                 "prazo_resposta",
-                atual["prazo_resposta"],
+                atual[
+                    "prazo_resposta"
+                ],
             ),
         "descricao":
             dados.get(
@@ -1360,16 +1691,22 @@ def atualizar_demanda(
     if any(
         valor is None or
         not str(valor).strip()
-        for valor in valores.values()
+        for valor
+        in valores.values()
     ):
         conn.close()
 
         return {
-            "mensagem":
-                "Preencha todos os dados da demanda."
+            "mensagem": (
+                "Preencha todos os "
+                "dados da demanda."
+            )
         }, 400
 
-    if novo_status not in STATUS_VALIDOS:
+    if (
+        novo_status not in
+        STATUS_VALIDOS
+    ):
         conn.close()
 
         return {
@@ -1399,7 +1736,9 @@ def atualizar_demanda(
         atual["data_finalizacao"]
     )
 
-    arquivada = atual["arquivada"]
+    arquivada = (
+        atual["arquivada"]
+    )
 
     data_arquivamento = (
         atual["data_arquivamento"]
@@ -1414,6 +1753,7 @@ def atualizar_demanda(
         )
 
         arquivada = 0
+
         data_arquivamento = None
 
     elif (
@@ -1421,7 +1761,9 @@ def atualizar_demanda(
         novo_status != "Finalizada"
     ):
         data_finalizacao = None
+
         arquivada = 0
+
         data_arquivamento = None
 
     cursor.execute(
@@ -1445,11 +1787,17 @@ def atualizar_demanda(
         WHERE id = ?
         """,
         (
-            valores["orgao_solicitante"],
+            valores[
+                "orgao_solicitante"
+            ],
             valores["municipio"],
             valores["bairro"],
-            valores["tipo_ocorrencia"],
-            valores["prazo_resposta"],
+            valores[
+                "tipo_ocorrencia"
+            ],
+            valores[
+                "prazo_resposta"
+            ],
             valores["descricao"],
             novo_responsavel,
             novo_status,
@@ -1473,7 +1821,9 @@ def atualizar_demanda(
         ),
     )
 
-    usuario = usuario_logado["nome"]
+    usuario = (
+        usuario_logado["nome"]
+    )
 
     if (
         responsavel_atual !=
@@ -1492,41 +1842,61 @@ def atualizar_demanda(
         tipo = (
             "Atribuição de responsável"
             if novo_responsavel
-            else "Remoção de responsável"
+            else
+            "Remoção de responsável"
         )
 
         descricao_historico = (
-            f"Responsável alterado de "
-            f"{anterior} para {posterior}."
-            if novo_responsavel
-            else
-            f"O responsável {anterior} "
-            f"foi removido da demanda."
-        )
-
-        registrar_historico(
-            cursor,
-            demanda_id,
-            tipo,
-            descricao_historico,
-            usuario,
-            status_atual,
-            novo_status,
-        )
-
-    if status_atual != novo_status:
-        registrar_historico(
-            cursor,
-            demanda_id,
-            "Alteração de status",
             (
-                f"Status alterado de "
+                "Responsável alterado de "
+                f"{anterior} para "
+                f"{posterior}."
+            )
+            if novo_responsavel
+            else (
+                f"O responsável {anterior} "
+                "foi removido da demanda."
+            )
+        )
+
+        registrar_historico(
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=tipo,
+            descricao=(
+                descricao_historico
+            ),
+            usuario=usuario,
+            status_anterior=(
+                status_atual
+            ),
+            status_posterior=(
+                novo_status
+            ),
+        )
+
+    if (
+        status_atual !=
+        novo_status
+    ):
+        registrar_historico(
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=(
+                "Alteração de status"
+            ),
+            descricao=(
+                "Status alterado de "
                 f"{status_atual} para "
                 f"{novo_status}."
             ),
-            usuario,
-            status_atual,
-            novo_status,
+            usuario=usuario,
+            status_anterior=(
+                status_atual
+            ),
+            status_posterior=(
+                novo_status
+            ),
         )
 
     if (
@@ -1539,8 +1909,9 @@ def atualizar_demanda(
             )
 
             descricao_historico = (
-                "Prioridade automática restaurada "
-                "com base no prazo da demanda."
+                "Prioridade automática "
+                "restaurada com base no "
+                "prazo da demanda."
             )
         else:
             tipo = (
@@ -1548,32 +1919,46 @@ def atualizar_demanda(
             )
 
             descricao_historico = (
-                "Prioridade alterada manualmente "
-                f"para {nova_prioridade}."
+                "Prioridade alterada "
+                "manualmente para "
+                f"{nova_prioridade}."
             )
 
         registrar_historico(
-            cursor,
-            demanda_id,
-            tipo,
-            descricao_historico,
-            usuario,
-            status_atual,
-            novo_status,
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=tipo,
+            descricao=(
+                descricao_historico
+            ),
+            usuario=usuario,
+            status_anterior=(
+                status_atual
+            ),
+            status_posterior=(
+                novo_status
+            ),
         )
 
     if dados_alterados:
         registrar_historico(
-            cursor,
-            demanda_id,
-            "Edição da demanda",
-            (
-                "Os dados cadastrais da "
-                "demanda foram atualizados."
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=(
+                "Edição da demanda"
             ),
-            usuario,
-            status_atual,
-            novo_status,
+            descricao=(
+                "Os dados cadastrais "
+                "da demanda foram "
+                "atualizados."
+            ),
+            usuario=usuario,
+            status_anterior=(
+                status_atual
+            ),
+            status_posterior=(
+                novo_status
+            ),
         )
 
     conn.commit()
@@ -1592,7 +1977,10 @@ def atualizar_demanda(
 
 
 @app.route(
-    "/api/demandas/<int:demanda_id>",
+    (
+        "/api/demandas/"
+        "<int:demanda_id>"
+    ),
     methods=["DELETE"],
 )
 @perfil_obrigatorio("gestor")
@@ -1601,18 +1989,32 @@ def excluir_demanda(
     usuario_logado,
 ):
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
-    if not buscar_demanda(
+    demanda = buscar_demanda(
         cursor,
         demanda_id,
-    ):
+    )
+
+    if not demanda:
         conn.close()
 
         return {
             "mensagem":
                 "Demanda não encontrada."
         }, 404
+
+    erro_arquivada = (
+        validar_demanda_editavel(
+            demanda
+        )
+    )
+
+    if erro_arquivada:
+        conn.close()
+
+        return erro_arquivada
 
     cursor.execute(
         """
@@ -1627,7 +2029,8 @@ def excluir_demanda(
 
     arquivos = [
         registro["nome_armazenado"]
-        for registro in cursor.fetchall()
+        for registro
+        in cursor.fetchall()
     ]
 
     cursor.execute(
@@ -1641,19 +2044,27 @@ def excluir_demanda(
     )
 
     conn.commit()
+
     conn.close()
 
     for nome in arquivos:
-        excluir_arquivo_anexo(nome)
+        excluir_arquivo_anexo(
+            nome
+        )
 
     return {
-        "mensagem":
-            "Demanda removida com sucesso!"
+        "mensagem": (
+            "Demanda removida "
+            "com sucesso!"
+        )
     }
 
 
 @app.route(
-    "/api/demandas/<int:demanda_id>/historico",
+    (
+        "/api/demandas/"
+        "<int:demanda_id>/historico"
+    ),
     methods=["GET"],
 )
 @login_obrigatorio
@@ -1662,12 +2073,15 @@ def listar_historico(
     usuario_logado,
 ):
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
-    if not buscar_demanda(
+    demanda = buscar_demanda(
         cursor,
         demanda_id,
-    ):
+    )
+
+    if not demanda:
         conn.close()
 
         return {
@@ -1684,9 +2098,11 @@ def listar_historico(
 
     return jsonify(historico)
 
-
 @app.route(
-    "/api/demandas/<int:demanda_id>/gargalos",
+    (
+        "/api/demandas/"
+        "<int:demanda_id>/gargalos"
+    ),
     methods=["POST"],
 )
 @login_obrigatorio
@@ -1707,19 +2123,23 @@ def registrar_gargalo(
 
     if not descricao:
         return {
-            "mensagem":
-                "Informe a descrição do gargalo."
+            "mensagem": (
+                "Informe a descrição "
+                "do gargalo."
+            )
         }, 400
 
     if len(descricao) > 500:
         return {
             "mensagem": (
-                "A descrição do gargalo deve possuir "
-                "no máximo 500 caracteres."
+                "A descrição do gargalo "
+                "deve possuir no máximo "
+                "500 caracteres."
             )
         }, 400
 
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     demanda = buscar_demanda(
@@ -1734,6 +2154,17 @@ def registrar_gargalo(
             "mensagem":
                 "Demanda não encontrada."
         }, 404
+
+    erro_arquivada = (
+        validar_demanda_editavel(
+            demanda
+        )
+    )
+
+    if erro_arquivada:
+        conn.close()
+
+        return erro_arquivada
 
     agora = data_hora_atual()
 
@@ -1768,13 +2199,24 @@ def registrar_gargalo(
     gargalo_id = cursor.lastrowid
 
     registrar_historico(
-        cursor,
-        demanda_id,
-        "Registro de gargalo",
-        f"Gargalo registrado: {descricao}",
-        usuario_logado["nome"],
-        demanda["status"],
-        demanda["status"],
+        cursor=cursor,
+        demanda_id=demanda_id,
+        tipo_acao=(
+            "Registro de gargalo"
+        ),
+        descricao=(
+            "Gargalo registrado: "
+            f"{descricao}"
+        ),
+        usuario=(
+            usuario_logado["nome"]
+        ),
+        status_anterior=(
+            demanda["status"]
+        ),
+        status_posterior=(
+            demanda["status"]
+        ),
     )
 
     conn.commit()
@@ -1818,17 +2260,12 @@ def atualizar_gargalo(
     ) or {}
 
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     demanda = buscar_demanda(
         cursor,
         demanda_id,
-    )
-
-    gargalo = buscar_gargalo(
-        cursor,
-        demanda_id,
-        gargalo_id,
     )
 
     if not demanda:
@@ -1838,6 +2275,23 @@ def atualizar_gargalo(
             "mensagem":
                 "Demanda não encontrada."
         }, 404
+
+    erro_arquivada = (
+        validar_demanda_editavel(
+            demanda
+        )
+    )
+
+    if erro_arquivada:
+        conn.close()
+
+        return erro_arquivada
+
+    gargalo = buscar_gargalo(
+        cursor,
+        demanda_id,
+        gargalo_id,
+    )
 
     if not gargalo:
         conn.close()
@@ -1865,8 +2319,10 @@ def atualizar_gargalo(
         conn.close()
 
         return {
-            "mensagem":
-                "Informe a descrição do gargalo."
+            "mensagem": (
+                "Informe a descrição "
+                "do gargalo."
+            )
         }, 400
 
     if len(descricao) > 500:
@@ -1874,8 +2330,9 @@ def atualizar_gargalo(
 
         return {
             "mensagem": (
-                "A descrição do gargalo deve possuir "
-                "no máximo 500 caracteres."
+                "A descrição do gargalo "
+                "deve possuir no máximo "
+                "500 caracteres."
             )
         }, 400
 
@@ -1886,17 +2343,38 @@ def atualizar_gargalo(
         conn.close()
 
         return {
-            "mensagem":
-                "Status do gargalo inválido."
+            "mensagem": (
+                "Status do gargalo "
+                "inválido."
+            )
         }, 400
 
     descricao_alterada = (
-        descricao != atual["descricao"]
+        descricao !=
+        atual["descricao"]
     )
 
     status_alterado = (
-        status != atual["status"]
+        status !=
+        atual["status"]
     )
+
+    if (
+        not descricao_alterada and
+        not status_alterado
+    ):
+        resultado = dict(atual)
+
+        resultado["historico"] = (
+            buscar_historico(
+                cursor,
+                demanda_id,
+            )
+        )
+
+        conn.close()
+
+        return jsonify(resultado)
 
     agora = data_hora_atual()
 
@@ -1923,6 +2401,7 @@ def atualizar_gargalo(
         atual["status"] == "Resolvido"
     ):
         usuario_resolucao = None
+
         data_resolucao = None
 
     cursor.execute(
@@ -1950,39 +2429,56 @@ def atualizar_gargalo(
 
     if descricao_alterada:
         registrar_historico(
-            cursor,
-            demanda_id,
-            "Edição de gargalo",
-            (
-                "A descrição de um gargalo "
-                "foi atualizada."
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=(
+                "Edição de gargalo"
             ),
-            usuario_logado["nome"],
-            demanda["status"],
-            demanda["status"],
+            descricao=(
+                "A descrição de um "
+                "gargalo foi atualizada."
+            ),
+            usuario=(
+                usuario_logado["nome"]
+            ),
+            status_anterior=(
+                demanda["status"]
+            ),
+            status_posterior=(
+                demanda["status"]
+            ),
         )
 
     if status_alterado:
-        tipo = (
+        tipo_acao = (
             "Resolução de gargalo"
             if status == "Resolvido"
             else "Reabertura de gargalo"
         )
 
-        texto = (
-            "Gargalo marcado como resolvido."
+        descricao_historico = (
+            "Gargalo marcado como "
+            "resolvido."
             if status == "Resolvido"
             else "Gargalo reaberto."
         )
 
         registrar_historico(
-            cursor,
-            demanda_id,
-            tipo,
-            texto,
-            usuario_logado["nome"],
-            demanda["status"],
-            demanda["status"],
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=tipo_acao,
+            descricao=(
+                descricao_historico
+            ),
+            usuario=(
+                usuario_logado["nome"]
+            ),
+            status_anterior=(
+                demanda["status"]
+            ),
+            status_posterior=(
+                demanda["status"]
+            ),
         )
 
     conn.commit()
@@ -2022,17 +2518,12 @@ def excluir_gargalo(
     usuario_logado,
 ):
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     demanda = buscar_demanda(
         cursor,
         demanda_id,
-    )
-
-    gargalo = buscar_gargalo(
-        cursor,
-        demanda_id,
-        gargalo_id,
     )
 
     if not demanda:
@@ -2042,6 +2533,23 @@ def excluir_gargalo(
             "mensagem":
                 "Demanda não encontrada."
         }, 404
+
+    erro_arquivada = (
+        validar_demanda_editavel(
+            demanda
+        )
+    )
+
+    if erro_arquivada:
+        conn.close()
+
+        return erro_arquivada
+
+    gargalo = buscar_gargalo(
+        cursor,
+        demanda_id,
+        gargalo_id,
+    )
 
     if not gargalo:
         conn.close()
@@ -2064,16 +2572,24 @@ def excluir_gargalo(
     )
 
     registrar_historico(
-        cursor,
-        demanda_id,
-        "Exclusão de gargalo",
-        (
+        cursor=cursor,
+        demanda_id=demanda_id,
+        tipo_acao=(
+            "Exclusão de gargalo"
+        ),
+        descricao=(
             "Gargalo excluído: "
             f"{gargalo['descricao']}"
         ),
-        usuario_logado["nome"],
-        demanda["status"],
-        demanda["status"],
+        usuario=(
+            usuario_logado["nome"]
+        ),
+        status_anterior=(
+            demanda["status"]
+        ),
+        status_posterior=(
+            demanda["status"]
+        ),
     )
 
     conn.commit()
@@ -2086,15 +2602,20 @@ def excluir_gargalo(
     conn.close()
 
     return {
-        "mensagem":
-            "Gargalo excluído com sucesso.",
+        "mensagem": (
+            "Gargalo excluído "
+            "com sucesso."
+        ),
         "historico":
             historico,
     }
 
 
 @app.route(
-    "/api/demandas/<int:demanda_id>/anexos",
+    (
+        "/api/demandas/"
+        "<int:demanda_id>/anexos"
+    ),
     methods=["POST"],
 )
 @login_obrigatorio
@@ -2144,9 +2665,10 @@ def adicionar_anexo(
     ):
         return {
             "mensagem": (
-                "Formato de arquivo não permitido. "
-                "Envie PDF, DOC, DOCX, XLS, XLSX, "
-                "PNG, JPG ou JPEG."
+                "Formato de arquivo não "
+                "permitido. Envie PDF, DOC, "
+                "DOCX, XLS, XLSX, PNG, "
+                "JPG ou JPEG."
             )
         }, 400
 
@@ -2163,8 +2685,10 @@ def adicionar_anexo(
 
     if not descricao:
         return {
-            "mensagem":
-                "Informe uma breve descrição."
+            "mensagem": (
+                "Informe uma breve "
+                "descrição."
+            )
         }, 400
 
     if len(descricao) > 300:
@@ -2176,6 +2700,7 @@ def adicionar_anexo(
         }, 400
 
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     demanda = buscar_demanda(
@@ -2191,6 +2716,17 @@ def adicionar_anexo(
                 "Demanda não encontrada."
         }, 404
 
+    erro_arquivada = (
+        validar_demanda_editavel(
+            demanda
+        )
+    )
+
+    if erro_arquivada:
+        conn.close()
+
+        return erro_arquivada
+
     nome_armazenado = (
         f"{uuid.uuid4().hex}."
         f"{extensao}"
@@ -2203,7 +2739,9 @@ def adicionar_anexo(
     try:
         arquivo.save(caminho)
 
-        tamanho = caminho.stat().st_size
+        tamanho = (
+            caminho.stat().st_size
+        )
 
         if tamanho == 0:
             excluir_arquivo_anexo(
@@ -2273,19 +2811,29 @@ def adicionar_anexo(
             ),
         )
 
-        anexo_id = cursor.lastrowid
+        anexo_id = (
+            cursor.lastrowid
+        )
 
         registrar_historico(
-            cursor,
-            demanda_id,
-            "Envio de documento",
-            (
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=(
+                "Envio de documento"
+            ),
+            descricao=(
                 "Documento anexado: "
                 f"{nome_original}."
             ),
-            usuario_logado["nome"],
-            demanda["status"],
-            demanda["status"],
+            usuario=(
+                usuario_logado["nome"]
+            ),
+            status_anterior=(
+                demanda["status"]
+            ),
+            status_posterior=(
+                demanda["status"]
+            ),
         )
 
         conn.commit()
@@ -2312,10 +2860,13 @@ def adicionar_anexo(
 
         conn.close()
 
-        return jsonify(resultado), 201
+        return jsonify(
+            resultado
+        ), 201
 
     except Exception:
         conn.rollback()
+
         conn.close()
 
         excluir_arquivo_anexo(
@@ -2349,17 +2900,12 @@ def atualizar_anexo(
     ) or {}
 
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     demanda = buscar_demanda(
         cursor,
         demanda_id,
-    )
-
-    anexo = buscar_anexo(
-        cursor,
-        demanda_id,
-        anexo_id,
     )
 
     if not demanda:
@@ -2369,6 +2915,23 @@ def atualizar_anexo(
             "mensagem":
                 "Demanda não encontrada."
         }, 404
+
+    erro_arquivada = (
+        validar_demanda_editavel(
+            demanda
+        )
+    )
+
+    if erro_arquivada:
+        conn.close()
+
+        return erro_arquivada
+
+    anexo = buscar_anexo(
+        cursor,
+        demanda_id,
+        anexo_id,
+    )
 
     if not anexo:
         conn.close()
@@ -2409,8 +2972,10 @@ def atualizar_anexo(
         conn.close()
 
         return {
-            "mensagem":
-                "Informe uma breve descrição."
+            "mensagem": (
+                "Informe uma breve "
+                "descrição."
+            )
         }, 400
 
     if len(descricao) > 300:
@@ -2423,10 +2988,14 @@ def atualizar_anexo(
             )
         }, 400
 
-    if (
-        tipo != anexo["tipo_documento"] or
-        descricao != anexo["descricao"]
-    ):
+    dados_alterados = (
+        tipo !=
+        anexo["tipo_documento"]
+        or descricao !=
+        anexo["descricao"]
+    )
+
+    if dados_alterados:
         cursor.execute(
             """
             UPDATE anexos
@@ -2447,17 +3016,25 @@ def atualizar_anexo(
         )
 
         registrar_historico(
-            cursor,
-            demanda_id,
-            "Edição de documento",
-            (
+            cursor=cursor,
+            demanda_id=demanda_id,
+            tipo_acao=(
+                "Edição de documento"
+            ),
+            descricao=(
                 "Os dados do documento "
                 f"{anexo['nome_original']} "
                 "foram atualizados."
             ),
-            usuario_logado["nome"],
-            demanda["status"],
-            demanda["status"],
+            usuario=(
+                usuario_logado["nome"]
+            ),
+            status_anterior=(
+                demanda["status"]
+            ),
+            status_posterior=(
+                demanda["status"]
+            ),
         )
 
         conn.commit()
@@ -2502,12 +3079,15 @@ def obter_arquivo_anexo(
     usuario_logado,
 ):
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
-    if not buscar_demanda(
+    demanda = buscar_demanda(
         cursor,
         demanda_id,
-    ):
+    )
+
+    if not demanda:
         conn.close()
 
         return {
@@ -2545,7 +3125,8 @@ def obter_arquivo_anexo(
         mimetypes.guess_type(
             anexo["nome_original"]
         )[0]
-        or "application/octet-stream"
+        or
+        "application/octet-stream"
     )
 
     baixar = (
@@ -2559,8 +3140,9 @@ def obter_arquivo_anexo(
         caminho,
         mimetype=tipo_mime,
         as_attachment=baixar,
-        download_name=
-            anexo["nome_original"],
+        download_name=(
+            anexo["nome_original"]
+        ),
     )
 
 
@@ -2579,17 +3161,12 @@ def excluir_anexo(
     usuario_logado,
 ):
     conn = obter_conexao()
+
     cursor = conn.cursor()
 
     demanda = buscar_demanda(
         cursor,
         demanda_id,
-    )
-
-    anexo = buscar_anexo(
-        cursor,
-        demanda_id,
-        anexo_id,
     )
 
     if not demanda:
@@ -2599,6 +3176,23 @@ def excluir_anexo(
             "mensagem":
                 "Demanda não encontrada."
         }, 404
+
+    erro_arquivada = (
+        validar_demanda_editavel(
+            demanda
+        )
+    )
+
+    if erro_arquivada:
+        conn.close()
+
+        return erro_arquivada
+
+    anexo = buscar_anexo(
+        cursor,
+        demanda_id,
+        anexo_id,
+    )
 
     if not anexo:
         conn.close()
@@ -2616,8 +3210,9 @@ def excluir_anexo(
 
         return {
             "mensagem": (
-                "Você só pode excluir documentos "
-                "enviados por você."
+                "Você só pode excluir "
+                "documentos enviados "
+                "por você."
             )
         }, 403
 
@@ -2634,16 +3229,24 @@ def excluir_anexo(
     )
 
     registrar_historico(
-        cursor,
-        demanda_id,
-        "Exclusão de documento",
-        (
+        cursor=cursor,
+        demanda_id=demanda_id,
+        tipo_acao=(
+            "Exclusão de documento"
+        ),
+        descricao=(
             "Documento excluído: "
             f"{anexo['nome_original']}."
         ),
-        usuario_logado["nome"],
-        demanda["status"],
-        demanda["status"],
+        usuario=(
+            usuario_logado["nome"]
+        ),
+        status_anterior=(
+            demanda["status"]
+        ),
+        status_posterior=(
+            demanda["status"]
+        ),
     )
 
     conn.commit()
@@ -2653,15 +3256,21 @@ def excluir_anexo(
         demanda_id,
     )
 
-    conn.close()
-
-    excluir_arquivo_anexo(
+    nome_armazenado = (
         anexo["nome_armazenado"]
     )
 
+    conn.close()
+
+    excluir_arquivo_anexo(
+        nome_armazenado
+    )
+
     return {
-        "mensagem":
-            "Documento excluído com sucesso.",
+        "mensagem": (
+            "Documento excluído "
+            "com sucesso."
+        ),
         "historico":
             historico,
     }
