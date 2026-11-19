@@ -14,16 +14,22 @@ function formatarData(data) {
     return '-'
   }
 
-  const [ano, mes, dia] = data.split('-')
+  const [ano, mes, dia] =
+    data.split('-')
 
   return `${dia}/${mes}/${ano}`
 }
 
-function criarClassePrioridade(prioridade) {
+function criarClassePrioridade(
+  prioridade,
+) {
   return prioridade
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(
+      /[\u0300-\u036f]/g,
+      '',
+    )
     .replace(/\s+/g, '-')
 }
 
@@ -39,9 +45,113 @@ function criarMensagemAtraso(
   )
 }
 
+function calcularTempoMedioResposta(
+  demandas,
+) {
+  const temposValidos = demandas
+    .filter(
+      (demanda) =>
+        demanda.status ===
+          'Finalizada' &&
+        demanda.dataCadastro &&
+        demanda.dataFinalizacao,
+    )
+    .map((demanda) => {
+      const dataCadastro =
+        new Date(
+          demanda.dataCadastro,
+        )
+
+      const dataFinalizacao =
+        new Date(
+          demanda.dataFinalizacao,
+        )
+
+      if (
+        Number.isNaN(
+          dataCadastro.getTime(),
+        ) ||
+        Number.isNaN(
+          dataFinalizacao.getTime(),
+        )
+      ) {
+        return null
+      }
+
+      const diferencaMilissegundos =
+        dataFinalizacao.getTime() -
+        dataCadastro.getTime()
+
+      if (
+        diferencaMilissegundos < 0
+      ) {
+        return null
+      }
+
+      return (
+        diferencaMilissegundos /
+        (
+          1000 *
+          60 *
+          60 *
+          24
+        )
+      )
+    })
+    .filter(
+      (tempo) => tempo !== null,
+    )
+
+  if (
+    temposValidos.length === 0
+  ) {
+    return {
+      mediaDias: null,
+      quantidadeDemandas: 0,
+    }
+  }
+
+  const somaDosTempos =
+    temposValidos.reduce(
+      (soma, tempo) =>
+        soma + tempo,
+      0,
+    )
+
+  return {
+    mediaDias:
+      somaDosTempos /
+      temposValidos.length,
+    quantidadeDemandas:
+      temposValidos.length,
+  }
+}
+
+function formatarTempoMedio(
+  mediaDias,
+) {
+  if (mediaDias === null) {
+    return 'Sem dados'
+  }
+
+  const valorFormatado =
+    mediaDias.toLocaleString(
+      'pt-BR',
+      {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      },
+    )
+
+  return `${valorFormatado} dias`
+}
+
 function Dashboard() {
   const navigate = useNavigate()
-  const { demandas } = useDemandas()
+
+  const {
+    demandas,
+  } = useDemandas()
 
   const demandasComInformacoes =
     demandas.map((demanda) => {
@@ -64,7 +174,9 @@ function Dashboard() {
           diasRestantes !== null &&
           diasRestantes < 0
         )
-          ? Math.abs(diasRestantes)
+          ? Math.abs(
+              diasRestantes,
+            )
           : 0
 
       const estaAtrasada =
@@ -101,19 +213,22 @@ function Dashboard() {
   const totalPrioridadeAlta =
     demandasAtivas.filter(
       (demanda) =>
-        demanda.prioridade === 'Alta',
+        demanda.prioridade ===
+        'Alta',
     ).length
 
   const totalPrioridadeMedia =
     demandasAtivas.filter(
       (demanda) =>
-        demanda.prioridade === 'Média',
+        demanda.prioridade ===
+        'Média',
     ).length
 
   const totalPrioridadeBaixa =
     demandasAtivas.filter(
       (demanda) =>
-        demanda.prioridade === 'Baixa',
+        demanda.prioridade ===
+        'Baixa',
     ).length
 
   const totalAtrasadas =
@@ -151,26 +266,55 @@ function Dashboard() {
         'Finalizada',
     ).length
 
+  const {
+    mediaDias,
+    quantidadeDemandas,
+  } = calcularTempoMedioResposta(
+    demandasComInformacoes,
+  )
+
+  const textoQuantidadeBase =
+    quantidadeDemandas === 1
+      ? (
+        'Baseado em 1 demanda finalizada'
+      )
+      : (
+        `Baseado em ${quantidadeDemandas} demandas finalizadas`
+      )
+
   const demandasMaisUrgentes = [
     ...demandasAtivas,
   ]
-    .sort((demandaA, demandaB) => {
-      const diasA =
-        demandaA.diasRestantes === null
-          ? Number.POSITIVE_INFINITY
-          : demandaA.diasRestantes
+    .sort(
+      (
+        demandaA,
+        demandaB,
+      ) => {
+        const diasA =
+          demandaA
+            .diasRestantes === null
+            ? Number
+                .POSITIVE_INFINITY
+            : demandaA
+                .diasRestantes
 
-      const diasB =
-        demandaB.diasRestantes === null
-          ? Number.POSITIVE_INFINITY
-          : demandaB.diasRestantes
+        const diasB =
+          demandaB
+            .diasRestantes === null
+            ? Number
+                .POSITIVE_INFINITY
+            : demandaB
+                .diasRestantes
 
-      return diasA - diasB
-    })
+        return diasA - diasB
+      },
+    )
     .slice(0, 5)
 
   function abrirDetalhes(id) {
-    navigate(`/demandas/${id}`)
+    navigate(
+      `/demandas/${id}`,
+    )
   }
 
   function abrirDetalhesComTeclado(
@@ -190,11 +334,13 @@ function Dashboard() {
     <div className="dashboard-page">
       <div className="dashboard-page-header">
         <div>
-          <h1>Dashboard</h1>
+          <h1>
+            Dashboard
+          </h1>
 
           <p>
-            Visão geral das demandas cadastradas no VISAT
-            Manager.
+            Visão geral das demandas
+            cadastradas no VISAT Manager.
           </p>
         </div>
 
@@ -227,7 +373,9 @@ function Dashboard() {
       >
         <article className="dashboard-card dashboard-card-total">
           <div className="dashboard-card-header">
-            <span>Total de demandas</span>
+            <span>
+              Total de demandas
+            </span>
 
             <span
               className="dashboard-card-icon"
@@ -237,16 +385,21 @@ function Dashboard() {
             </span>
           </div>
 
-          <strong>{totalDemandas}</strong>
+          <strong>
+            {totalDemandas}
+          </strong>
 
           <p>
-            Demandas ativas registradas na plataforma
+            Demandas ativas registradas
+            na plataforma
           </p>
         </article>
 
         <article className="dashboard-card dashboard-card-alta">
           <div className="dashboard-card-header">
-            <span>Prioridade alta</span>
+            <span>
+              Prioridade alta
+            </span>
 
             <span
               className="dashboard-card-icon"
@@ -261,13 +414,16 @@ function Dashboard() {
           </strong>
 
           <p>
-            Demandas que exigem maior atenção
+            Demandas que exigem maior
+            atenção
           </p>
         </article>
 
         <article className="dashboard-card dashboard-card-atrasadas">
           <div className="dashboard-card-header">
-            <span>Demandas atrasadas</span>
+            <span>
+              Demandas atrasadas
+            </span>
 
             <span
               className="dashboard-card-icon"
@@ -282,13 +438,16 @@ function Dashboard() {
           </strong>
 
           <p>
-            Demandas ativas com prazo vencido
+            Demandas ativas com prazo
+            vencido
           </p>
         </article>
 
         <article className="dashboard-card dashboard-card-prazo">
           <div className="dashboard-card-header">
-            <span>Prazos próximos</span>
+            <span>
+              Prazos próximos
+            </span>
 
             <span
               className="dashboard-card-icon"
@@ -303,13 +462,16 @@ function Dashboard() {
           </strong>
 
           <p>
-            Vencem hoje ou nos próximos 3 dias
+            Vencem hoje ou nos próximos
+            3 dias
           </p>
         </article>
 
         <article className="dashboard-card dashboard-card-andamento">
           <div className="dashboard-card-header">
-            <span>Em andamento</span>
+            <span>
+              Em andamento
+            </span>
 
             <span
               className="dashboard-card-icon"
@@ -324,7 +486,8 @@ function Dashboard() {
           </strong>
 
           <p>
-            Demandas com acompanhamento ativo
+            Demandas com acompanhamento
+            ativo
           </p>
         </article>
       </section>
@@ -338,7 +501,8 @@ function Dashboard() {
               </h2>
 
               <p>
-                Registros organizados pelo prazo de resposta
+                Registros organizados
+                pelo prazo de resposta
                 mais próximo.
               </p>
             </div>
@@ -347,7 +511,9 @@ function Dashboard() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate('/demandas')
+                  navigate(
+                    '/demandas',
+                  )
                 }
               >
                 Ver todas
@@ -355,22 +521,24 @@ function Dashboard() {
             )}
           </div>
 
-          {demandasMaisUrgentes.length ===
-          0 ? (
+          {demandasMaisUrgentes
+            .length === 0 ? (
             <div className="dashboard-empty-state">
               <h3>
                 Nenhuma demanda cadastrada
               </h3>
 
               <p>
-                Cadastre a primeira demanda para começar o
-                acompanhamento.
+                Cadastre a primeira demanda
+                para começar o acompanhamento.
               </p>
 
               <button
                 type="button"
                 onClick={() =>
-                  navigate('/cadastro')
+                  navigate(
+                    '/cadastro',
+                  )
                 }
               >
                 Cadastrar demanda
@@ -406,7 +574,9 @@ function Dashboard() {
 
                   return (
                     <article
-                      className={classeItem}
+                      className={
+                        classeItem
+                      }
                       key={demanda.id}
                       role="button"
                       tabIndex={0}
@@ -418,7 +588,9 @@ function Dashboard() {
                           demanda.id,
                         )
                       }
-                      onKeyDown={(evento) =>
+                      onKeyDown={(
+                        evento,
+                      ) =>
                         abrirDetalhesComTeclado(
                           evento,
                           demanda.id,
@@ -427,14 +599,21 @@ function Dashboard() {
                     >
                       <div className="dashboard-demanda-main">
                         <strong>
-                          {demanda.orgaoSolicitante}
+                          {
+                            demanda
+                              .orgaoSolicitante
+                          }
                         </strong>
 
                         <span>
-                          {demanda.tipoOcorrencia}
+                          {
+                            demanda
+                              .tipoOcorrencia
+                          }
                         </span>
 
-                        {demanda.estaAtrasada && (
+                        {demanda
+                          .estaAtrasada && (
                           <small className="dashboard-demanda-atrasada-label">
                             Prazo vencido
                           </small>
@@ -444,18 +623,22 @@ function Dashboard() {
                       <div className="dashboard-demanda-prazo">
                         <span>
                           {formatarData(
-                            demanda.prazoResposta,
+                            demanda
+                              .prazoResposta,
                           )}
                         </span>
 
-                        {demanda.estaAtrasada ? (
+                        {demanda
+                          .estaAtrasada ? (
                           <small className="dashboard-prazo-atrasado">
                             {criarMensagemAtraso(
-                              demanda.diasAtraso,
+                              demanda
+                                .diasAtraso,
                             )}
                           </small>
                         ) : (
-                          demanda.alertaPrazo && (
+                          demanda
+                            .alertaPrazo && (
                             <small>
                               {
                                 demanda
@@ -468,9 +651,17 @@ function Dashboard() {
                       </div>
 
                       <span
-                        className={`dashboard-prioridade prioridade-${classePrioridade}`}
+                        className={
+                          (
+                            'dashboard-prioridade ' +
+                            `prioridade-${classePrioridade}`
+                          )
+                        }
                       >
-                        {demanda.prioridade}
+                        {
+                          demanda
+                            .prioridade
+                        }
                       </span>
 
                       <span
@@ -495,7 +686,8 @@ function Dashboard() {
               </h2>
 
               <p>
-                Distribuição atual dos registros.
+                Distribuição atual dos
+                registros.
               </p>
             </div>
           </div>
@@ -505,7 +697,9 @@ function Dashboard() {
               <div>
                 <span className="prioridade-dot prioridade-dot-alta" />
 
-                <strong>Alta</strong>
+                <strong>
+                  Alta
+                </strong>
               </div>
 
               <span>
@@ -517,7 +711,9 @@ function Dashboard() {
               <div>
                 <span className="prioridade-dot prioridade-dot-media" />
 
-                <strong>Média</strong>
+                <strong>
+                  Média
+                </strong>
               </div>
 
               <span>
@@ -529,7 +725,9 @@ function Dashboard() {
               <div>
                 <span className="prioridade-dot prioridade-dot-baixa" />
 
-                <strong>Baixa</strong>
+                <strong>
+                  Baixa
+                </strong>
               </div>
 
               <span>
@@ -582,19 +780,78 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="dashboard-atalho">
-            <h3>Acesso rápido</h3>
+          <div
+            className={
+              (
+                'dashboard-tempo-medio' +
+                (
+                  mediaDias === null
+                    ? (
+                      ' dashboard-tempo-medio-sem-dados'
+                    )
+                    : ''
+                )
+              )
+            }
+          >
+            <div className="dashboard-tempo-medio-header">
+              <div>
+                <span className="dashboard-tempo-medio-label">
+                  Indicador gerencial
+                </span>
+
+                <h3>
+                  Tempo médio de resposta
+                </h3>
+              </div>
+
+              <span
+                className="dashboard-tempo-medio-icon"
+                aria-hidden="true"
+              >
+                T
+              </span>
+            </div>
+
+            <strong>
+              {formatarTempoMedio(
+                mediaDias,
+              )}
+            </strong>
 
             <p>
-              Consulte a lista completa ou registre uma nova
-              demanda.
+              {mediaDias === null
+                ? (
+                  'Finalize uma demanda para iniciar o cálculo.'
+                )
+                : textoQuantidadeBase}
+            </p>
+
+            {mediaDias !== null && (
+              <small>
+                Média entre o cadastro e
+                a finalização das demandas.
+              </small>
+            )}
+          </div>
+
+          <div className="dashboard-atalho">
+            <h3>
+              Acesso rápido
+            </h3>
+
+            <p>
+              Consulte a lista completa ou
+              registre uma nova demanda.
             </p>
 
             <div className="dashboard-atalho-buttons">
               <button
                 type="button"
                 onClick={() =>
-                  navigate('/demandas')
+                  navigate(
+                    '/demandas',
+                  )
                 }
               >
                 Abrir demandas
@@ -603,7 +860,9 @@ function Dashboard() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate('/cadastro')
+                  navigate(
+                    '/cadastro',
+                  )
                 }
               >
                 Cadastrar

@@ -737,3 +737,167 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   TEMPO MÉDIO DE RESPOSTA - US12
+   ========================================================= */
+
+.dashboard-tempo-medio {
+  margin: 18px;
+  padding: 20px;
+  border: 1px solid #bfd6ef;
+  border-radius: 10px;
+  background:
+    linear-gradient(
+      135deg,
+      #f5faff 0%,
+      #eef6ff 100%
+    );
+  box-shadow:
+    0 3px 10px
+    rgba(31, 95, 153, 0.08);
+}
+
+.dashboard-tempo-medio-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.dashboard-tempo-medio-header > div {
+  min-width: 0;
+}
+
+.dashboard-tempo-medio-label {
+  display: inline-flex;
+  margin-bottom: 7px;
+  padding: 4px 8px;
+  border: 1px solid #bdd6ea;
+  border-radius: 20px;
+  background-color: #ffffff;
+  color: #1f5f99;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.dashboard-tempo-medio h3 {
+  margin: 0;
+  color: #23476a;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.dashboard-tempo-medio-icon {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #bdd6ea;
+  border-radius: 9px;
+  background-color: #ffffff;
+  color: #1f5f99;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow:
+    0 2px 7px
+    rgba(31, 95, 153, 0.08);
+}
+
+.dashboard-tempo-medio > strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #1f5f99;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.dashboard-tempo-medio > p {
+  margin: 0;
+  color: #526579;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.dashboard-tempo-medio > small {
+  display: block;
+  margin-top: 8px;
+  color: #7a8694;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Estado exibido quando ainda não existem dados válidos */
+
+.dashboard-tempo-medio-sem-dados {
+  border-color: #d8e0e8;
+  background:
+    linear-gradient(
+      135deg,
+      #fafbfc 0%,
+      #f4f6f8 100%
+    );
+  box-shadow: none;
+}
+
+.dashboard-tempo-medio-sem-dados
+  .dashboard-tempo-medio-label {
+  border-color: #d0d5dd;
+  background-color: #ffffff;
+  color: #667085;
+}
+
+.dashboard-tempo-medio-sem-dados
+  .dashboard-tempo-medio-icon {
+  border-color: #d0d5dd;
+  color: #667085;
+}
+
+.dashboard-tempo-medio-sem-dados
+  h3 {
+  color: #475467;
+}
+
+.dashboard-tempo-medio-sem-dados
+  > strong {
+  color: #667085;
+  font-size: 24px;
+}
+
+.dashboard-tempo-medio-sem-dados
+  > p {
+  color: #7a8694;
+  font-weight: 500;
+}
+
+/* Responsividade do indicador */
+
+@media (max-width: 760px) {
+  .dashboard-tempo-medio {
+    margin: 16px 20px;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-tempo-medio {
+    margin: 14px;
+    padding: 17px;
+  }
+
+  .dashboard-tempo-medio-header {
+    gap: 12px;
+  }
+
+  .dashboard-tempo-medio > strong {
+    font-size: 25px;
+  }
+}
