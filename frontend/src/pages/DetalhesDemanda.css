@@ -3490,3 +3490,394 @@
     padding: 15px;
   }
 }
+
+/* =========================================================
+   ARQUIVAMENTO E MODO SOMENTE LEITURA - US08
+   ========================================================= */
+
+/* Aviso apresentado no topo de uma demanda arquivada */
+
+.demanda-arquivada-aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 24px;
+  padding: 22px 24px;
+  border: 1px solid #d7cbe9;
+  border-left: 5px solid #6941c6;
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      135deg,
+      #fdfcff 0%,
+      #f7f3fd 100%
+    );
+  box-shadow:
+    0 4px 14px
+    rgba(82, 56, 130, 0.08);
+}
+
+.demanda-arquivada-aviso > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.demanda-arquivada-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  padding: 5px 10px;
+  border: 1px solid #c9b8f4;
+  border-radius: 20px;
+  background-color: #ffffff;
+  color: #6941c6;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.demanda-arquivada-aviso h2 {
+  margin: 0 0 7px;
+  color: #3f2a72;
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.demanda-arquivada-aviso p {
+  max-width: 700px;
+  margin: 0;
+  color: #675879;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.demanda-arquivada-data {
+  display: flex;
+  min-width: 210px;
+  padding: 14px 17px;
+  border: 1px solid #dfd2f2;
+  border-radius: 9px;
+  background-color: #ffffff;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow:
+    0 2px 8px
+    rgba(82, 56, 130, 0.06);
+}
+
+.demanda-arquivada-data span {
+  color: #7a6b8e;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.demanda-arquivada-data strong {
+  color: #5334a3;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Identificação adicional no cabeçalho */
+
+.detalhes-page-arquivada
+  .demanda-selecionada-label {
+  border-color: #c9b8f4;
+  background-color: #f4f0ff;
+  color: #6941c6;
+}
+
+.detalhes-page-arquivada
+  .detalhes-card {
+  box-shadow:
+    0 3px 12px
+    rgba(31, 41, 55, 0.05);
+}
+
+/* Os cards continuam legíveis, mas com aparência de consulta */
+
+.detalhes-page-arquivada
+  .detalhes-card-header {
+  background:
+    linear-gradient(
+      135deg,
+      #fdfdfe 0%,
+      #f8f7fa 100%
+    );
+}
+
+.detalhes-page-arquivada
+  .detalhes-campo-completo p,
+.detalhes-page-arquivada
+  .documento-descricao {
+  background-color: #fafafa;
+}
+
+/* =========================================================
+   AÇÕES DE ARQUIVAMENTO E EXCLUSÃO
+   ========================================================= */
+
+.acoes-demanda {
+  display: flex;
+  margin-bottom: 32px;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.acoes-demanda
+  .acoes-perigosas {
+  margin-bottom: 0;
+}
+
+.acao-arquivar-demanda {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 24px;
+  border: 1px solid #c9b8f4;
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      135deg,
+      #fdfcff 0%,
+      #f8f5fd 100%
+    );
+}
+
+.acao-arquivar-demanda > div {
+  min-width: 0;
+}
+
+.acao-arquivar-demanda h2 {
+  margin: 0 0 6px;
+  color: #5334a3;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.acao-arquivar-demanda p {
+  margin: 0;
+  color: #675879;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.arquivar-demanda-button {
+  display: inline-flex;
+  min-width: 170px;
+  min-height: 42px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border: 1px solid #6941c6;
+  border-radius: 8px;
+  background-color: #6941c6;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow:
+    0 3px 8px
+    rgba(105, 65, 198, 0.16);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.arquivar-demanda-button:hover:not(:disabled) {
+  border-color: #5334a3;
+  background-color: #5334a3;
+  box-shadow:
+    0 5px 12px
+    rgba(105, 65, 198, 0.22);
+  transform: translateY(-1px);
+}
+
+.arquivar-demanda-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.arquivar-demanda-button:focus-visible {
+  outline: 3px solid
+    rgba(105, 65, 198, 0.22);
+  outline-offset: 2px;
+}
+
+.arquivar-demanda-button:disabled {
+  border-color: #d0d5dd;
+  background-color: #e4e7ec;
+  color: #98a2b3;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.arquivamento-mensagem {
+  margin: 0;
+  padding: 12px 15px;
+  border: 1px solid #efb4b4;
+  border-radius: 8px;
+  background-color: #fff1f1;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   CONFIRMAÇÃO DO ARQUIVAMENTO
+   ========================================================= */
+
+.confirmacao-arquivamento-modal {
+  border-color: #d7cbe9;
+}
+
+.confirmacao-arquivamento-icone {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 18px;
+  border: 1px solid #c9b8f4;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  background-color: #f4f0ff;
+  color: #6941c6;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.confirmar-arquivamento-button {
+  border: 1px solid #6941c6;
+  background-color: #6941c6;
+  color: #ffffff;
+}
+
+.confirmar-arquivamento-button:hover:not(:disabled) {
+  border-color: #5334a3;
+  background-color: #5334a3;
+}
+
+.confirmar-arquivamento-button:focus-visible {
+  outline: 3px solid
+    rgba(105, 65, 198, 0.22);
+  outline-offset: 2px;
+}
+
+.confirmar-arquivamento-button:disabled,
+.confirmacao-arquivamento-modal
+  button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* =========================================================
+   AJUSTES DOS CARDS EM SOMENTE LEITURA
+   ========================================================= */
+
+.detalhes-page-arquivada
+  .responsavel-card-header,
+.detalhes-page-arquivada
+  .status-card-header,
+.detalhes-page-arquivada
+  .prioridade-card-header,
+.detalhes-page-arquivada
+  .gargalos-card-header,
+.detalhes-page-arquivada
+  .documentos-card-header {
+  border-bottom: none;
+}
+
+.detalhes-page-arquivada
+  .responsavel-atual-resumo,
+.detalhes-page-arquivada
+  .status-atual-resumo,
+.detalhes-page-arquivada
+  .documentos-resumo,
+.detalhes-page-arquivada
+  .gargalos-resumo {
+  box-shadow: none;
+}
+
+.detalhes-page-arquivada
+  .documentos-lista,
+.detalhes-page-arquivada
+  .gargalos-lista {
+  border-top: 1px solid #e5eaf0;
+}
+
+.detalhes-page-arquivada
+  .documento-item {
+  border-left-color: #6941c6;
+}
+
+.detalhes-page-arquivada
+  .documento-item:hover {
+  border-left-color: #5334a3;
+}
+
+.detalhes-page-arquivada
+  .documento-acoes {
+  justify-content: flex-end;
+}
+
+.detalhes-page-arquivada
+  .documento-abrir-button,
+.detalhes-page-arquivada
+  .documento-baixar-button {
+  min-width: 90px;
+}
+
+/* =========================================================
+   RESPONSIVIDADE DO ARQUIVAMENTO
+   ========================================================= */
+
+@media (max-width: 760px) {
+  .demanda-arquivada-aviso {
+    align-items: stretch;
+    padding: 20px;
+    flex-direction: column;
+    gap: 17px;
+  }
+
+  .demanda-arquivada-data {
+    min-width: 0;
+  }
+
+  .acao-arquivar-demanda {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .arquivar-demanda-button {
+    width: 100%;
+  }
+
+  .acoes-demanda {
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  .demanda-arquivada-aviso {
+    padding: 18px;
+  }
+
+  .demanda-arquivada-aviso h2 {
+    font-size: 17px;
+  }
+
+  .acao-arquivar-demanda {
+    padding: 19px;
+  }
+}

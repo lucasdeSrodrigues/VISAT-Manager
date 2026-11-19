@@ -1,4 +1,8 @@
-import { useEffect, useState } from 'react'
+import {
+  useEffect,
+  useState,
+} from 'react'
+
 import {
   NavLink,
   useLocation,
@@ -25,7 +29,8 @@ const CHAVE_ULTIMO_ALERTA =
   'visat-ultimo-alerta-prazo'
 
 function obterDataAtual() {
-  const hoje = new Date()
+  const hoje =
+    new Date()
 
   const ano =
     hoje.getFullYear()
@@ -47,14 +52,17 @@ function obterDataAtual() {
   return `${ano}-${mes}-${dia}`
 }
 
-function formatarNomeUsuario(usuario) {
+function formatarNomeUsuario(
+  usuario,
+) {
   if (!usuario) {
     return 'Usuário'
   }
 
   const nomeBase =
     usuario.nome ||
-    usuario.email?.split('@')[0] ||
+    usuario.email
+      ?.split('@')[0] ||
     'Usuário'
 
   return nomeBase
@@ -69,7 +77,9 @@ function formatarNomeUsuario(usuario) {
     )
 }
 
-function formatarPerfil(perfil) {
+function formatarPerfil(
+  perfil,
+) {
   if (perfil === 'gestor') {
     return 'Gestor'
   }
@@ -78,12 +88,19 @@ function formatarPerfil(perfil) {
     return 'Inspetor'
   }
 
-  return 'Perfil não identificado'
+  return (
+    'Perfil não identificado'
+  )
 }
 
-function Layout({ children }) {
-  const navigate = useNavigate()
-  const location = useLocation()
+function Layout({
+  children,
+}) {
+  const navigate =
+    useNavigate()
+
+  const location =
+    useLocation()
 
   const {
     demandas,
@@ -115,6 +132,9 @@ function Layout({ children }) {
   const demandasComPrazoProximo =
     demandas.filter(
       (demanda) =>
+        demanda.status !==
+          'Finalizada' &&
+        !demanda.arquivada &&
         estaComPrazoProximo(
           demanda.prazoResposta,
         ),
@@ -199,7 +219,9 @@ function Layout({ children }) {
           'Não foi possível encerrar a sessão.',
       )
     } finally {
-      setEncerrandoSessao(false)
+      setEncerrandoSessao(
+        false,
+      )
     }
   }
 
@@ -233,13 +255,17 @@ function Layout({ children }) {
   return (
     <div
       className="layout"
-      data-perfil={perfil || undefined}
+      data-perfil={
+        perfil || undefined
+      }
     >
       <aside className="sidebar">
         <button
           className="sidebar-brand"
           type="button"
-          onClick={abrirDashboard}
+          onClick={
+            abrirDashboard
+          }
           aria-label="Ir para o Dashboard"
         >
           VISAT Manager
@@ -256,14 +282,18 @@ function Layout({ children }) {
           </div>
 
           <div className="sidebar-usuario-dados">
-            <strong title={nomeUsuario}>
+            <strong
+              title={nomeUsuario}
+            >
               {nomeUsuario}
             </strong>
 
             <span
               className={
-                `sidebar-perfil ` +
-                `sidebar-perfil-${perfil}`
+                (
+                  'sidebar-perfil ' +
+                  `sidebar-perfil-${perfil}`
+                )
               }
             >
               {nomePerfil}
@@ -290,6 +320,7 @@ function Layout({ children }) {
 
           <NavLink
             to="/demandas"
+            end
             className={({
               isActive,
             }) =>
@@ -299,6 +330,19 @@ function Layout({ children }) {
             }
           >
             Demandas
+          </NavLink>
+
+          <NavLink
+            to="/demandas/arquivadas"
+            className={({
+              isActive,
+            }) =>
+              isActive
+                ? 'active'
+                : ''
+            }
+          >
+            Demandas arquivadas
           </NavLink>
 
           <NavLink
@@ -342,7 +386,9 @@ function Layout({ children }) {
           className="logout-button"
           type="button"
           onClick={sair}
-          disabled={encerrandoSessao}
+          disabled={
+            encerrandoSessao
+          }
         >
           {encerrandoSessao
             ? 'Saindo...'
@@ -354,7 +400,8 @@ function Layout({ children }) {
         <header className="header">
           <div className="header-titulo">
             <h2>
-              Vigilância em Saúde do Trabalhador
+              Vigilância em Saúde do
+              Trabalhador
             </h2>
 
             <span className="header-perfil">

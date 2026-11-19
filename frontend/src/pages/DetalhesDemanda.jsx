@@ -3,6 +3,7 @@ import {
   useRef,
   useState,
 } from 'react'
+
 import {
   useNavigate,
   useParams,
@@ -40,14 +41,21 @@ function formatarData(data) {
   return `${dia}/${mes}/${ano}`
 }
 
-function formatarDataHora(dataHora) {
+function formatarDataHora(
+  dataHora,
+) {
   if (!dataHora) {
     return '-'
   }
 
-  const data = new Date(dataHora)
+  const data =
+    new Date(dataHora)
 
-  if (Number.isNaN(data.getTime())) {
+  if (
+    Number.isNaN(
+      data.getTime(),
+    )
+  ) {
     return '-'
   }
 
@@ -99,8 +107,11 @@ function criarClasse(texto) {
 }
 
 function DetalhesDemanda() {
-  const navigate = useNavigate()
-  const { id } = useParams()
+  const navigate =
+    useNavigate()
+
+  const { id } =
+    useParams()
 
   const arquivoInputRef =
     useRef(null)
@@ -108,6 +119,8 @@ function DetalhesDemanda() {
   const {
     responsaveis,
     buscarDemandaPorId,
+    carregarDemandasArquivadas,
+    arquivarDemanda,
     excluirDemanda,
     alterarPrioridade,
     restaurarPrioridadeAutomatica,
@@ -134,9 +147,29 @@ function DetalhesDemanda() {
     buscarDemandaPorId(id)
 
   const [
-    confirmacaoAberta,
-    setConfirmacaoAberta,
+    carregandoArquivada,
+    setCarregandoArquivada,
   ] = useState(false)
+
+  const [
+    confirmacaoExclusaoAberta,
+    setConfirmacaoExclusaoAberta,
+  ] = useState(false)
+
+  const [
+    confirmacaoArquivamentoAberta,
+    setConfirmacaoArquivamentoAberta,
+  ] = useState(false)
+
+  const [
+    arquivando,
+    setArquivando,
+  ] = useState(false)
+
+  const [
+    mensagemArquivamento,
+    setMensagemArquivamento,
+  ] = useState('')
 
   const [
     modalPrioridadeAberto,
@@ -283,6 +316,40 @@ function DetalhesDemanda() {
   ] = useState(false)
 
   useEffect(() => {
+    if (demanda) {
+      return
+    }
+
+    let componenteAtivo = true
+
+    setCarregandoArquivada(
+      true,
+    )
+
+    carregarDemandasArquivadas()
+      .catch((erro) => {
+        console.error(
+          'Erro ao localizar demanda arquivada:',
+          erro,
+        )
+      })
+      .finally(() => {
+        if (componenteAtivo) {
+          setCarregandoArquivada(
+            false,
+          )
+        }
+      })
+
+    return () => {
+      componenteAtivo = false
+    }
+  }, [
+    demanda,
+    id,
+  ])
+
+  useEffect(() => {
     if (!demanda) {
       return
     }
@@ -312,9 +379,46 @@ function DetalhesDemanda() {
       descricao:
         demanda.descricao || '',
     })
+
+    if (demanda.arquivada) {
+      setModoEdicao(false)
+
+      setModalPrioridadeAberto(
+        false,
+      )
+
+      setDocumentoEmEdicao(
+        null,
+      )
+
+      setGargaloEmEdicao(
+        null,
+      )
+    }
   }, [demanda])
 
   if (!demanda) {
+    if (carregandoArquivada) {
+      return (
+        <div className="detalhes-page">
+          <div
+            className="demanda-nao-encontrada"
+            role="status"
+            aria-live="polite"
+          >
+            <h1>
+              Carregando demanda
+            </h1>
+
+            <p>
+              Aguarde enquanto o registro
+              é consultado.
+            </p>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="detalhes-page">
         <div className="demanda-nao-encontrada">
@@ -340,6 +444,14 @@ function DetalhesDemanda() {
       </div>
     )
   }
+
+  const somenteLeitura =
+    demanda.arquivada
+
+  const rotaRetorno =
+    somenteLeitura
+      ? '/demandas/arquivadas'
+      : '/demandas'
 
   const prioridadeAutomatica =
     calcularPrioridade(
@@ -391,8 +503,61 @@ function DetalhesDemanda() {
       ? gargalos
       : gargalos.slice(0, 3)
 
+  async function confirmarArquivamento() {
+    if (
+      !usuarioEhGestor ||
+      somenteLeitura ||
+      demanda.status !==
+        'Finalizada'
+    ) {
+      return
+    }
+
+    try {
+      setArquivando(true)
+
+      setMensagemArquivamento(
+        '',
+      )
+
+      const resultado =
+        await arquivarDemanda(id)
+
+      if (!resultado) {
+        setMensagemArquivamento(
+          'Não foi possível arquivar a demanda.',
+        )
+
+        return
+      }
+
+      setConfirmacaoArquivamentoAberta(
+        false,
+      )
+
+      navigate(
+        '/demandas/arquivadas',
+      )
+    } catch (erro) {
+      console.error(
+        'Erro ao arquivar demanda:',
+        erro,
+      )
+
+      setMensagemArquivamento(
+        erro.message ||
+          'Não foi possível arquivar a demanda.',
+      )
+    } finally {
+      setArquivando(false)
+    }
+  }
+
   async function confirmarExclusao() {
-    if (!usuarioEhGestor) {
+    if (
+      !usuarioEhGestor ||
+      somenteLeitura
+    ) {
       return
     }
 
@@ -423,6 +588,10 @@ function DetalhesDemanda() {
   }
 
   function abrirModalPrioridade() {
+    if (somenteLeitura) {
+      return
+    }
+
     setNovaPrioridade(
       demanda.prioridadeManual ||
         prioridadeAutomatica,
@@ -435,7 +604,10 @@ function DetalhesDemanda() {
     )
 
     setErroPrioridade('')
-    setModalPrioridadeAberto(true)
+
+    setModalPrioridadeAberto(
+      true,
+    )
   }
 
   async function salvarPrioridadeManual(
@@ -528,28 +700,22 @@ function DetalhesDemanda() {
   ) {
     evento.preventDefault()
 
-    const responsavelTratado =
-      responsavelSelecionado.trim()
-
     try {
       const resultado =
         await atribuirResponsavel(
           id,
-          responsavelTratado,
+          responsavelSelecionado
+            .trim(),
         )
-
-      if (!resultado) {
-        setMensagemResponsavel(
-          'Não foi possível atualizar o responsável.',
-        )
-
-        return
-      }
 
       setMensagemResponsavel(
-        responsavelTratado
-          ? 'Responsável atribuído com sucesso.'
-          : 'Responsável removido da demanda.',
+        resultado
+          ? (
+            'Responsável atualizado com sucesso.'
+          )
+          : (
+            'Não foi possível atualizar o responsável.'
+          ),
       )
     } catch (erro) {
       console.error(
@@ -589,8 +755,12 @@ function DetalhesDemanda() {
 
       setMensagemStatus(
         resultado
-          ? 'Status atualizado com sucesso.'
-          : 'Não foi possível atualizar o status.',
+          ? (
+            'Status atualizado com sucesso.'
+          )
+          : (
+            'Não foi possível atualizar o status.'
+          ),
       )
     } catch (erro) {
       console.error(
@@ -663,8 +833,7 @@ function DetalhesDemanda() {
         demanda.descricao || '',
     })
   }
-
-  async function salvarDocumento(
+    async function salvarDocumento(
     evento,
   ) {
     evento.preventDefault()
@@ -721,7 +890,10 @@ function DetalhesDemanda() {
   function iniciarEdicaoDocumento(
     anexo,
   ) {
-    if (!usuarioEhGestor) {
+    if (
+      !usuarioEhGestor ||
+      somenteLeitura
+    ) {
       return
     }
 
@@ -742,6 +914,7 @@ function DetalhesDemanda() {
 
   function cancelarEdicaoDocumento() {
     setDocumentoEmEdicao(null)
+
     setTipoDocumentoEdicao('')
 
     setDescricaoDocumentoEdicao(
@@ -935,7 +1108,10 @@ function DetalhesDemanda() {
   function iniciarEdicaoGargalo(
     gargalo,
   ) {
-    if (!usuarioEhGestor) {
+    if (
+      !usuarioEhGestor ||
+      somenteLeitura
+    ) {
       return
     }
 
@@ -1038,8 +1214,12 @@ function DetalhesDemanda() {
       setMensagemGargalo(
         gargalo.status ===
         'Resolvido'
-          ? 'Gargalo reaberto com sucesso.'
-          : 'Gargalo marcado como resolvido.',
+          ? (
+            'Gargalo reaberto com sucesso.'
+          )
+          : (
+            'Gargalo marcado como resolvido.'
+          ),
       )
     } catch (erro) {
       console.error(
@@ -1117,8 +1297,22 @@ function DetalhesDemanda() {
       )
     }
   }
+
   return (
-    <div className="detalhes-page">
+    <div
+      className={
+        (
+          'detalhes-page' +
+          (
+            somenteLeitura
+              ? (
+                ' detalhes-page-arquivada'
+              )
+              : ''
+          )
+        )
+      }
+    >
       <nav
         className="detalhes-breadcrumb"
         aria-label="Localização atual"
@@ -1126,10 +1320,12 @@ function DetalhesDemanda() {
         <button
           type="button"
           onClick={() =>
-            navigate('/demandas')
+            navigate(rotaRetorno)
           }
         >
-          Demandas
+          {somenteLeitura
+            ? 'Demandas arquivadas'
+            : 'Demandas'}
         </button>
 
         <span aria-hidden="true">
@@ -1141,10 +1337,49 @@ function DetalhesDemanda() {
         </strong>
       </nav>
 
+      {somenteLeitura && (
+        <section
+          className="demanda-arquivada-aviso"
+          role="status"
+        >
+          <div>
+            <span className="demanda-arquivada-badge">
+              Arquivada
+            </span>
+
+            <h2>
+              Demanda disponível somente
+              para consulta
+            </h2>
+
+            <p>
+              Os dados, documentos,
+              gargalos e histórico foram
+              preservados. Alterações estão
+              desativadas.
+            </p>
+          </div>
+
+          <div className="demanda-arquivada-data">
+            <span>
+              Arquivada em
+            </span>
+
+            <strong>
+              {formatarDataHora(
+                demanda.dataArquivamento,
+              )}
+            </strong>
+          </div>
+        </section>
+      )}
+
       <div className="detalhes-page-header">
         <div>
           <span className="demanda-selecionada-label">
-            Demanda selecionada
+            {somenteLeitura
+              ? 'Demanda arquivada'
+              : 'Demanda selecionada'}
           </span>
 
           <h1>
@@ -1152,8 +1387,13 @@ function DetalhesDemanda() {
           </h1>
 
           <p>
-            Consulte as informações
-            registradas para esta demanda.
+            {somenteLeitura
+              ? (
+                'Consulte as informações preservadas neste processo.'
+              )
+              : (
+                'Consulte as informações registradas para esta demanda.'
+              )}
           </p>
         </div>
 
@@ -1161,10 +1401,12 @@ function DetalhesDemanda() {
           className="voltar-button"
           type="button"
           onClick={() =>
-            navigate('/demandas')
+            navigate(rotaRetorno)
           }
         >
-          Voltar para a lista
+          {somenteLeitura
+            ? 'Voltar para arquivadas'
+            : 'Voltar para a lista'}
         </button>
       </div>
 
@@ -1181,18 +1423,19 @@ function DetalhesDemanda() {
             </p>
           </div>
 
-          {!modoEdicao && (
-            <button
-              type="button"
-              className="alterar-prioridade-button"
-              onClick={() => {
-                setModoEdicao(true)
-                setMensagemEdicao('')
-              }}
-            >
-              Editar dados
-            </button>
-          )}
+          {!somenteLeitura &&
+            !modoEdicao && (
+              <button
+                type="button"
+                className="alterar-prioridade-button"
+                onClick={() => {
+                  setModoEdicao(true)
+                  setMensagemEdicao('')
+                }}
+              >
+                Editar dados
+              </button>
+            )}
         </div>
 
         {mensagemEdicao && (
@@ -1251,7 +1494,9 @@ function DetalhesDemanda() {
             </div>
 
             <div className="detalhes-campo">
-              <span>Município</span>
+              <span>
+                Município
+              </span>
 
               <strong>
                 {demanda.municipio}
@@ -1347,7 +1592,9 @@ function DetalhesDemanda() {
             </label>
 
             <label className="detalhes-campo">
-              <span>Município</span>
+              <span>
+                Município
+              </span>
 
               <input
                 type="text"
@@ -1441,14 +1688,18 @@ function DetalhesDemanda() {
             </h2>
 
             <p>
-              {usuarioEhGestor
+              {somenteLeitura
                 ? (
-                  'Atribua a demanda a um ' +
-                  'integrante da equipe.'
+                  'Consulte o responsável registrado no momento do arquivamento.'
                 )
                 : (
-                  'Consulte o integrante ' +
-                  'responsável pelo acompanhamento.'
+                  usuarioEhGestor
+                    ? (
+                      'Atribua a demanda a um integrante da equipe.'
+                    )
+                    : (
+                      'Consulte o integrante responsável pelo acompanhamento.'
+                    )
                 )}
             </p>
           </div>
@@ -1465,77 +1716,72 @@ function DetalhesDemanda() {
           </div>
         </div>
 
-        {usuarioEhGestor ? (
-          <>
-            <form
-              className="responsavel-form"
-              onSubmit={
-                salvarResponsavel
-              }
-            >
-              <div className="responsavel-form-field">
-                <label htmlFor="responsavelDemanda">
-                  Integrante responsável
-                </label>
-
-                <input
-                  id="responsavelDemanda"
-                  type="search"
-                  list="listaResponsaveis"
-                  maxLength="100"
-                  autoComplete="off"
-                  value={
-                    responsavelSelecionado
-                  }
-                  onChange={(evento) => {
-                    setResponsavelSelecionado(
-                      evento.target.value,
-                    )
-
-                    setMensagemResponsavel(
-                      '',
-                    )
-                  }}
-                />
-
-                <datalist id="listaResponsaveis">
-                  {(responsaveis || []).map(
-                    (responsavel) => (
-                      <option
-                        key={responsavel}
-                        value={responsavel}
-                      />
-                    ),
-                  )}
-                </datalist>
-              </div>
-
-              <button
-                className="salvar-responsavel-button"
-                type="submit"
+        {!somenteLeitura &&
+          usuarioEhGestor && (
+            <>
+              <form
+                className="responsavel-form"
+                onSubmit={
+                  salvarResponsavel
+                }
               >
-                Salvar responsável
-              </button>
-            </form>
+                <div className="responsavel-form-field">
+                  <label htmlFor="responsavelDemanda">
+                    Integrante responsável
+                  </label>
 
-            {mensagemResponsavel && (
-              <p
-                className="responsavel-mensagem"
-                role="status"
-              >
-                {mensagemResponsavel}
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="responsavel-mensagem">
-            A atribuição ou remoção é
-            exclusiva do perfil Gestor.
-          </p>
-        )}
+                  <input
+                    id="responsavelDemanda"
+                    type="search"
+                    list="listaResponsaveis"
+                    maxLength="100"
+                    autoComplete="off"
+                    value={
+                      responsavelSelecionado
+                    }
+                    onChange={(evento) => {
+                      setResponsavelSelecionado(
+                        evento.target.value,
+                      )
+
+                      setMensagemResponsavel(
+                        '',
+                      )
+                    }}
+                  />
+
+                  <datalist id="listaResponsaveis">
+                    {responsaveis.map(
+                      (responsavel) => (
+                        <option
+                          key={responsavel}
+                          value={responsavel}
+                        />
+                      ),
+                    )}
+                  </datalist>
+                </div>
+
+                <button
+                  className="salvar-responsavel-button"
+                  type="submit"
+                >
+                  Salvar responsável
+                </button>
+              </form>
+
+              {mensagemResponsavel && (
+                <p
+                  className="responsavel-mensagem"
+                  role="status"
+                >
+                  {mensagemResponsavel}
+                </p>
+              )}
+            </>
+          )}
       </section>
-
-      <section className="detalhes-card documentos-card">
+            <section className="detalhes-card documentos-card">
         <div className="detalhes-card-header documentos-card-header">
           <div>
             <h2>
@@ -1543,9 +1789,13 @@ function DetalhesDemanda() {
             </h2>
 
             <p>
-              Organize as evidências da
-              demanda com tipo, descrição
-              e responsável.
+              {somenteLeitura
+                ? (
+                  'Consulte ou baixe os documentos preservados.'
+                )
+                : (
+                  'Organize as evidências da demanda com tipo e descrição.'
+                )}
             </p>
           </div>
 
@@ -1560,118 +1810,119 @@ function DetalhesDemanda() {
           </div>
         </div>
 
-        <form
-          className="documento-form"
-          onSubmit={salvarDocumento}
-        >
-          <div className="documento-form-grid">
-            <div className="documento-form-field">
-              <label htmlFor="arquivoDocumento">
-                Arquivo
-              </label>
-
-              <input
-                ref={arquivoInputRef}
-                id="arquivoDocumento"
-                type="file"
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                onChange={(evento) => {
-                  setArquivoDocumento(
-                    evento.target
-                      .files?.[0] ||
-                      null,
-                  )
-
-                  setMensagemDocumento(
-                    '',
-                  )
-                }}
-              />
-
-              <small>
-                PDF, Word, Excel ou imagem.
-                Máximo de 10 MB.
-              </small>
-            </div>
-
-            <div className="documento-form-field">
-              <label htmlFor="tipoDocumento">
-                Tipo de documento
-              </label>
-
-              <select
-                id="tipoDocumento"
-                value={tipoDocumento}
-                onChange={(evento) => {
-                  setTipoDocumento(
-                    evento.target.value,
-                  )
-
-                  setMensagemDocumento(
-                    '',
-                  )
-                }}
-              >
-                <option value="">
-                  Selecione o tipo
-                </option>
-
-                {TIPOS_DOCUMENTO.map(
-                  (tipo) => (
-                    <option
-                      key={tipo}
-                      value={tipo}
-                    >
-                      {tipo}
-                    </option>
-                  ),
-                )}
-              </select>
-            </div>
-
-            <div className="documento-form-field documento-form-descricao">
-              <label htmlFor="descricaoDocumento">
-                Breve descrição
-              </label>
-
-              <textarea
-                id="descricaoDocumento"
-                rows="3"
-                maxLength="300"
-                value={
-                  descricaoDocumento
-                }
-                onChange={(evento) => {
-                  setDescricaoDocumento(
-                    evento.target.value,
-                  )
-
-                  setMensagemDocumento(
-                    '',
-                  )
-                }}
-                placeholder="Informe o conteúdo ou a finalidade do documento"
-              />
-
-              <small>
-                {descricaoDocumento.length}
-                /300 caracteres
-              </small>
-            </div>
-          </div>
-
-          <button
-            className="registrar-documento-button"
-            type="submit"
-            disabled={
-              enviandoDocumento
-            }
+        {!somenteLeitura && (
+          <form
+            className="documento-form"
+            onSubmit={salvarDocumento}
           >
-            {enviandoDocumento
-              ? 'Enviando...'
-              : 'Anexar documento'}
-          </button>
-        </form>
+            <div className="documento-form-grid">
+              <div className="documento-form-field">
+                <label htmlFor="arquivoDocumento">
+                  Arquivo
+                </label>
+
+                <input
+                  ref={arquivoInputRef}
+                  id="arquivoDocumento"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                  onChange={(evento) => {
+                    setArquivoDocumento(
+                      evento.target
+                        .files?.[0] ||
+                        null,
+                    )
+
+                    setMensagemDocumento(
+                      '',
+                    )
+                  }}
+                />
+
+                <small>
+                  PDF, Word, Excel ou imagem.
+                  Máximo de 10 MB.
+                </small>
+              </div>
+
+              <div className="documento-form-field">
+                <label htmlFor="tipoDocumento">
+                  Tipo de documento
+                </label>
+
+                <select
+                  id="tipoDocumento"
+                  value={tipoDocumento}
+                  onChange={(evento) => {
+                    setTipoDocumento(
+                      evento.target.value,
+                    )
+
+                    setMensagemDocumento(
+                      '',
+                    )
+                  }}
+                >
+                  <option value="">
+                    Selecione o tipo
+                  </option>
+
+                  {TIPOS_DOCUMENTO.map(
+                    (tipo) => (
+                      <option
+                        key={tipo}
+                        value={tipo}
+                      >
+                        {tipo}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </div>
+
+              <div className="documento-form-field documento-form-descricao">
+                <label htmlFor="descricaoDocumento">
+                  Breve descrição
+                </label>
+
+                <textarea
+                  id="descricaoDocumento"
+                  rows="3"
+                  maxLength="300"
+                  value={
+                    descricaoDocumento
+                  }
+                  onChange={(evento) => {
+                    setDescricaoDocumento(
+                      evento.target.value,
+                    )
+
+                    setMensagemDocumento(
+                      '',
+                    )
+                  }}
+                />
+
+                <small>
+                  {descricaoDocumento.length}
+                  /300 caracteres
+                </small>
+              </div>
+            </div>
+
+            <button
+              className="registrar-documento-button"
+              type="submit"
+              disabled={
+                enviandoDocumento
+              }
+            >
+              {enviandoDocumento
+                ? 'Enviando...'
+                : 'Anexar documento'}
+            </button>
+          </form>
+        )}
 
         {mensagemDocumento && (
           <p
@@ -1690,8 +1941,8 @@ function DetalhesDemanda() {
               </strong>
 
               <p>
-                Os arquivos enviados para
-                esta demanda aparecerão aqui.
+                Não há arquivos associados
+                a esta demanda.
               </p>
             </div>
           ) : (
@@ -1887,37 +2138,40 @@ function DetalhesDemanda() {
                         Baixar
                       </button>
 
-                      {usuarioEhGestor && (
+                      {!somenteLeitura &&
+                        usuarioEhGestor && (
+                          <button
+                            type="button"
+                            className="documento-editar-button"
+                            disabled={
+                              processando
+                            }
+                            onClick={() =>
+                              iniciarEdicaoDocumento(
+                                anexo,
+                              )
+                            }
+                          >
+                            Editar
+                          </button>
+                        )}
+
+                      {!somenteLeitura && (
                         <button
                           type="button"
-                          className="documento-editar-button"
+                          className="documento-excluir-button"
                           disabled={
                             processando
                           }
                           onClick={() =>
-                            iniciarEdicaoDocumento(
+                            confirmarExclusaoDocumento(
                               anexo,
                             )
                           }
                         >
-                          Editar
+                          Excluir
                         </button>
                       )}
-
-                      <button
-                        type="button"
-                        className="documento-excluir-button"
-                        disabled={
-                          processando
-                        }
-                        onClick={() =>
-                          confirmarExclusaoDocumento(
-                            anexo,
-                          )
-                        }
-                      >
-                        Excluir
-                      </button>
                     </div>
                   )}
                 </article>
@@ -1935,13 +2189,20 @@ function DetalhesDemanda() {
             </h2>
 
             <p>
-              Registre a etapa atual da
-              demanda.
+              {somenteLeitura
+                ? (
+                  'Status registrado no momento do arquivamento.'
+                )
+                : (
+                  'Registre a etapa atual da demanda.'
+                )}
             </p>
           </div>
 
           <div className="status-atual-resumo">
-            <span>Status atual</span>
+            <span>
+              Status atual
+            </span>
 
             <strong
               className={
@@ -1956,44 +2217,46 @@ function DetalhesDemanda() {
           </div>
         </div>
 
-        <form
-          className="status-form"
-          onSubmit={salvarStatus}
-        >
-          <div className="status-form-field">
-            <label htmlFor="statusDemanda">
-              Novo status
-            </label>
-
-            <select
-              id="statusDemanda"
-              value={statusSelecionado}
-              onChange={(evento) => {
-                setStatusSelecionado(
-                  evento.target.value,
-                )
-
-                setMensagemStatus('')
-              }}
-            >
-              {STATUS.map((status) => (
-                <option
-                  key={status}
-                  value={status}
-                >
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            className="salvar-status-button"
-            type="submit"
+        {!somenteLeitura && (
+          <form
+            className="status-form"
+            onSubmit={salvarStatus}
           >
-            Salvar status
-          </button>
-        </form>
+            <div className="status-form-field">
+              <label htmlFor="statusDemanda">
+                Novo status
+              </label>
+
+              <select
+                id="statusDemanda"
+                value={statusSelecionado}
+                onChange={(evento) => {
+                  setStatusSelecionado(
+                    evento.target.value,
+                  )
+
+                  setMensagemStatus('')
+                }}
+              >
+                {STATUS.map((status) => (
+                  <option
+                    key={status}
+                    value={status}
+                  >
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              className="salvar-status-button"
+              type="submit"
+            >
+              Salvar status
+            </button>
+          </form>
+        )}
 
         {mensagemStatus && (
           <p
@@ -2013,21 +2276,27 @@ function DetalhesDemanda() {
             </h2>
 
             <p>
-              A prioridade é calculada
-              pelo prazo e pode ser
-              ajustada.
+              {somenteLeitura
+                ? (
+                  'Classificação preservada para consulta.'
+                )
+                : (
+                  'A prioridade é calculada pelo prazo e pode ser ajustada.'
+                )}
             </p>
           </div>
 
-          <button
-            className="alterar-prioridade-button"
-            type="button"
-            onClick={
-              abrirModalPrioridade
-            }
-          >
-            Alterar prioridade
-          </button>
+          {!somenteLeitura && (
+            <button
+              className="alterar-prioridade-button"
+              type="button"
+              onClick={
+                abrirModalPrioridade
+              }
+            >
+              Alterar prioridade
+            </button>
+          )}
         </div>
 
         <div className="prioridade-comparacao">
@@ -2114,8 +2383,13 @@ function DetalhesDemanda() {
             </h2>
 
             <p>
-              Registre dificuldades que
-              estejam atrasando a demanda.
+              {somenteLeitura
+                ? (
+                  'Consulte os gargalos preservados.'
+                )
+                : (
+                  'Registre dificuldades que estejam atrasando a demanda.'
+                )}
             </p>
           </div>
 
@@ -2132,49 +2406,51 @@ function DetalhesDemanda() {
           </div>
         </div>
 
-        <form
-          className="gargalo-form"
-          onSubmit={
-            salvarNovoGargalo
-          }
-        >
-          <div className="gargalo-form-field">
-            <label htmlFor="descricaoGargalo">
-              Descrição do gargalo
-            </label>
-
-            <textarea
-              id="descricaoGargalo"
-              rows="3"
-              maxLength="500"
-              value={descricaoGargalo}
-              onChange={(evento) => {
-                setDescricaoGargalo(
-                  evento.target.value,
-                )
-
-                setMensagemGargalo('')
-              }}
-            />
-
-            <small>
-              {descricaoGargalo.length}
-              /500 caracteres
-            </small>
-          </div>
-
-          <button
-            className="registrar-gargalo-button"
-            type="submit"
-            disabled={
-              salvandoGargalo
+        {!somenteLeitura && (
+          <form
+            className="gargalo-form"
+            onSubmit={
+              salvarNovoGargalo
             }
           >
-            {salvandoGargalo
-              ? 'Registrando...'
-              : 'Registrar gargalo'}
-          </button>
-        </form>
+            <div className="gargalo-form-field">
+              <label htmlFor="descricaoGargalo">
+                Descrição do gargalo
+              </label>
+
+              <textarea
+                id="descricaoGargalo"
+                rows="3"
+                maxLength="500"
+                value={descricaoGargalo}
+                onChange={(evento) => {
+                  setDescricaoGargalo(
+                    evento.target.value,
+                  )
+
+                  setMensagemGargalo('')
+                }}
+              />
+
+              <small>
+                {descricaoGargalo.length}
+                /500 caracteres
+              </small>
+            </div>
+
+            <button
+              className="registrar-gargalo-button"
+              type="submit"
+              disabled={
+                salvandoGargalo
+              }
+            >
+              {salvandoGargalo
+                ? 'Registrando...'
+                : 'Registrar gargalo'}
+            </button>
+          </form>
+        )}
 
         {mensagemGargalo && (
           <p
@@ -2193,9 +2469,9 @@ function DetalhesDemanda() {
               </strong>
 
               <p>
-                Registre uma dificuldade
-                acima para facilitar o
-                acompanhamento.
+                Não há dificuldades
+                registradas para esta
+                demanda.
               </p>
             </div>
           ) : (
@@ -2305,9 +2581,7 @@ function DetalhesDemanda() {
                           >
                             {processando
                               ? 'Salvando...'
-                              : (
-                                'Salvar edição'
-                              )}
+                              : 'Salvar edição'}
                           </button>
                         </div>
                       </div>
@@ -2347,7 +2621,8 @@ function DetalhesDemanda() {
                         )}
                     </div>
 
-                    {usuarioEhGestor &&
+                    {!somenteLeitura &&
+                      usuarioEhGestor &&
                       !editando && (
                         <div className="gargalo-acoes">
                           <button
@@ -2396,6 +2671,9 @@ function DetalhesDemanda() {
                           <button
                             className="gargalo-excluir-button"
                             type="button"
+                            disabled={
+                              processando
+                            }
                             onClick={() =>
                               confirmarExclusaoGargalo(
                                 gargalo,
@@ -2453,217 +2731,344 @@ function DetalhesDemanda() {
         }
       />
 
-      {usuarioEhGestor && (
-        <section className="acoes-perigosas">
-          <div className="acoes-perigosas-texto">
-            <h2>
-              Excluir demanda
-            </h2>
-
-            <p>
-              Esta ação removerá a demanda
-              e não poderá ser desfeita.
-            </p>
-          </div>
-
-          <button
-            className="excluir-demanda-button"
-            type="button"
-            onClick={() =>
-              setConfirmacaoAberta(
-                true,
-              )
-            }
-          >
-            Excluir demanda
-          </button>
-        </section>
-      )}
-
-      {modalPrioridadeAberto && (
-        <div
-          className="prioridade-modal-overlay"
-          role="presentation"
-          onMouseDown={() =>
-            setModalPrioridadeAberto(
-              false,
-            )
-          }
-        >
-          <section
-            className="prioridade-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="prioridade-modal-titulo"
-            onMouseDown={(evento) =>
-              evento.stopPropagation()
-            }
-          >
-            <div className="prioridade-modal-header">
+      {!somenteLeitura &&
+        usuarioEhGestor && (
+          <section className="acoes-demanda">
+            <div className="acao-arquivar-demanda">
               <div>
-                <span className="prioridade-modal-label">
-                  Ajuste manual
-                </span>
-
-                <h2 id="prioridade-modal-titulo">
-                  Alterar prioridade
+                <h2>
+                  Arquivar demanda
                 </h2>
 
                 <p>
-                  Ajuste a prioridade
-                  conforme a complexidade
-                  da demanda.
+                  {demanda.status ===
+                  'Finalizada'
+                    ? (
+                      'Retire a demanda da lista principal sem perder seus dados.'
+                    )
+                    : (
+                      'Finalize a demanda antes de arquivá-la.'
+                    )}
                 </p>
               </div>
 
               <button
-                className="prioridade-modal-fechar"
+                className="arquivar-demanda-button"
                 type="button"
-                aria-label="Fechar janela"
+                disabled={
+                  demanda.status !==
+                  'Finalizada'
+                }
+                onClick={() => {
+                  setMensagemArquivamento(
+                    '',
+                  )
+
+                  setConfirmacaoArquivamentoAberta(
+                    true,
+                  )
+                }}
+              >
+                Arquivar demanda
+              </button>
+            </div>
+
+            <div className="acoes-perigosas">
+              <div className="acoes-perigosas-texto">
+                <h2>
+                  Excluir demanda
+                </h2>
+
+                <p>
+                  Esta ação removerá a
+                  demanda e não poderá ser
+                  desfeita.
+                </p>
+              </div>
+
+              <button
+                className="excluir-demanda-button"
+                type="button"
                 onClick={() =>
-                  setModalPrioridadeAberto(
+                  setConfirmacaoExclusaoAberta(
+                    true,
+                  )
+                }
+              >
+                Excluir demanda
+              </button>
+            </div>
+
+            {mensagemArquivamento && (
+              <p
+                className="arquivamento-mensagem"
+                role="alert"
+              >
+                {mensagemArquivamento}
+              </p>
+            )}
+          </section>
+        )}
+
+      {modalPrioridadeAberto &&
+        !somenteLeitura && (
+          <div
+            className="prioridade-modal-overlay"
+            role="presentation"
+            onMouseDown={() =>
+              setModalPrioridadeAberto(
+                false,
+              )
+            }
+          >
+            <section
+              className="prioridade-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="prioridade-modal-titulo"
+              onMouseDown={(evento) =>
+                evento.stopPropagation()
+              }
+            >
+              <div className="prioridade-modal-header">
+                <div>
+                  <span className="prioridade-modal-label">
+                    Ajuste manual
+                  </span>
+
+                  <h2 id="prioridade-modal-titulo">
+                    Alterar prioridade
+                  </h2>
+
+                  <p>
+                    Ajuste a prioridade
+                    conforme a complexidade
+                    da demanda.
+                  </p>
+                </div>
+
+                <button
+                  className="prioridade-modal-fechar"
+                  type="button"
+                  aria-label="Fechar janela"
+                  onClick={() =>
+                    setModalPrioridadeAberto(
+                      false,
+                    )
+                  }
+                >
+                  ×
+                </button>
+              </div>
+
+              <form
+                className="prioridade-modal-form"
+                onSubmit={
+                  salvarPrioridadeManual
+                }
+              >
+                <div className="prioridade-sugestao">
+                  <span>
+                    Sugestão automática pelo
+                    prazo
+                  </span>
+
+                  <strong>
+                    <span
+                      className={
+                        (
+                          'detalhes-prioridade-badge ' +
+                          `prioridade-${classePrioridadeAutomatica}`
+                        )
+                      }
+                    >
+                      {
+                        prioridadeAutomatica
+                      }
+                    </span>
+                  </strong>
+                </div>
+
+                {erroPrioridade && (
+                  <p
+                    className="prioridade-modal-erro"
+                    role="alert"
+                  >
+                    {erroPrioridade}
+                  </p>
+                )}
+
+                <div className="prioridade-form-field">
+                  <label htmlFor="novaPrioridade">
+                    Nova prioridade
+                  </label>
+
+                  <select
+                    id="novaPrioridade"
+                    value={novaPrioridade}
+                    onChange={(evento) =>
+                      setNovaPrioridade(
+                        evento.target.value,
+                      )
+                    }
+                  >
+                    <option value="">
+                      Selecione uma prioridade
+                    </option>
+
+                    <option value="Baixa">
+                      Baixa
+                    </option>
+
+                    <option value="Média">
+                      Média
+                    </option>
+
+                    <option value="Alta">
+                      Alta
+                    </option>
+                  </select>
+                </div>
+
+                <div className="prioridade-form-field">
+                  <label htmlFor="justificativaPrioridade">
+                    Justificativa
+                  </label>
+
+                  <textarea
+                    id="justificativaPrioridade"
+                    rows="5"
+                    value={
+                      justificativaPrioridade
+                    }
+                    onChange={(evento) =>
+                      setJustificativaPrioridade(
+                        evento.target.value,
+                      )
+                    }
+                  />
+                </div>
+
+                <div className="prioridade-modal-acoes">
+                  {prioridadeFoiAjustada && (
+                    <button
+                      className="restaurar-prioridade-button"
+                      type="button"
+                      onClick={
+                        restaurarPrioridade
+                      }
+                    >
+                      Restaurar automática
+                    </button>
+                  )}
+
+                  <div className="prioridade-modal-acoes-principais">
+                    <button
+                      className="cancelar-prioridade-button"
+                      type="button"
+                      onClick={() =>
+                        setModalPrioridadeAberto(
+                          false,
+                        )
+                      }
+                    >
+                      Cancelar
+                    </button>
+
+                    <button
+                      className="salvar-prioridade-button"
+                      type="submit"
+                    >
+                      Salvar alteração
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </section>
+          </div>
+        )}
+
+      {confirmacaoArquivamentoAberta && (
+        <div
+          className="confirmacao-overlay"
+          role="presentation"
+          onMouseDown={() => {
+            if (!arquivando) {
+              setConfirmacaoArquivamentoAberta(
+                false,
+              )
+            }
+          }}
+        >
+          <section
+            className="confirmacao-modal confirmacao-arquivamento-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="arquivamento-titulo"
+            onMouseDown={(evento) =>
+              evento.stopPropagation()
+            }
+          >
+            <div
+              className="confirmacao-arquivamento-icone"
+              aria-hidden="true"
+            >
+              A
+            </div>
+
+            <h2 id="arquivamento-titulo">
+              Arquivar demanda?
+            </h2>
+
+            <p>
+              A demanda de{' '}
+              <strong>
+                {demanda.orgaoSolicitante}
+              </strong>
+              {' '}deixará a lista principal,
+              mas todos os dados, documentos,
+              gargalos e histórico serão
+              preservados.
+            </p>
+
+            <div className="confirmacao-acoes">
+              <button
+                className="cancelar-exclusao-button"
+                type="button"
+                disabled={arquivando}
+                onClick={() =>
+                  setConfirmacaoArquivamentoAberta(
                     false,
                   )
                 }
               >
-                ×
+                Cancelar
+              </button>
+
+              <button
+                className="confirmar-arquivamento-button"
+                type="button"
+                disabled={arquivando}
+                onClick={
+                  confirmarArquivamento
+                }
+              >
+                {arquivando
+                  ? 'Arquivando...'
+                  : 'Arquivar demanda'}
               </button>
             </div>
-
-            <form
-              className="prioridade-modal-form"
-              onSubmit={
-                salvarPrioridadeManual
-              }
-            >
-              <div className="prioridade-sugestao">
-                <span>
-                  Sugestão automática pelo
-                  prazo
-                </span>
-
-                <strong>
-                  <span
-                    className={
-                      (
-                        'detalhes-prioridade-badge ' +
-                        `prioridade-${classePrioridadeAutomatica}`
-                      )
-                    }
-                  >
-                    {
-                      prioridadeAutomatica
-                    }
-                  </span>
-                </strong>
-              </div>
-
-              {erroPrioridade && (
-                <p
-                  className="prioridade-modal-erro"
-                  role="alert"
-                >
-                  {erroPrioridade}
-                </p>
-              )}
-
-              <div className="prioridade-form-field">
-                <label htmlFor="novaPrioridade">
-                  Nova prioridade
-                </label>
-
-                <select
-                  id="novaPrioridade"
-                  value={novaPrioridade}
-                  onChange={(evento) =>
-                    setNovaPrioridade(
-                      evento.target.value,
-                    )
-                  }
-                >
-                  <option value="">
-                    Selecione uma prioridade
-                  </option>
-
-                  <option value="Baixa">
-                    Baixa
-                  </option>
-
-                  <option value="Média">
-                    Média
-                  </option>
-
-                  <option value="Alta">
-                    Alta
-                  </option>
-                </select>
-              </div>
-
-              <div className="prioridade-form-field">
-                <label htmlFor="justificativaPrioridade">
-                  Justificativa
-                </label>
-
-                <textarea
-                  id="justificativaPrioridade"
-                  rows="5"
-                  value={
-                    justificativaPrioridade
-                  }
-                  onChange={(evento) =>
-                    setJustificativaPrioridade(
-                      evento.target.value,
-                    )
-                  }
-                />
-              </div>
-
-              <div className="prioridade-modal-acoes">
-                {prioridadeFoiAjustada && (
-                  <button
-                    className="restaurar-prioridade-button"
-                    type="button"
-                    onClick={
-                      restaurarPrioridade
-                    }
-                  >
-                    Restaurar automática
-                  </button>
-                )}
-
-                <div className="prioridade-modal-acoes-principais">
-                  <button
-                    className="cancelar-prioridade-button"
-                    type="button"
-                    onClick={() =>
-                      setModalPrioridadeAberto(
-                        false,
-                      )
-                    }
-                  >
-                    Cancelar
-                  </button>
-
-                  <button
-                    className="salvar-prioridade-button"
-                    type="submit"
-                  >
-                    Salvar alteração
-                  </button>
-                </div>
-              </div>
-            </form>
           </section>
         </div>
       )}
 
-      {usuarioEhGestor &&
-        confirmacaoAberta && (
+      {confirmacaoExclusaoAberta &&
+        usuarioEhGestor && (
           <div
             className="confirmacao-overlay"
             role="presentation"
             onMouseDown={() =>
-              setConfirmacaoAberta(
+              setConfirmacaoExclusaoAberta(
                 false,
               )
             }
@@ -2689,13 +3094,10 @@ function DetalhesDemanda() {
               </h2>
 
               <p>
-                Você está prestes a
-                excluir a demanda de{' '}
+                Você está prestes a excluir
+                a demanda de{' '}
                 <strong>
-                  {
-                    demanda
-                      .orgaoSolicitante
-                  }
+                  {demanda.orgaoSolicitante}
                 </strong>
                 . Esta ação não poderá ser
                 desfeita.
@@ -2706,7 +3108,7 @@ function DetalhesDemanda() {
                   className="cancelar-exclusao-button"
                   type="button"
                   onClick={() =>
-                    setConfirmacaoAberta(
+                    setConfirmacaoExclusaoAberta(
                       false,
                     )
                   }
