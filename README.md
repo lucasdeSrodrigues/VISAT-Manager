@@ -266,8 +266,10 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutL
 - Atualização incorreta dos campos do formulário da demanda
 - Formulário de cadastro com tag de abertura inválida
 - Título incorreto no cadastro da demanda
+- Backend retorna erro 500 após deploy sem as tabelas do banco SQLite
+- Campo de responsável exibido sem estilização na página de detalhes
 
-<img width="1246" height="785" alt="Captura de tela 2026-11-07 203145" src="https://github.com/user-attachments/assets/1116fffe-199c-4cab-a28c-314f59793272" />
+<img width="1201" height="737" alt="Captura de tela 2026-11-20 183158" src="https://github.com/user-attachments/assets/7c6d5d0e-672d-4e2b-b86b-2c97c883f657" />
 
 ## 👥Pair programming
 
