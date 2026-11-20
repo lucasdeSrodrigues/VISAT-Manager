@@ -33,7 +33,7 @@ Para testar as funcionalidades do VISAT Manager, selecione o perfil desejado na 
 
 > As credenciais são destinadas exclusivamente ao ambiente acadêmico de demonstração. O perfil selecionado deve corresponder ao usuário informado.
 
-🔎 Status Atual
+## 🔎 Status Atual
 
 O VISAT Manager encontra-se em produção, com frontend hospedado na Vercel e backend hospedado no Render, permitindo o gerenciamento completo do ciclo de vida das demandas da VISAT, desde o cadastro inicial até o arquivamento.
 
