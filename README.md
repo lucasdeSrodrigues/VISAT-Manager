@@ -281,13 +281,19 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutL
 
 ## 👥Pair programming
 
-Devido à composição reduzida da equipe, formada por apenas três integrantes, optamos por adaptar a prática tradicional de Pair Programming para um modelo colaborativo em trio durante momentos estratégicos do desenvolvimento. A concepção inicial do projeto, a definição da arquitetura do frontend e a implementação da US16 (Cadastro Manual de Demandas) foram realizadas presencialmente por toda a equipe, permitindo discussões em tempo real, validação conjunta de decisões técnicas e alinhamento dos requisitos da aplicação.
+👥 Pair Programming
 
-Essa etapa colaborativa estabeleceu uma base sólida para o desenvolvimento das demais histórias de usuário, facilitando a divisão das atividades, reduzindo retrabalho e garantindo maior consistência entre as funcionalidades implementadas. Além das sessões presenciais, os integrantes mantiveram comunicação constante para revisão de soluções, esclarecimento de dúvidas e acompanhamento da evolução das entregas.
+Devido à composição reduzida da equipe, optamos por adaptar a prática tradicional de Pair Programming para um modelo colaborativo em grupo durante momentos estratégicos do desenvolvimento. A concepção inicial do projeto, a definição da arquitetura do frontend e a implementação da US16 (Cadastro Manual de Demandas) foram realizadas de forma conjunta, permitindo discussões em tempo real, validação colaborativa das decisões técnicas e alinhamento dos requisitos do sistema.
 
-Na segunda sprint, também houve uma reunião inicial para definir como seria a estrutura do backend, já dando início, nessa mesma reunião, ao desenvolvimento da base do mesmo. Mais à frente, também nos reunimos para revisar e refinar as US04, US05 e US06 e desenvolver as US07 e US15, obtendo um excelente resultando e contribuindo muito para o desenvolvimento do VISAT Manager.
+Essa etapa colaborativa estabeleceu uma base sólida para o desenvolvimento das demais histórias de usuário, facilitando a divisão das atividades, reduzindo retrabalho e garantindo maior consistência entre as funcionalidades implementadas. Além dos encontros dedicados ao desenvolvimento, os integrantes mantiveram comunicação constante para revisão de soluções, esclarecimento de dúvidas, validação de requisitos e acompanhamento da evolução do projeto.
 
-Em resumo, mesmo com os commits concentrados em uma ou duas pessoas, toda a equipe está contribuindo para o desenvolvimento do projeto, com cada um fazendo a parte designada.
+Na Sprint 02, a equipe realizou reuniões para planejar e estruturar a arquitetura definitiva do backend, iniciando o desenvolvimento da API e da persistência de dados. Também foram promovidas sessões de revisão e refinamento das histórias relacionadas aos filtros, atualização de status, linha do tempo e histórico completo das demandas, contribuindo diretamente para a integração entre frontend e backend.
+
+Já na Sprint 03, a colaboração da equipe esteve concentrada na implementação e validação das funcionalidades finais do sistema.
+
+Também foram realizados testes de sistema com Playwright para validação de fluxos críticos da aplicação, abrangendo autenticação, cadastro de demandas e registro de gargalos, contribuindo para aumentar a confiabilidade da solução.
+
+Em resumo, mesmo com parte dos commits concentrados em integrantes específicos em determinados momentos do desenvolvimento, todo o grupo participou ativamente das decisões, validações, revisões e implementações necessárias para a evolução do VISAT Manager, colaborando para a entrega de uma solução integrada, funcional e publicada em produção.
 
 ## 👨‍💻Equipe
 
