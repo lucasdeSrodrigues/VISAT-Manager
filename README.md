@@ -35,57 +35,78 @@ Para testar as funcionalidades do VISAT Manager, selecione o perfil desejado na 
 
 ## 🔎 Status Atual
 
-O VISAT Manager encontra-se em estágio funcional avançado, com as funcionalidades das Sprints 01 e 02 concluídas e a implementação da Sprint 03 em andamento.
+O VISAT Manager encontra-se em produção, com frontend hospedado na Vercel e backend hospedado no Render, permitindo o gerenciamento completo do ciclo de vida das demandas da VISAT, desde o cadastro inicial até o arquivamento.
 
-Nas duas primeiras Sprints, foram desenvolvidos e integrados os principais recursos de gerenciamento de demandas:
+Ao longo das três sprints, foram desenvolvidos e integrados os principais recursos da plataforma:
 
-- Cadastro manual e listagem centralizada de demandas;
-- Classificação automática e ajuste manual de prioridades;
-- Dashboard gerencial e Central de Alertas de prazos;
-- Busca e filtros por área, bairro e responsável;
-- Atualização do status das demandas;
-- Visualização detalhada, linha do tempo e histórico completo;
-- Edição dos dados cadastrados;
-- Atribuição de responsáveis;
-- Exclusão de demandas com confirmação.
+<ul>
+<li>Cadastro manual e listagem centralizada de demandas;</li>
+<li>Classificação automática e ajuste manual de prioridades;</li>
+<li>Dashboard gerencial com indicadores operacionais;</li>
+<li>Central de Alertas para monitoramento de prazos;</li>
+<li>Indicador de demandas atrasadas;</li>
+<li>Busca e filtros por área, bairro e responsável;</li>
+<li>Atualização do status das demandas;</li>
+<li>Visualização detalhada das demandas;</li>
+<li>Linha do tempo e histórico completo de movimentações;</li>
+<li>Edição dos dados cadastrados;</li>
+<li>Atribuição e remoção de responsáveis;</li>
+<li>Exclusão de demandas com confirmação;</li>
+<li>Registro e acompanhamento de gargalos operacionais;</li>
+<li>Anexação, consulta e download de documentos;</li>
+<li>Arquivamento e consulta de demandas arquivadas.</li>
+</ul>
 
-Na Sprint 03, foi implementado o controle de acesso com os perfis **Gestor** e **Inspetor**. O sistema agora possui autenticação por e-mail e senha, com validação realizada pelo backend e sessões protegidas por cookie.
+Na Sprint 03, foi implementado o sistema de autenticação com os perfis <strong>Gestor</strong> e <strong>Inspetor</strong>. O acesso é realizado por e-mail e senha, com validação pelo backend e gerenciamento de sessão através de cookies protegidos.
 
 As permissões são diferenciadas conforme o perfil:
 
-- **Gestor:** possui acesso às funções administrativas, incluindo atribuir ou remover responsáveis e excluir demandas;
-- **Inspetor:** possui acesso às funções operacionais, como cadastrar, consultar e atualizar demandas, sem permissão para atribuir responsáveis ou realizar exclusões.
+<ul>
+<li><strong>Gestor:</strong> possui acesso às funções administrativas, incluindo atribuição e remoção de responsáveis, exclusão de demandas, visualização dos gargalos registrados, gerenciamento de demandas arquivadas e acompanhamento global dos indicadores do sistema.</li>
 
-As restrições são aplicadas tanto na interface quanto no backend, evitando que operações não autorizadas sejam executadas diretamente pela API. O histórico também registra automaticamente o usuário autenticado responsável por cada movimentação.
+<li><strong>Inspetor:</strong> possui acesso às funções operacionais, incluindo cadastro, consulta e atualização de demandas, registro de gargalos operacionais e anexação de documentos, sem permissão para atribuir responsáveis ou excluir demandas.</li>
+</ul>
+
+As restrições são aplicadas tanto na interface quanto no backend, impedindo que operações não autorizadas sejam executadas diretamente pela API. O histórico também registra automaticamente o usuário autenticado responsável por cada movimentação realizada.
 
 A aplicação utiliza a seguinte arquitetura:
 
-### Frontend
+<strong>Frontend</strong>
 
-- React;
-- Vite;
-- JavaScript;
-- React Router DOM;
-- Publicação na Vercel.
+<ul>
+<li>React;</li>
+<li>Vite;</li>
+<li>JavaScript;</li>
+<li>React Router DOM;</li>
+<li>Publicação na Vercel.</li>
+</ul>
 
-### Backend
+<strong>Backend</strong>
 
-- Python;
-- Flask;
-- API REST;
-- Autenticação por sessão;
-- Publicação no Render.
+<ul>
+<li>Python;</li>
+<li>Flask;</li>
+<li>API REST;</li>
+<li>Autenticação por sessão;</li>
+<li>Publicação no Render.</li>
+</ul>
 
-### Banco de dados
+<strong>Banco de Dados</strong>
 
-- SQLite;
-- Armazenamento de demandas, históricos e usuários;
-- Inicialização automática das tabelas necessárias;
-- Senhas armazenadas de forma protegida por hash.
+<ul>
+<li>SQLite;</li>
+<li>Armazenamento de demandas;</li>
+<li>Armazenamento de usuários;</li>
+<li>Armazenamento de históricos;</li>
+<li>Armazenamento de gargalos;</li>
+<li>Armazenamento de documentos anexados;</li>
+<li>Inicialização automática das tabelas necessárias;</li>
+<li>Senhas armazenadas de forma protegida por hash.</li>
+</ul>
 
-O frontend se comunica com o backend pela variável de ambiente `VITE_API_URL`. O backend gerencia autenticação, permissões, cadastro, consulta, atualização e exclusão das demandas.
+O frontend se comunica com o backend por meio da variável de ambiente <code>VITE_API_URL</code>. O backend é responsável pela autenticação, autorização, cadastro, consulta, atualização, arquivamento e exclusão das demandas, além do gerenciamento dos documentos e registros operacionais.
 
-✅ **Situação atual do projeto:** sistema publicado e integrado, com autenticação, perfis de acesso, permissões diferenciadas, persistência em banco de dados, Dashboard, Central de Alertas, filtros avançados, gestão de status, responsáveis e histórico completo das demandas.
+✅ <strong>Situação atual do projeto:</strong> sistema publicado e integrado em ambiente de produção, com autenticação, perfis de acesso, permissões diferenciadas, persistência em banco de dados, Dashboard gerencial, Central de Alertas, indicadores de demandas atrasadas, filtros avançados, gestão de status, responsáveis, gargalos operacionais, anexação de documentos, arquivamento de demandas e histórico completo das movimentações.
 
 ## 🏃 Sprints
 
@@ -93,11 +114,11 @@ O frontend se comunica com o backend pela variável de ambiente `VITE_API_URL`. 
 
 Histórias de usuário selecionadas e implementadas nesta sprint:
 
-- **UH02 — Listar demandas em painel central**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBIFN6yAHtWT5DeeIHSx4OsAcJRBHjRzqJRZBpTF3l4PdE?e=OA2KSK
-- **UH03 — Classificar demandas por prioridade** https://1drv.ms/v/c/1c1c8fc2654f999f/IQCPfIMlI6WAQo-0prqA4nhBAcQcAc9DoJO9v33xvDJfhcU?e=RbQLnT 
-- **UH09 — Receber alerta de prazo próximo**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQCF5KikdggPRbPeK85XbYSkAXTzlt24iQ3h2T2WcwyJJh8?e=caB7k1
-- **UH11 — Dashboard gerencial**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQC62kJFFdTITYiDuUGfiYYSAZWCpblojSVy7ya2N9MKDaU?e=Dir3l4
-- **UH16 — Cadastrar demanda manualmente**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBxXrr8RVtjRKONxFK1i5wqAcIlP26ChfSZNzqTz-1BWQ8?e=gCHoR6
+- **US02 — Listar demandas em painel central**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBIFN6yAHtWT5DeeIHSx4OsAcJRBHjRzqJRZBpTF3l4PdE?e=OA2KSK
+- **US03 — Classificar demandas por prioridade** https://1drv.ms/v/c/1c1c8fc2654f999f/IQCPfIMlI6WAQo-0prqA4nhBAcQcAc9DoJO9v33xvDJfhcU?e=RbQLnT 
+- **US09 — Receber alerta de prazo próximo**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQCF5KikdggPRbPeK85XbYSkAXTzlt24iQ3h2T2WcwyJJh8?e=caB7k1
+- **US11 — Dashboard gerencial**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQC62kJFFdTITYiDuUGfiYYSAZWCpblojSVy7ya2N9MKDaU?e=Dir3l4
+- **US16 — Cadastrar demanda manualmente**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBxXrr8RVtjRKONxFK1i5wqAcIlP26ChfSZNzqTz-1BWQ8?e=gCHoR6
 
 **Status:** ✅ Concluída
 
@@ -106,11 +127,11 @@ Histórias de usuário selecionadas e implementadas nesta sprint:
 Objetivo: Aprimorar o acompanhamento do ciclo de vida das demandas e estruturar a arquitetura definitiva da aplicação com backend e banco de dados.
 Histórias de Usuário Implementadas:
 
-- **UH04 — Buscar e filtrar demandas por áreas/bairros** https://1drv.ms/v/c/1c1c8fc2654f999f/IQD1uQj8CVnhRLDJMUISzvOPARj8CbAKcLVWOh3wRuH7u6M?e=8FNPaB
-- **UH05 — Filtrar demandas por responsável**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBdJ68muZ9LSIHNHIfcFvoTAaMowRtS3rQBDjMkhVYq83M?e=qRnsMa
-- **UH06 — Atualizar o status da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQCyvseEJqTbSqg1tMK-sXVPAaTE1hKa8TUlYrFpfNAtKVs?e=MTHjrk
-- **UH07 — Visualizar a linha do tempo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQA81ndyOXGbSLU0gGlG43VwAZalahyFhvloorHeoBdlWf4?e=4wNPBl
-- **UH15 — Consultar o histórico completo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQAhqGqRKDzHQZQfnl0RvH58AbvIbOYLPwh4nAERXiNHuA8?e=sKycma
+- **US04 — Buscar e filtrar demandas por áreas/bairros** https://1drv.ms/v/c/1c1c8fc2654f999f/IQD1uQj8CVnhRLDJMUISzvOPARj8CbAKcLVWOh3wRuH7u6M?e=8FNPaB
+- **US05 — Filtrar demandas por responsável**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBdJ68muZ9LSIHNHIfcFvoTAaMowRtS3rQBDjMkhVYq83M?e=qRnsMa
+- **US06 — Atualizar o status da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQCyvseEJqTbSqg1tMK-sXVPAaTE1hKa8TUlYrFpfNAtKVs?e=MTHjrk
+- **US07 — Visualizar a linha do tempo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQA81ndyOXGbSLU0gGlG43VwAZalahyFhvloorHeoBdlWf4?e=4wNPBl
+- **US15 — Consultar o histórico completo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQAhqGqRKDzHQZQfnl0RvH58AbvIbOYLPwh4nAERXiNHuA8?e=sKycma
   
 Principais entregas da Sprint:
 
@@ -132,6 +153,80 @@ Tecnologias incorporadas nesta Sprint:
 - SQLite
 Status:
 **Status:** ✅ Concluída
+
+<h3>Sprint 03</h3>
+
+<p><strong>Objetivo:</strong> fortalecer a gestão das demandas através de controle de acesso, monitoramento gerencial, registro de gargalos, gestão documental e arquivamento de processos concluídos.</p>
+
+<p><strong>Histórias de Usuário Implementadas:</strong></p>
+
+<ul>
+  <li>
+    <strong>US08 — Arquivar e consultar demandas arquivadas</strong><br>
+    Permite que demandas finalizadas sejam arquivadas e posteriormente consultadas em modo somente leitura, preservando histórico e documentos vinculados.<br>
+    
+  </li>
+
+  <li>
+    <strong>US10 — Receber alerta de demanda atrasada</strong><br>
+    Destaca demandas com prazo ultrapassado, auxiliando gestores na rápida identificação de situações críticas e prioritárias.<br>
+    
+  </li>
+
+  <li>
+    <strong>US12 — Visualizar indicadores gerenciais</strong><br>
+    Amplia os indicadores do Dashboard para fornecer uma visão mais clara da situação das demandas e apoiar a tomada de decisão.<br>
+    
+  </li>
+
+  <li>
+    <strong>US13 — Registrar gargalos operacionais</strong><br>
+    Permite que inspetores registrem dificuldades encontradas durante a execução das demandas e que gestores acompanhem esses registros para apoiar a resolução dos problemas identificados.<br>
+    
+  </li>
+
+  <li>
+    <strong>US14 — Anexar documentos à demanda</strong><br>
+    Permite incluir documentos relacionados às demandas, informando tipo e descrição, facilitando a organização das evidências e consultas futuras.<br>
+    
+  </li>
+</ul>
+
+<p><strong>Principais entregas da Sprint:</strong></p>
+
+<ul>
+  <li>Sistema de autenticação com perfis Gestor e Inspetor;</li>
+  <li>Controle de permissões aplicado no frontend e backend;</li>
+  <li>Indicador de demandas atrasadas no Dashboard;</li>
+  <li>Registro e acompanhamento de gargalos operacionais;</li>
+  <li>Anexação, consulta e download de documentos;</li>
+  <li>Arquivamento manual de demandas finalizadas;</li>
+  <li>Consulta de demandas arquivadas em modo somente leitura;</li>
+  <li>Registro de histórico de arquivamentos e movimentações dos usuários;</li>
+  <li>Validação de sessão através de autenticação integrada entre frontend e backend;</li>
+  <li>Publicação da aplicação em ambiente de produção (Vercel + Render).</li>
+</ul>
+
+<p><strong>Tecnologias incorporadas nesta Sprint:</strong></p>
+
+<ul>
+  <li>Autenticação baseada em sessão;</li>
+  <li>Cookies HttpOnly;</li>
+  <li>Controle de acesso por perfis;</li>
+  <li>React;</li>
+  <li>Flask;</li>
+  <li>SQLite.</li>
+</ul>
+
+### Diferença entre UH09 e US10
+
+UH09 atua preventivamente,
+alertando demandas próximas do vencimento.
+
+US10 atua corretivamente,
+destacando demandas cujo prazo já foi ultrapassado.
+
+<p><strong>Status:</strong> ✅ Concluída</p>
 
 ## Tela do board/backlog
 
@@ -179,8 +274,10 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutL
 - Atualização incorreta dos campos do formulário da demanda
 - Formulário de cadastro com tag de abertura inválida
 - Título incorreto no cadastro da demanda
+- Backend retorna erro 500 após deploy sem as tabelas do banco SQLite
+- Campo de responsável exibido sem estilização na página de detalhes
 
-<img width="1246" height="785" alt="Captura de tela 2026-11-07 203145" src="https://github.com/user-attachments/assets/1116fffe-199c-4cab-a28c-314f59793272" />
+<img width="1207" height="798" alt="Captura de tela 2026-11-22 135744" src="https://github.com/user-attachments/assets/00e4192f-fb55-4e96-ac3d-c9403e3479b4" />
 
 ## 👥Pair programming
 
