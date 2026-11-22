@@ -269,7 +269,7 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutL
 - Backend retorna erro 500 após deploy sem as tabelas do banco SQLite
 - Campo de responsável exibido sem estilização na página de detalhes
 
-<img width="1201" height="737" alt="Captura de tela 2026-11-20 183158" src="https://github.com/user-attachments/assets/7c6d5d0e-672d-4e2b-b86b-2c97c883f657" />
+<img width="1207" height="798" alt="Captura de tela 2026-11-22 135744" src="https://github.com/user-attachments/assets/00e4192f-fb55-4e96-ac3d-c9403e3479b4" />
 
 ## 👥Pair programming
 
