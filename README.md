@@ -218,6 +218,14 @@ Status:
   <li>SQLite.</li>
 </ul>
 
+### Diferença entre UH09 e US10
+
+UH09 atua preventivamente,
+alertando demandas próximas do vencimento.
+
+US10 atua corretivamente,
+destacando demandas cujo prazo já foi ultrapassado.
+
 <p><strong>Status:</strong> ✅ Concluída</p>
 
 ## Tela do board/backlog
