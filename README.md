@@ -114,11 +114,11 @@ O frontend se comunica com o backend por meio da variável de ambiente <code>VIT
 
 Histórias de usuário selecionadas e implementadas nesta sprint:
 
-- **UH02 — Listar demandas em painel central**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBIFN6yAHtWT5DeeIHSx4OsAcJRBHjRzqJRZBpTF3l4PdE?e=OA2KSK
-- **UH03 — Classificar demandas por prioridade** https://1drv.ms/v/c/1c1c8fc2654f999f/IQCPfIMlI6WAQo-0prqA4nhBAcQcAc9DoJO9v33xvDJfhcU?e=RbQLnT 
-- **UH09 — Receber alerta de prazo próximo**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQCF5KikdggPRbPeK85XbYSkAXTzlt24iQ3h2T2WcwyJJh8?e=caB7k1
-- **UH11 — Dashboard gerencial**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQC62kJFFdTITYiDuUGfiYYSAZWCpblojSVy7ya2N9MKDaU?e=Dir3l4
-- **UH16 — Cadastrar demanda manualmente**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBxXrr8RVtjRKONxFK1i5wqAcIlP26ChfSZNzqTz-1BWQ8?e=gCHoR6
+- **US02 — Listar demandas em painel central**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBIFN6yAHtWT5DeeIHSx4OsAcJRBHjRzqJRZBpTF3l4PdE?e=OA2KSK
+- **US03 — Classificar demandas por prioridade** https://1drv.ms/v/c/1c1c8fc2654f999f/IQCPfIMlI6WAQo-0prqA4nhBAcQcAc9DoJO9v33xvDJfhcU?e=RbQLnT 
+- **US09 — Receber alerta de prazo próximo**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQCF5KikdggPRbPeK85XbYSkAXTzlt24iQ3h2T2WcwyJJh8?e=caB7k1
+- **US11 — Dashboard gerencial**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQC62kJFFdTITYiDuUGfiYYSAZWCpblojSVy7ya2N9MKDaU?e=Dir3l4
+- **US16 — Cadastrar demanda manualmente**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBxXrr8RVtjRKONxFK1i5wqAcIlP26ChfSZNzqTz-1BWQ8?e=gCHoR6
 
 **Status:** ✅ Concluída
 
@@ -127,11 +127,11 @@ Histórias de usuário selecionadas e implementadas nesta sprint:
 Objetivo: Aprimorar o acompanhamento do ciclo de vida das demandas e estruturar a arquitetura definitiva da aplicação com backend e banco de dados.
 Histórias de Usuário Implementadas:
 
-- **UH04 — Buscar e filtrar demandas por áreas/bairros** https://1drv.ms/v/c/1c1c8fc2654f999f/IQD1uQj8CVnhRLDJMUISzvOPARj8CbAKcLVWOh3wRuH7u6M?e=8FNPaB
-- **UH05 — Filtrar demandas por responsável**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBdJ68muZ9LSIHNHIfcFvoTAaMowRtS3rQBDjMkhVYq83M?e=qRnsMa
-- **UH06 — Atualizar o status da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQCyvseEJqTbSqg1tMK-sXVPAaTE1hKa8TUlYrFpfNAtKVs?e=MTHjrk
-- **UH07 — Visualizar a linha do tempo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQA81ndyOXGbSLU0gGlG43VwAZalahyFhvloorHeoBdlWf4?e=4wNPBl
-- **UH15 — Consultar o histórico completo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQAhqGqRKDzHQZQfnl0RvH58AbvIbOYLPwh4nAERXiNHuA8?e=sKycma
+- **US04 — Buscar e filtrar demandas por áreas/bairros** https://1drv.ms/v/c/1c1c8fc2654f999f/IQD1uQj8CVnhRLDJMUISzvOPARj8CbAKcLVWOh3wRuH7u6M?e=8FNPaB
+- **US05 — Filtrar demandas por responsável**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQBdJ68muZ9LSIHNHIfcFvoTAaMowRtS3rQBDjMkhVYq83M?e=qRnsMa
+- **US06 — Atualizar o status da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQCyvseEJqTbSqg1tMK-sXVPAaTE1hKa8TUlYrFpfNAtKVs?e=MTHjrk
+- **US07 — Visualizar a linha do tempo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQA81ndyOXGbSLU0gGlG43VwAZalahyFhvloorHeoBdlWf4?e=4wNPBl
+- **US15 — Consultar o histórico completo da demanda**  https://1drv.ms/v/c/1c1c8fc2654f999f/IQAhqGqRKDzHQZQfnl0RvH58AbvIbOYLPwh4nAERXiNHuA8?e=sKycma
   
 Principais entregas da Sprint:
 
