@@ -33,80 +33,89 @@ Para testar as funcionalidades do VISAT Manager, selecione o perfil desejado na 
 
 > As credenciais são destinadas exclusivamente ao ambiente acadêmico de demonstração. O perfil selecionado deve corresponder ao usuário informado.
 
-## 🔎 Status Atual
+# 🔎 Status Atual
 
-O VISAT Manager encontra-se em produção, com frontend hospedado na Vercel e backend hospedado no Render, permitindo o gerenciamento completo do ciclo de vida das demandas da VISAT, desde o cadastro inicial até o arquivamento.
+O VISAT Manager é uma plataforma web para gerenciamento das demandas da VISAT, desenvolvida ao longo de três sprints e publicada em ambiente de produção, com frontend hospedado na Vercel e backend hospedado no Render.
 
-Ao longo das três sprints, foram desenvolvidos e integrados os principais recursos da plataforma:
+Ao longo do projeto, foram desenvolvidos e integrados os principais recursos da plataforma:
 
-<ul>
-<li>Cadastro manual e listagem centralizada de demandas;</li>
-<li>Classificação automática e ajuste manual de prioridades;</li>
-<li>Dashboard gerencial com indicadores operacionais;</li>
-<li>Central de Alertas para monitoramento de prazos;</li>
-<li>Indicador de demandas atrasadas;</li>
-<li>Busca e filtros por área, bairro e responsável;</li>
-<li>Atualização do status das demandas;</li>
-<li>Visualização detalhada das demandas;</li>
-<li>Linha do tempo e histórico completo de movimentações;</li>
-<li>Edição dos dados cadastrados;</li>
-<li>Atribuição e remoção de responsáveis;</li>
-<li>Exclusão de demandas com confirmação;</li>
-<li>Registro e acompanhamento de gargalos operacionais;</li>
-<li>Anexação, consulta e download de documentos;</li>
-<li>Arquivamento e consulta de demandas arquivadas.</li>
-</ul>
+- Cadastro manual e listagem centralizada de demandas;
+- Classificação automática e ajuste manual de prioridades;
+- Dashboard gerencial com indicadores operacionais;
+- Central de Alertas para monitoramento de prazos;
+- Indicador de demandas atrasadas;
+- Busca e filtros por área, bairro e responsável;
+- Atualização do status das demandas;
+- Visualização detalhada das demandas;
+- Linha do tempo e histórico completo de movimentações;
+- Edição dos dados cadastrados;
+- Atribuição e remoção de responsáveis;
+- Exclusão de demandas com confirmação;
+- Controle de acesso por perfis de usuário;
+- Registro e acompanhamento de gargalos operacionais;
+- Anexação, consulta e download de documentos;
+- Arquivamento e consulta de demandas arquivadas.
 
-Na Sprint 03, foi implementado o sistema de autenticação com os perfis <strong>Gestor</strong> e <strong>Inspetor</strong>. O acesso é realizado por e-mail e senha, com validação pelo backend e gerenciamento de sessão através de cookies protegidos.
+Na Sprint 03, foi implementado o sistema de autenticação com os perfis **Gestor** e **Inspetor**. O acesso é realizado por e-mail e senha, com validação pelo backend e gerenciamento de sessão através de cookies protegidos.
 
-As permissões são diferenciadas conforme o perfil:
+## Perfis de acesso
 
-<ul>
-<li><strong>Gestor:</strong> possui acesso às funções administrativas, incluindo atribuição e remoção de responsáveis, exclusão de demandas, visualização dos gargalos registrados, gerenciamento de demandas arquivadas e acompanhamento global dos indicadores do sistema.</li>
+### Gestor
 
-<li><strong>Inspetor:</strong> possui acesso às funções operacionais, incluindo cadastro, consulta e atualização de demandas, registro de gargalos operacionais e anexação de documentos, sem permissão para atribuir responsáveis ou excluir demandas.</li>
-</ul>
+Possui acesso às funções administrativas, incluindo:
+
+- Atribuição e remoção de responsáveis;
+- Exclusão de demandas;
+- Visualização e gerenciamento de gargalos;
+- Arquivamento de demandas finalizadas;
+- Acompanhamento dos indicadores gerenciais do sistema.
+
+### Inspetor
+
+Possui acesso às funções operacionais, incluindo:
+
+- Cadastro, consulta e atualização de demandas;
+- Registro de gargalos operacionais;
+- Anexação de documentos;
+
+Sem permissão para atribuir responsáveis ou excluir demandas.
 
 As restrições são aplicadas tanto na interface quanto no backend, impedindo que operações não autorizadas sejam executadas diretamente pela API. O histórico também registra automaticamente o usuário autenticado responsável por cada movimentação realizada.
 
-A aplicação utiliza a seguinte arquitetura:
+Além dos testes funcionais realizados durante o desenvolvimento, o projeto passou a contar com testes automatizados de sistema utilizando Playwright, validando funcionalidades críticas como autenticação, cadastro de demandas e registro de gargalos.
 
-<strong>Frontend</strong>
+# Arquitetura da Aplicação
 
-<ul>
-<li>React;</li>
-<li>Vite;</li>
-<li>JavaScript;</li>
-<li>React Router DOM;</li>
-<li>Publicação na Vercel.</li>
-</ul>
+## Frontend
 
-<strong>Backend</strong>
+- React;
+- Vite;
+- JavaScript;
+- React Router DOM;
+- Publicação na Vercel.
 
-<ul>
-<li>Python;</li>
-<li>Flask;</li>
-<li>API REST;</li>
-<li>Autenticação por sessão;</li>
-<li>Publicação no Render.</li>
-</ul>
+## Backend
 
-<strong>Banco de Dados</strong>
+- Python;
+- Flask;
+- API REST;
+- Autenticação por sessão;
+- Publicação no Render.
 
-<ul>
-<li>SQLite;</li>
-<li>Armazenamento de demandas;</li>
-<li>Armazenamento de usuários;</li>
-<li>Armazenamento de históricos;</li>
-<li>Armazenamento de gargalos;</li>
-<li>Armazenamento de documentos anexados;</li>
-<li>Inicialização automática das tabelas necessárias;</li>
-<li>Senhas armazenadas de forma protegida por hash.</li>
-</ul>
+## Banco de Dados
 
-O frontend se comunica com o backend por meio da variável de ambiente <code>VITE_API_URL</code>. O backend é responsável pela autenticação, autorização, cadastro, consulta, atualização, arquivamento e exclusão das demandas, além do gerenciamento dos documentos e registros operacionais.
+- SQLite;
+- Armazenamento de demandas;
+- Armazenamento de usuários;
+- Armazenamento de históricos;
+- Armazenamento de gargalos;
+- Armazenamento de documentos anexados;
+- Inicialização automática das tabelas necessárias;
+- Senhas armazenadas de forma protegida por hash.
 
-✅ <strong>Situação atual do projeto:</strong> sistema publicado e integrado em ambiente de produção, com autenticação, perfis de acesso, permissões diferenciadas, persistência em banco de dados, Dashboard gerencial, Central de Alertas, indicadores de demandas atrasadas, filtros avançados, gestão de status, responsáveis, gargalos operacionais, anexação de documentos, arquivamento de demandas e histórico completo das movimentações.
+O frontend se comunica com o backend por meio da variável de ambiente `VITE_API_URL`. O backend é responsável pela autenticação, autorização, cadastro, consulta, atualização, arquivamento e exclusão das demandas, além do gerenciamento de documentos, gargalos e registros históricos.
+
+✅ **Situação atual do projeto**: todas as funcionalidades previstas para as três sprints foram implementadas, integradas e validadas, resultando em uma aplicação completa para gestão de demandas da VISAT, com autenticação, controle de acesso, indicadores gerenciais, monitoramento de prazos, gargalos operacionais, gestão documental, arquivamento de demandas e testes automatizados de sistema utilizando Playwright.
 
 ## 🏃 Sprints
 
