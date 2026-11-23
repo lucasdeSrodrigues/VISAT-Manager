@@ -173,31 +173,31 @@ Status:
   <li>
     <strong>US08 — Arquivar e consultar demandas arquivadas</strong><br>
     Permite que demandas finalizadas sejam arquivadas e posteriormente consultadas em modo somente leitura, preservando histórico e documentos vinculados.<br>
-    
+    https://1drv.ms/v/c/1c1c8fc2654f999f/IQCNjrvVAWpqQpENT1SOWi6YAe6JVVuB0_cJN8ERo5FLfzk?e=GhpS8g
   </li>
 
   <li>
     <strong>US10 — Receber alerta de demanda atrasada</strong><br>
     Destaca demandas com prazo ultrapassado, auxiliando gestores na rápida identificação de situações críticas e prioritárias.<br>
-    
+    https://1drv.ms/v/c/1c1c8fc2654f999f/IQBjS1VlXMW9TJ1z5O86-lFeAXyKmtUYDY7TwS0MNxboz4U?e=gVbjBl
   </li>
 
   <li>
     <strong>US12 — Visualizar indicadores gerenciais</strong><br>
     Amplia os indicadores do Dashboard para fornecer uma visão mais clara da situação das demandas e apoiar a tomada de decisão.<br>
-    
+    https://1drv.ms/v/c/1c1c8fc2654f999f/IQBLm0A7hEq1SoQ94aqWoH6QAdJZ7Xstzg3ruXlYtnOeLxI?e=jL0c03
   </li>
 
   <li>
     <strong>US13 — Registrar gargalos operacionais</strong><br>
     Permite que inspetores registrem dificuldades encontradas durante a execução das demandas e que gestores acompanhem esses registros para apoiar a resolução dos problemas identificados.<br>
-    
+    https://1drv.ms/v/c/1c1c8fc2654f999f/IQAwOz9sN3oGQ7hQy0re_jS8AYlsaMDWhZ2JwDefGoPlMDg?e=sVzdP4
   </li>
 
   <li>
     <strong>US14 — Anexar documentos à demanda</strong><br>
     Permite incluir documentos relacionados às demandas, informando tipo e descrição, facilitando a organização das evidências e consultas futuras.<br>
-    
+    https://1drv.ms/v/c/1c1c8fc2654f999f/IQBPJSZopacYToJVPM-zfimrAXSvLAq4jDYahyKmQ6V6Ars?e=QtejzY
   </li>
 </ul>
 
