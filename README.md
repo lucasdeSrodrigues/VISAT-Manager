@@ -169,7 +169,7 @@ Status:
 
 <p><strong>Histórias de Usuário Implementadas:</strong></p>
 
-**US01 - Perfis gestor e inspetor** https://drive.google.com/file/d/1j6O8IzGRIT597E3WFHdQf0mYoOT-M5b3/view?usp=sharing
+- **US01 - Perfis gestor e inspetor** https://drive.google.com/file/d/1j6O8IzGRIT597E3WFHdQf0mYoOT-M5b3/view?usp=sharing
 
 <ul>
   <li>
