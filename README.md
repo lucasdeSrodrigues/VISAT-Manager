@@ -169,6 +169,8 @@ Status:
 
 <p><strong>Histórias de Usuário Implementadas:</strong></p>
 
+**US01 - Perfis gestor e inspetor** https://drive.google.com/file/d/1j6O8IzGRIT597E3WFHdQf0mYoOT-M5b3/view?usp=sharing
+
 <ul>
   <li>
     <strong>US08 — Arquivar e consultar demandas arquivadas</strong><br>
@@ -258,6 +260,9 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQDhKngsunz_Q6siTCEosNfHAfA8Gh6V9wxFa7QBFa8
 
 **VISAT-Manager em produção:**
 https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutLuqhI?e=kYHQT9
+
+**Testes automatizados:**
+https://drive.google.com/file/d/1Pl21pXr37QeVpTf1cDGaXr6Q38SjYKGR/view?usp=sharing
 
 ## Issue/bug tracker
 
