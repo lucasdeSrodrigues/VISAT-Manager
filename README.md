@@ -296,6 +296,12 @@ https://drive.google.com/file/d/1wsw9KOmu94s4--hRh98Nf8QVnhnY4sHg/view?usp=drive
 
 <img width="1207" height="798" alt="Captura de tela 2026-11-22 135744" src="https://github.com/user-attachments/assets/00e4192f-fb55-4e96-ac3d-c9403e3479b4" />
 
+## Uso de Ferramentas de Inteligência Artificial
+
+Durante o desenvolvimento do projeto, ferramentas de inteligência artificial generativa foram utilizadas de forma pontual como apoio às atividades de documentação, revisão de textos, esclarecimento de dúvidas técnicas e consulta de boas práticas de desenvolvimento.
+
+Todas as decisões de projeto, implementação, validação dos requisitos, testes, correções e integração das funcionalidades foram realizadas e revisadas pela equipe, que manteve a responsabilidade integral sobre o produto final entregue.
+
 ## 👥Pair programming
 
 👥 Pair Programming
