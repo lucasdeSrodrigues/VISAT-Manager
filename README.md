@@ -229,9 +229,9 @@ Status:
   <li>SQLite.</li>
 </ul>
 
-### Diferença entre UH09 e US10
+### Diferença entre US09 e US10
 
-UH09 atua preventivamente,
+US09 atua preventivamente,
 alertando demandas próximas do vencimento.
 
 US10 atua corretivamente,
@@ -243,10 +243,9 @@ destacando demandas cujo prazo já foi ultrapassado.
 
 https://trello.com/invite/b/6a958f5ae0e46b0d0e91853f/ATTI7515ce6337281d37eeb479b51089f280304B3628/projeto-visat
 
-<img width="1517" height="826" alt="Captura de tela 2026-11-06 165836" src="https://github.com/user-attachments/assets/f4cead91-5239-47a9-a4d6-6ffd8b5efc55" />
+<img width="1530" height="773" alt="Captura de tela 2026-11-25 234618" src="https://github.com/user-attachments/assets/ac51fdf2-dab2-4952-88b1-e2d0655d9a25" />
 
-
-## 📊Diagramas das UH's
+## 📊Diagramas das US's
 
 https://www.figma.com/board/CBjudZTIcd7CaVuHgd4o5d/Sem-t%C3%ADtulo?node-id=0-1&t=POQt2YpKTqWM5VYQ-1
 
