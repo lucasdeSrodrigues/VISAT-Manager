@@ -265,7 +265,7 @@ https://1drv.ms/v/c/1c1c8fc2654f999f/IQBXpBRHCE8VQKP5q6mYUJbwAdWSMmybAmHF0IJjutL
 https://drive.google.com/file/d/1Pl21pXr37QeVpTf1cDGaXr6Q38SjYKGR/view?usp=sharing
 
 **Screencast final**
-https://drive.google.com/file/d/1wsw9KOmu94s4--hRh98Nf8QVnhnY4sHg/view?usp=drive_link
+https://drive.google.com/file/d/1EsCui6DNRyVF2sfjJ5pr5aLf9VIruIbi/view?usp=sharing
 
 ## Issue/bug tracker
 
